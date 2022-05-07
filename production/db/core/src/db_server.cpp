@@ -98,37 +98,6 @@ void server_t::handle_connect(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
-    // or after a regular session has already been started.
-    if (s_is_ddl_session)
-    {
-        ASSERT_INVARIANT(
-            g_can_ddl_sessions_still_be_started,
-            "Attempting to start a DDL session after a regular session was started!");
-
-        bool expected_value = false;
-        bool has_succeeded = g_is_ddl_session_active.compare_exchange_strong(expected_value, true);
-        ASSERT_INVARIANT(
-            has_succeeded,
-            "Attempting to start a DDL session while an another one has already been started!");
-
-        g_has_ddl_session_been_started = true;
-
-        // Double-check, in case a concurrent regular session has set the flag after our initial check.
-        ASSERT_INVARIANT(
-            g_can_ddl_sessions_still_be_started,
-            "Attempting to start a DDL session after a regular session was started!");
-    }
-    else if (g_has_ddl_session_been_started)
-    {
-        // Once a regular session was started after a DDL session, no more DDL sessions can be started.
-        g_can_ddl_sessions_still_be_started = false;
-
-        ASSERT_INVARIANT(
-            !g_is_ddl_session_active,
-            "Attempting to start a regular session while a DDL session is still active!");
-    }
-
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
     build_server_reply_info(builder, session_event_t::CONNECT, old_state, new_state);
@@ -402,12 +371,6 @@ void server_t::handle_client_shutdown(
     {
         bool client_disconnected = true;
         txn_rollback(client_disconnected);
-    }
-
-    // Mark the end of an active DDL session.
-    if (s_is_ddl_session)
-    {
-        g_is_ddl_session_active = false;
     }
 }
 

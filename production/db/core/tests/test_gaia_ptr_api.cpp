@@ -10,7 +10,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/db/db_ddl_test_base.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "db_test_util.hpp"
@@ -21,11 +21,18 @@ using namespace gaia::db;
 using namespace gaia::db::test;
 using namespace gaia::common;
 
-class gaia_ptr_api_test : public db_ddl_test_base_t
+class gaia_ptr_api_test : public db_test_base_t
 {
+public:
+    gaia_ptr_api_test()
+        : db_test_base_t(true, true)
+    {
+    }
+
+protected:
     void SetUp() override
     {
-        db_ddl_test_base_t::SetUp();
+        db_test_base_t::SetUp();
 
         gaia_id_t doctor_table_id = create_table("doctor", {});
         gaia_id_t patient_table_id = create_table("patient", {});

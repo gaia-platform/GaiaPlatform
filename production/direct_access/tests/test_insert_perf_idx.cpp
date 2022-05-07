@@ -20,7 +20,9 @@ class test_insert_perf_idx : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_insert_perf_idx()
-        : db_catalog_test_base_t("perf_idx.ddl"){};
+        : db_catalog_test_base_t("perf_idx.ddl", true, true, true)
+    {
+    }
 
     void TearDown() override
     {

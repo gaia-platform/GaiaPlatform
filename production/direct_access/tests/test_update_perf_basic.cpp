@@ -20,7 +20,9 @@ class test_update_perf_basic : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_update_perf_basic()
-        : db_catalog_test_base_t("perf_basic.ddl"){};
+        : db_catalog_test_base_t("perf_basic.ddl", true, true, true)
+    {
+    }
 
     void TearDown() override
     {

@@ -129,11 +129,6 @@ private:
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
 
-    // These are global server flags.
-    static inline std::atomic<bool> g_has_ddl_session_been_started{false};
-    static inline std::atomic<bool> g_is_ddl_session_active{false};
-    static inline std::atomic<bool> g_can_ddl_sessions_still_be_started{true};
-
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};
 
