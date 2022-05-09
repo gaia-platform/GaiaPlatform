@@ -25,7 +25,9 @@ class array_field_test : public db_catalog_test_base_t
 {
 protected:
     array_field_test()
-        : db_catalog_test_base_t("addr_book.ddl"){};
+        : db_catalog_test_base_t("addr_book.ddl")
+    {
+    }
 };
 
 TEST_F(array_field_test, array_insert)

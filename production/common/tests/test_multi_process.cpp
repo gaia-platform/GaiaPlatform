@@ -68,7 +68,9 @@ class gaia_multi_process_test : public db_catalog_test_base_t
 {
 protected:
     gaia_multi_process_test()
-        : db_catalog_test_base_t("addr_book.ddl", true){};
+        : db_catalog_test_base_t("addr_book.ddl", false)
+    {
+    }
 
     sem_t* m_sem_go_child;
     sem_t* m_sem_go_parent;

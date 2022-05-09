@@ -22,7 +22,9 @@ class test_insert_perf_rel : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_insert_perf_rel()
-        : db_catalog_test_base_t("perf_rel.ddl"){};
+        : db_catalog_test_base_t("perf_rel.ddl", true, true, true)
+    {
+    }
 
     void TearDown() override
     {

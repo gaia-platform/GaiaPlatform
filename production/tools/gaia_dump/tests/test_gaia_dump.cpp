@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/db/db_ddl_test_base.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
 
 #include "gaia_airport.h"
 #include "gaia_dump.hpp"
@@ -18,8 +18,13 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace std;
 
-class gaia_dump_test : public db_ddl_test_base_t
+class gaia_dump_test : public db_test_base_t
 {
+public:
+    gaia_dump_test()
+        : db_test_base_t(true, true)
+    {
+    }
 };
 
 constexpr gaia_id_t c_start = 1;

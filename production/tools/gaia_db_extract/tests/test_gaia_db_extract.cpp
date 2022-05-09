@@ -9,7 +9,7 @@
 #include <json.hpp>
 
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/db/db_ddl_test_base.hpp"
+#include "gaia_internal/db/db_test_base.hpp"
 
 #include "gaia_db_extract.hpp"
 
@@ -24,8 +24,14 @@ using json_t = nlohmann::json;
 constexpr char c_table_name[] = "test_table";
 constexpr char c_db_name[] = "extract_test";
 
-class gaia_db_extract_test : public db_ddl_test_base_t
+class gaia_db_extract_test : public db_test_base_t
 {
+public:
+    gaia_db_extract_test()
+        : db_test_base_t(true, true)
+    {
+    }
+
 protected:
     static void SetUpTestSuite()
     {

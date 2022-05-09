@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include "gaia/common.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
@@ -63,7 +64,7 @@ protected:
     // Manage the session ourselves in this test as the
     // gaia::system::initialize() will call begin_session.
     system_init_test()
-        : db_catalog_test_base_t("", true)
+        : db_catalog_test_base_t(gaia::common::c_empty_string, false)
     {
     }
 
