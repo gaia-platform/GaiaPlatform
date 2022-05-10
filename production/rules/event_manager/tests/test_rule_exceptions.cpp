@@ -201,14 +201,14 @@ protected:
         // Otherwise, the event log activities will cause out of order test table IDs.
         schema_loader_t::instance().load_schema("addr_book.ddl");
 
+        end_session();
+        begin_session();
+
         event_manager_settings_t settings;
 
         // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
         // settings.enable_rule_stats = true;
         gaia::rules::test::initialize_rules_engine(settings);
-
-        end_session();
-        begin_session();
     }
 
     static void TearDownTestSuite()

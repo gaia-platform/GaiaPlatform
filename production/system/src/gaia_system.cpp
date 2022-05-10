@@ -82,11 +82,12 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     db_initialized = true;
 
     gaia::catalog::initialize_catalog();
-    gaia::rules::initialize_rules_engine(root_config);
 
     // End the DDL session and start a regular session.
     gaia::db::end_session();
     gaia::db::begin_session();
+
+    gaia::rules::initialize_rules_engine(root_config);
 
     cleanup_init_state.dismiss();
 }

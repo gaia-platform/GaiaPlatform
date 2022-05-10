@@ -50,7 +50,9 @@ class test_rules_perf_basic : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_rules_perf_basic()
-        : db_catalog_test_base_t("perf_rules.ddl"){};
+        : db_catalog_test_base_t("perf_rules.ddl", true, true, true)
+    {
+    }
 
     void SetUp() override
     {

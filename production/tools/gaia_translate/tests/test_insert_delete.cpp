@@ -84,11 +84,11 @@ prereq_t prereq_2;
 prereq_t prereq_3;
 prereq_t prereq_4;
 
-class test_insert_delete_code : public db_catalog_test_base_t
+class test_insert_delete_ruleset : public db_catalog_test_base_t
 {
 public:
-    test_insert_delete_code()
-        : db_catalog_test_base_t("prerequisites.ddl"){};
+    test_insert_delete_ruleset()
+        : db_catalog_test_base_t("prerequisites.ddl", true, true, true){};
 
 protected:
     void SetUp() override
@@ -224,7 +224,7 @@ protected:
 };
 
 // TESTCASE: Create rows procedurally, delete them in the rule.
-TEST_F(test_insert_delete_code, implicit_delete)
+TEST_F(test_insert_delete_ruleset, implicit_delete)
 {
     gaia::db::begin_transaction();
     auto student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
@@ -252,7 +252,7 @@ TEST_F(test_insert_delete_code, implicit_delete)
 
 // TESTCASE: Generate database within rules
 // GAIAPLAT-1250 (fixed)
-TEST_F(test_insert_delete_code, build_database)
+TEST_F(test_insert_delete_ruleset, build_database)
 {
     // Use the rules for insert & delete.
     gaia::rules::subscribe_ruleset("test_insert_delete_2");

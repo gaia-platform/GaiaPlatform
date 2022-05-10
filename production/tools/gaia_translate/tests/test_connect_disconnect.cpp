@@ -20,11 +20,13 @@ using namespace gaia::rules;
 using namespace gaia::prerequisites;
 using namespace gaia::prerequisites::registration_expr;
 
-class test_connect_disconnect : public db_catalog_test_base_t
+class test_connect_disconnect_ruleset : public db_catalog_test_base_t
 {
 public:
-    test_connect_disconnect()
-        : db_catalog_test_base_t("prerequisites.ddl"){};
+    test_connect_disconnect_ruleset()
+        : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override
@@ -42,7 +44,7 @@ protected:
     }
 };
 
-TEST_F(test_connect_disconnect, test_connect_1_n)
+TEST_F(test_connect_disconnect_ruleset, test_connect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_n");
 
@@ -71,7 +73,7 @@ TEST_F(test_connect_disconnect, test_connect_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_connect_1_1)
+TEST_F(test_connect_disconnect_ruleset, test_connect_1_1)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_1");
 
@@ -95,7 +97,7 @@ TEST_F(test_connect_disconnect, test_connect_1_1)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_disconnect_1_n)
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_1_n");
 
@@ -139,7 +141,7 @@ TEST_F(test_connect_disconnect, test_disconnect_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_disconnect_1_1)
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_1_1)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_1_1");
 
@@ -156,7 +158,7 @@ TEST_F(test_connect_disconnect, test_disconnect_1_1)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, disconnect_delete)
+TEST_F(test_connect_disconnect_ruleset, disconnect_delete)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_delete");
 
@@ -174,7 +176,7 @@ TEST_F(test_connect_disconnect, disconnect_delete)
     ASSERT_EQ(count, 0);
 }
 
-TEST_F(test_connect_disconnect, test_connect_1_1_child_parent)
+TEST_F(test_connect_disconnect_ruleset, test_connect_1_1_child_parent)
 {
     gaia::rules::subscribe_ruleset("test_connect_child_parent_1_1");
 
@@ -194,7 +196,7 @@ TEST_F(test_connect_disconnect, test_connect_1_1_child_parent)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_disconnect_1_1_child_parent)
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_1_1_child_parent)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_child_parent_1_1");
 
@@ -211,7 +213,7 @@ TEST_F(test_connect_disconnect, test_disconnect_1_1_child_parent)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_connect_child_parent_1_n)
+TEST_F(test_connect_disconnect_ruleset, test_connect_child_parent_1_n)
 {
     gaia::rules::subscribe_ruleset("test_connect_child_parent_1_n");
 
@@ -231,7 +233,7 @@ TEST_F(test_connect_disconnect, test_connect_child_parent_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_disconnect_child_parent_1_n)
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_child_parent_1_n)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_child_parent_1_n");
 
@@ -253,7 +255,7 @@ TEST_F(test_connect_disconnect, test_disconnect_child_parent_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_clear_child_parent_1_n)
+TEST_F(test_connect_disconnect_ruleset, test_clear_child_parent_1_n)
 {
     gaia::rules::subscribe_ruleset("test_clear_child_parent_1_n");
 
@@ -275,7 +277,7 @@ TEST_F(test_connect_disconnect, test_clear_child_parent_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, force_delete)
+TEST_F(test_connect_disconnect_ruleset, force_delete)
 {
     gaia::rules::subscribe_ruleset("test_force_delete");
 

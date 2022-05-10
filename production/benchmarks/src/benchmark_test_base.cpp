@@ -44,7 +44,7 @@ void benchmark_test_base::SetUp()
 void benchmark_test_base::TearDown()
 {
     gaia::system::shutdown();
-    // The server is killed in between runs to ensure to start with a clean state.
+    // The server is killed in between runs to ensure starting with a clean state.
     m_server.stop();
 }
 
