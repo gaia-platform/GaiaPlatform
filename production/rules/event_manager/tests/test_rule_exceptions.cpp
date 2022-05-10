@@ -208,6 +208,9 @@ protected:
 
         // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
         // settings.enable_rule_stats = true;
+
+        // The rules engine worker threads will start their own sessions,
+        // so we need to perform this step within a regular database session.
         gaia::rules::test::initialize_rules_engine(settings);
     }
 

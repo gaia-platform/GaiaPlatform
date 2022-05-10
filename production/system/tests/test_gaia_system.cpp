@@ -54,6 +54,8 @@ public:
         end_session();
         begin_session();
 
+        // The rules engine worker threads will start their own sessions,
+        // so we need to perform this step within a regular database session.
         gaia::rules::initialize_rules_engine();
 
         // Initialize rules after loading the catalog.
