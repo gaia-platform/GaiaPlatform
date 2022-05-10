@@ -48,11 +48,13 @@ extern std::atomic<int32_t> g_onupdate_value;
 /**
  * Ensure that is possible to intermix cpp code with declarative code.
  */
-class test_tags_code : public db_catalog_test_base_t
+class test_tags_ruleset : public db_catalog_test_base_t
 {
 public:
-    test_tags_code()
-        : db_catalog_test_base_t("prerequisites.ddl"){};
+    test_tags_ruleset()
+        : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override
@@ -89,7 +91,7 @@ protected:
     }
 };
 
-TEST_F(test_tags_code, oninsert)
+TEST_F(test_tags_ruleset, oninsert)
 {
     gaia::rules::subscribe_ruleset("test_tags");
 
@@ -122,7 +124,7 @@ TEST_F(test_tags_code, oninsert)
     EXPECT_FALSE(g_onupdate4_called) << "on_update(student.age, student.surname) should not be called";
 }
 
-TEST_F(test_tags_code, onchange)
+TEST_F(test_tags_ruleset, onchange)
 {
     gaia::db::begin_transaction();
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
@@ -165,7 +167,7 @@ TEST_F(test_tags_code, onchange)
     EXPECT_FALSE(g_onupdate3_called) << "on_update(student.age) should not be called";
 }
 
-TEST_F(test_tags_code, onupdate)
+TEST_F(test_tags_ruleset, onupdate)
 {
     gaia::db::begin_transaction();
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
@@ -210,7 +212,7 @@ TEST_F(test_tags_code, onupdate)
     EXPECT_FALSE(g_oninsert2_called) << "Second on_insert(student) called after field write";
 }
 
-TEST_F(test_tags_code, multi_inserts)
+TEST_F(test_tags_ruleset, multi_inserts)
 {
     const int num_inserts = 5;
 
@@ -232,7 +234,7 @@ TEST_F(test_tags_code, multi_inserts)
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert(student) failure";
 }
 
-TEST_F(test_tags_code, basic_tags)
+TEST_F(test_tags_ruleset, basic_tags)
 {
     // Use the first set of rules.
     gaia::rules::subscribe_ruleset("test_tags");

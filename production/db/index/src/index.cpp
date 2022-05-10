@@ -7,7 +7,7 @@
 
 #include <string_view>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 #include "field_access.hpp"
 #include "index_iterator.hpp"
@@ -26,7 +26,7 @@ index_key_t::index_key_t(const index_key_schema_t& key_schema, const uint8_t* pa
 {
     for (field_position_t pos : key_schema.field_positions)
     {
-        insert(payload_types::get_field_value(key_schema.table_type, payload, key_schema.binary_schema->data(), key_schema.binary_schema->size(), pos));
+        insert(payload_types::get_field_value(payload, key_schema.binary_schema->data(), pos));
     }
 }
 
@@ -75,7 +75,18 @@ bool index_key_t::operator>=(const index_key_t& other) const
 
 bool index_key_t::operator==(const index_key_t& other) const
 {
-    return compare(other) == 0;
+    if (empty() && other.empty())
+    {
+        return true;
+    }
+    else if (empty() || other.empty())
+    {
+        return false;
+    }
+    else
+    {
+        return compare(other) == 0;
+    }
 }
 
 void index_key_t::insert(gaia::db::payload_types::data_holder_t value)
@@ -86,6 +97,11 @@ void index_key_t::insert(gaia::db::payload_types::data_holder_t value)
 std::size_t index_key_t::size() const
 {
     return m_key_values.size();
+}
+
+bool index_key_t::empty() const
+{
+    return m_key_values.size() == 0;
 }
 
 bool index_key_t::is_null() const
@@ -105,7 +121,7 @@ const std::vector<gaia::db::payload_types::data_holder_t>& index_key_t::values()
     return m_key_values;
 }
 
-/*
+/**
  * Combine hash of all data holders in this key.
  * Repeatedly concatenate hash values and rehash.
  */
@@ -128,7 +144,7 @@ gaia::db::payload_types::data_hash_t index_key_hash::operator()(index_key_t cons
     return prev_hash;
 }
 
-/*
+/**
  * ostream operator overloads
  */
 

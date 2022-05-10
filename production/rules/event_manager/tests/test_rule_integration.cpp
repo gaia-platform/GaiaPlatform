@@ -20,6 +20,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/rules/rules_test_helpers.hpp"
 
@@ -52,7 +53,6 @@ atomic<int> g_wait_for_count;
 atomic<int> g_num_conflicts;
 bool g_manual_commit;
 
-// When an employee is inserted insert an address.
 void rule_insert(const rule_context_t* context)
 {
     employee_t e = employee_t::get(context->record);
@@ -61,6 +61,7 @@ void rule_insert(const rule_context_t* context)
     g_wait_for_count--;
 }
 
+// When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
     employee_t e = employee_t::get(context->record);
@@ -202,6 +203,11 @@ public:
 class rule_integration_test : public db_test_base_t
 {
 public:
+    rule_integration_test()
+        : db_test_base_t(false)
+    {
+    }
+
     void subscribe_insert()
     {
         rule_binding_t rule1{"ruleset", "rule_insert", rule_insert};
@@ -284,23 +290,25 @@ protected:
         // Do this before resetting the server to initialize the logger.
         gaia_log::initialize("./gaia_log.conf");
 
-        begin_session();
-
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         // Otherwise, the event log activities will cause out of order test table IDs.
+        begin_ddl_session();
         schema_loader_t::instance().load_schema("addr_book.ddl");
+        end_session();
 
         event_manager_settings_t settings;
 
         // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
         // settings.enable_rule_stats = true;
         gaia::rules::test::initialize_rules_engine(settings);
+
+        begin_session();
     }
 
     static void TearDownTestSuite()
     {
-        gaia::rules::shutdown_rules_engine();
         end_session();
+        gaia::rules::shutdown_rules_engine();
         gaia_log::shutdown();
     }
 
@@ -356,6 +364,7 @@ TEST_F(rule_integration_test, test_insert)
 //         txn.commit();
 //     }
 // }
+
 TEST_F(rule_integration_test, test_update)
 {
     subscribe_update();
@@ -468,7 +477,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
 }
 
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1781
-TEST_F(rule_integration_test, DISABLED_test_two_rules)
+TEST_F(rule_integration_test, test_two_rules)
 {
     subscribe_update();
     subscribe_insert();
@@ -487,7 +496,6 @@ TEST_F(rule_integration_test, DISABLED_test_two_rules)
         txn.commit();
 
         // Update second record.
-        employee_t::delete_row(first);
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
         writer.update_row();

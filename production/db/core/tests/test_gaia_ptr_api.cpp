@@ -23,9 +23,17 @@ using namespace gaia::common;
 
 class gaia_ptr_api_test : public db_test_base_t
 {
+public:
+    gaia_ptr_api_test()
+        : db_test_base_t(true, true)
+    {
+    }
+
+protected:
     void SetUp() override
     {
         db_test_base_t::SetUp();
+
         gaia_id_t doctor_table_id = create_table("doctor", {});
         gaia_id_t patient_table_id = create_table("patient", {});
         gaia_id_t clinic_table_id = create_table("clinic", {});
@@ -53,22 +61,6 @@ protected:
     gaia_type_t clinic_type;
     gaia_type_t address_type;
 };
-
-TEST_F(gaia_ptr_api_test, no_txn_fail)
-{
-    begin_transaction();
-    gaia_ptr_t node = gaia_ptr::create(doctor_type, 0, nullptr);
-    commit_transaction();
-
-    EXPECT_THROW(gaia_ptr::create(doctor_type, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::create(99999, doctor_type, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::remove(node), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::update_payload(node.id(), 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::insert_into_reference_container(node.id(), 1, 2), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::remove_from_reference_container(node.id(), 1, 2), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::remove_from_reference_container(node.id(), 1), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::update_parent_reference(node.id(), 1, 2), no_open_transaction);
-}
 
 TEST_F(gaia_ptr_api_test, creation_fail_for_invalid_type)
 {

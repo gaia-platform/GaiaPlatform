@@ -6,17 +6,17 @@
 #include "gaia/common.hpp"
 #include "gaia/exceptions.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 #include "db_client.hpp"
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 
 #ifdef DEBUG
 #include "memory_helpers.hpp"
-#define WRITE_PROTECT(o) memory_manager::write_protect_allocation_page_for_offset((o))
+#define WRITE_PROTECT(o) write_protect_allocation_page_for_offset((o))
 #else
 #define WRITE_PROTECT(o) ((void)0)
 #endif
@@ -37,7 +37,7 @@ namespace db
 void gaia_ptr_t::reset()
 {
     locators_t* locators = get_locators();
-    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset);
+    log_txn_operation(m_locator, to_offset(), c_invalid_gaia_offset);
 
     // TODO[GAIAPLAT-445]:  We don't expose delete events.
     // if (client_t::is_valid_event(to_ptr()->type))
@@ -49,35 +49,26 @@ void gaia_ptr_t::reset()
     m_locator = c_invalid_gaia_locator;
 }
 
-// This trivial implementation is necessary to avoid calling into client_t code from the header file.
-std::shared_ptr<generator_t<gaia_id_t>>
-gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
-{
-    return client_t::get_id_generator_for_type(type);
-}
-
 db_object_t* gaia_ptr_t::to_ptr() const
 {
-    client_t::verify_txn_active();
     return locator_to_ptr(m_locator);
 }
 
 gaia_offset_t gaia_ptr_t::to_offset() const
 {
-    client_t::verify_txn_active();
     return locator_to_offset(m_locator);
 }
 
 void gaia_ptr_t::finalize_create()
 {
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, c_invalid_gaia_offset, to_offset());
+    log_txn_operation(m_locator, c_invalid_gaia_offset, to_offset());
 }
 
 void gaia_ptr_t::finalize_update(gaia_offset_t old_offset)
 {
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, old_offset, to_offset());
+    log_txn_operation(m_locator, old_offset, to_offset());
 }
 
 gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t references_count, size_t data_size, const void* data)
@@ -121,9 +112,16 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
     //  the db_object_t should either be initialized before and passed in
     //  or it should be initialized inside the constructor.
-    gaia_locator_t locator = allocate_locator();
-    hash_node_t* hash_node = db_hash_map::insert(id);
-    hash_node->locator = locator;
+    gaia_locator_t locator = allocate_locator(type);
+    // register_locator_for_id() returns false if the ID was already present in
+    // the map.
+    if (!register_locator_for_id(id, locator))
+    {
+        throw duplicate_object_id_internal(id);
+    }
+
+    DEBUG_ASSERT_INVARIANT(id_to_locator(id) == locator, "Cannot find locator for just-inserted ID!");
+
     allocate_object(locator, total_payload_size);
     gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();

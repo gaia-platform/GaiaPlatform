@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 namespace gaia
@@ -13,19 +14,30 @@ namespace db
 {
 
 /**
- * Sets the DB client's commit trigger function.
+ * @brief Checks whether a DDL session is open.
+ */
+bool is_ddl_session_open();
+
+/**
+ * @brief Special version of begin_session() used for DDL operations.
+ */
+void begin_ddl_session();
+
+/**
+ * @brief Sets the DB client's commit trigger function.
+ * Called by the rules engine only during initialization and shutdown.
  */
 void set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
 
 /**
- * Reinitializes the DB client's shared memory structures.
+ * @brief Reinitializes the DB client's shared memory structures.
  * For use only by test code, in combination with the DB
  * server's reinitialization feature.
  */
 void clear_shared_memory();
 
 /**
- * Internal API for getting the begin_ts of the current txn.
+ * @brief Internal API for getting the begin_ts of the current txn.
  */
 gaia_txn_id_t get_current_txn_id();
 

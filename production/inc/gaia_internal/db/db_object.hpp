@@ -32,7 +32,7 @@ namespace db
  * The object metadata occupies 16 bytes: 8 (id) + 4 (type) + 2 (payload_size)
  * + 2 (references_count) = 16.
  */
-struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
+struct alignas(gaia::db::c_allocation_alignment) db_object_t
 {
     gaia::common::gaia_id_t id;
     gaia::common::gaia_type_t type;
@@ -46,6 +46,7 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
 
     // This contains an array of zero or more references (gaia_id_t), followed by
     // a serialized flatbuffer object.
+    // Flexible array members are not standardized, but are supported by both gcc and clang.
     char payload[];
 
     /**
@@ -130,7 +131,7 @@ constexpr size_t c_db_object_header_size = offsetof(db_object_t, payload);
 
 // Due to our memory management requirements, we never want the object header
 // size to be larger than the object alignment.
-static_assert(c_db_object_header_size <= gaia::db::memory_manager::c_allocation_alignment, "Object header size must not exceed object alignment!");
+static_assert(c_db_object_header_size <= gaia::db::c_allocation_alignment, "Object header size must not exceed object alignment!");
 
 // We need to 8-byte-align both the references array at the beginning of the
 // payload (since references are 8 bytes) and the serialized flatbuffer that

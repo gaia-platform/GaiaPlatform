@@ -50,3 +50,15 @@ table customer (
     name string,
     sales_by_quarter int32[]
 )
+
+table company(
+    company_name string,
+    clients references client[]
+)
+
+table client (
+    client_name string,
+    period int32,
+    sales int32[],
+    company references company
+)

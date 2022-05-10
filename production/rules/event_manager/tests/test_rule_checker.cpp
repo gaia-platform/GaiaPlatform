@@ -9,6 +9,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "rule_checker.hpp"
@@ -107,8 +108,10 @@ protected:
     {
         db_test_base_t::SetUpTestSuite();
 
-        begin_session();
+        begin_ddl_session();
         load_catalog();
+        end_session();
+        begin_session();
     }
     static void TearDownTestSuite()
     {

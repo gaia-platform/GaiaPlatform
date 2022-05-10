@@ -17,7 +17,7 @@ using namespace gaia::common;
 // NOTE: This test is used to test lower level DB client and 'gaia_ptr_t' APIs.
 // Avoid adding higher level components like catalog to the test.
 
-// duplicated from production/db/core/inc/db_server.hpp
+// duplicated from production/db/inc/core/db_server.hpp
 constexpr size_t c_stream_batch_size = 1 << 10;
 
 void print_payload(std::ostream& o, size_t size, const char* payload)
@@ -131,23 +131,6 @@ TEST_F(db_client_test, early_session_termination)
     EXPECT_THROW(end_session(), transaction_in_progress);
     EXPECT_THROW(begin_session(), session_exists);
     rollback_transaction();
-}
-
-TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
-{
-    begin_transaction();
-    gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
-    commit_transaction();
-
-    // Create with existent type fail
-    EXPECT_THROW(gaia_ptr_t::create(99999, type1, 5, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr_t::from_gaia_id(node1_id), no_open_transaction);
-    EXPECT_THROW(node1.id(), no_open_transaction);
-    EXPECT_THROW(node1.type(), no_open_transaction);
-    EXPECT_THROW(node1.data_size(), no_open_transaction);
-    EXPECT_THROW(node1.references(), no_open_transaction);
-    EXPECT_THROW(node1.find_next(), no_open_transaction);
-    EXPECT_THROW(node1.update_payload(0, ""), no_open_transaction);
 }
 
 TEST_F(db_client_test, read_data)
@@ -476,7 +459,7 @@ TEST_F(db_client_test, null_payload_check)
 
         std::cerr << std::endl;
         std::cerr << "*** Creating a node with no payload and non-zero payload size (error):" << std::endl;
-        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), type1, c_num_refs, c_test_payload_size, nullptr), retail_assertion_failure);
+        EXPECT_THROW(gaia_ptr_t::create(gaia_ptr_t::generate_id(), type1, c_num_refs, c_test_payload_size, nullptr), assertion_failure);
     }
     commit_transaction();
 }

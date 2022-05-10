@@ -16,11 +16,11 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <sys/stat.h>
 
+#include <sys/stat.h>
 #include "liburing.h"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include <gaia_internal/common/mmap_helpers.hpp>
@@ -33,8 +33,8 @@
 #include "mapped_data.hpp"
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
-#include "txn_metadata.hpp"
 #include "persistence_types.hpp"
+#include "txn_metadata.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
@@ -165,11 +165,10 @@ void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_decision);
 }
 
-void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t commit_ts)
+void log_handler_t::process_txn_log_and_write(log_offset_t log_offset, gaia_txn_id_t commit_ts)
 {
     // Map in memory txn_log.
-    mapped_log_t log;
-    log.open(txn_log_fd);
+    auto txn_log = get_txn_log_from_offset(log_offset);
 
     std::vector<common::gaia_id_t> deleted_ids;
 
@@ -178,24 +177,24 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     // Note that writes beloning to a txn can be assigned in arbitrary chunk order (due to chunk reuse) which is another reason to
     // track chunk ids in the log.
     std::map<chunk_offset_t, std::set<gaia_offset_t>> chunk_to_offsets_map;
-    for (size_t i = 0; i < log.data()->chunk_count; i++)
+    for (size_t i = 0; i < txn_log->chunk_count; i++)
     {
-        auto chunk = log.data()->chunks[i];
-        auto chunk_offset = memory_manager::chunk_from_offset(chunk);
+        auto chunk = txn_log->chunks[i];
+        auto chunk_offset = chunk_from_offset(chunk);
         chunk_to_offsets_map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
     }
 
     // Obtain deleted_ids & obtain sorted offsets per chunk.
-    for (size_t i = 0; i < log.data()->record_count; i++)
+    for (size_t i = 0; i < txn_log->record_count; i++)
     {
-        auto lr = log.data()->log_records[i];
+        auto lr = txn_log->log_records[i];
         if (lr.operation() == gaia_operation_t::remove)
         {
             deleted_ids.push_back(offset_to_ptr(lr.old_offset)->id);
         }
         else
         {
-            auto chunk = memory_manager::chunk_from_offset(lr.new_offset);
+            auto chunk = chunk_from_offset(lr.new_offset);
             ASSERT_INVARIANT(chunk_to_offsets_map.count(chunk) > 0, "Can't find chunk.");
             ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
             chunk_to_offsets_map.find(chunk)->second.insert(lr.new_offset);
@@ -218,7 +217,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
         offset_pair.offset1 = (*object_address_offsets.begin());
         auto end_offset = *(--object_address_offsets.end());
         auto payload_size = offset_to_ptr(end_offset)->payload_size + c_db_object_header_size;
-        size_t allocation_size = memory_manager::calculate_allocation_size_in_slots(payload_size) * c_slot_size_in_bytes;
+        size_t allocation_size = calculate_allocation_size_in_slots(payload_size) * c_slot_size_in_bytes;
         offset_pair.offset2 = (end_offset + allocation_size);
         contiguous_offsets.push_back(offset_pair);
     }

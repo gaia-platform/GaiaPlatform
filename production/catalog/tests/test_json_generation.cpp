@@ -23,6 +23,12 @@ using namespace gaia::direct_access;
 
 class json_generation_test : public db_test_base_t
 {
+public:
+    json_generation_test()
+        : db_test_base_t(true, true)
+    {
+    }
+
 protected:
     static void SetUpTestSuite()
     {

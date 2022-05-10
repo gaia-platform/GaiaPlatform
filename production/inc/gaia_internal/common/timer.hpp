@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include <chrono>
 #include <cstdio>
 
+#include <chrono>
 #include <functional>
 
 // Simple timer utility classes for doing profiling.
@@ -28,6 +28,9 @@ public:
 
     // Return a duration calculated as now() - start
     static int64_t get_duration(std::chrono::steady_clock::time_point& start_time);
+
+    // Return a duration calculated as end - start
+    static int64_t get_duration(std::chrono::steady_clock::time_point& start_time, std::chrono::steady_clock::time_point& finish_time);
 
     // Convenience method to calculate the duration and print out the result
     static void log_duration(std::chrono::steady_clock::time_point& start_time, const char* message);

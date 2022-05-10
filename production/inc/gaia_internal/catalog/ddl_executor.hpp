@@ -28,12 +28,14 @@ using relationship_names_t = std::unordered_map<std::string, gaia::common::gaia_
 class ddl_executor_t
 {
 public:
+    static ddl_executor_t& get();
+
+public:
     /**
      * Catalog manager scaffolding to ensure we have one global static instance
      */
     ddl_executor_t(ddl_executor_t&) = delete;
     void operator=(ddl_executor_t const&) = delete;
-    static ddl_executor_t& get();
 
     /**
      * APIs for accessing catalog records
@@ -79,7 +81,6 @@ public:
     void drop_table(const std::string& db_name, const std::string& name);
 
     void drop_database(const std::string& name);
-
     void switch_db_context(const std::string& db_name);
 
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
@@ -152,14 +153,6 @@ private:
         gaia::common::gaia_id_t table_id, const std::vector<std::string>& field_names);
 
     gaia::common::gaia_id_t m_empty_db_id;
-
-    // The DB context defines the database in which an entity like a table, an
-    // index, or a relationship will be referred to without a database name.
-    std::string m_db_context;
-    inline std::string in_context(const std::string& db)
-    {
-        return db.empty() ? m_db_context : db;
-    }
 };
 } // namespace catalog
 } // namespace gaia

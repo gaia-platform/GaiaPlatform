@@ -13,7 +13,7 @@
 
 #include "gaia/exception.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 
 namespace gaia
@@ -21,16 +21,31 @@ namespace gaia
 namespace common
 {
 
-// This is exactly 1 page (4KB).
-// On Linux, Unix domain socket datagrams must reside in contiguous physical memory, so sending a
-// datagram larger than 1 page could fail if the OS cannot allocate enough contiguous physical
-// pages.
-// See https://stackoverflow.com/questions/4729315/what-is-the-max-size-of-af-unix-datagram-message-in-linux.
-constexpr size_t c_max_msg_size_in_bytes{1 << 12};
+// REVIEW: On Linux, Unix domain socket datagrams must reside in contiguous
+// physical memory, so sending a datagram larger than one page could fail if the
+// OS cannot allocate enough contiguous physical pages (see
+// https://stackoverflow.com/questions/4729315/what-is-the-max-size-of-af-unix-datagram-message-in-linux).
+//
+// However, we need to expand this size to larger than one page, to accommodate
+// the potentially unbounded number of txn log offsets that could be received
+// from the server in begin_transaction(). (In performance tests with 16 threads
+// concurrently submitting txns, the 4KB size caused a read truncation error,
+// but 8KB seemed sufficient.) A robust solution would use something like the
+// old "dummy message sequence" protocol for txn log fds, but reserve enough
+// space in the server reply message for the majority of use cases (say up to 16
+// txn log offsets). For now, we allow a message size of up to 64KB, but this
+// may be problematic when used as the size of a stack buffer (as it currently
+// is on both client and server), at least on some libc implementations like
+// musl (which has a default stack size of only 128KB). Once we implement a
+// "streaming" protocol for transmitting txn log offsets (probably using an
+// unbounded sequence of datagrams, not the cursor API, to avoid creating an
+// ephemeral thread on the server), we should be able to revert to a maximum
+// message size of 4KB (one page).
+constexpr size_t c_max_msg_size_in_bytes{1 << 16};
 
 // This could be up to 253 (the value of SCM_MAX_FD according to the manpage for unix(7)), but we
 // set it to a reasonable value for a stack buffer.
-// TODO: Add max fd count template parameter to socket helper functions.
+// REVIEW: Add max fd count template parameter to socket helper functions.
 constexpr size_t c_max_fd_count{16};
 
 /**

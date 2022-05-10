@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <charconv>
 #include <iostream>
 
 #include "gtest/gtest.h"
@@ -27,9 +28,19 @@ using std::to_string;
 
 class gaia_references_test : public db_catalog_test_base_t
 {
+public:
+    inline static constexpr size_t hire_date = 20200530;
+    inline static constexpr size_t count_employees = 1;
+    inline static constexpr size_t count_addresses = 200;
+    inline static constexpr size_t count_phones = 20;
+    inline static constexpr size_t addr_size = 6;
+    inline static constexpr size_t phone_size = 5;
+
 protected:
     gaia_references_test()
-        : db_catalog_test_base_t(string("addr_book.ddl")){};
+        : db_catalog_test_base_t("addr_book.ddl", true, true, true)
+    {
+    }
 
     static gaia_id_t find_invalid_id()
     {
@@ -51,7 +62,7 @@ protected:
         }
 
         throw std::runtime_error(
-            "Impossible to find an invalid ID in the range "
+            "Cannot find an invalid ID in the range "
             + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
     }
 
@@ -180,24 +191,20 @@ TEST_F(gaia_references_test, connect_disconnect_id_member)
 
 employee_t create_hierarchy()
 {
-    const int hire_date = 20200530;
-    const int count_addresses = 200;
-    const int count_phones = 20;
-    const int addr_size = 6;
-    const int phone_size = 5;
+
     auto employee
-        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
-    for (int i = 0; i < count_addresses; i++)
+        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", gaia_references_test::hire_date, "heidi@gmail.com", ""));
+    for (size_t i = 0; i < gaia_references_test::count_addresses; i++)
     {
-        char addr_string[addr_size];
-        sprintf(addr_string, "%d", i);
+        char addr_string[gaia_references_test::addr_size];
+        sprintf(addr_string, "%zu", i);
         auto address = address_t::get(
             address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
         employee.addresses().insert(address);
-        for (int j = 0; j < count_phones; j++)
+        for (size_t j = 0; j < gaia_references_test::count_phones; j++)
         {
-            char phone_string[phone_size];
-            sprintf(phone_string, "%d", j);
+            char phone_string[gaia_references_test::phone_size];
+            sprintf(phone_string, "%zu", j);
             auto phone = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
             address.phones().insert(phone);
         }
@@ -305,35 +312,25 @@ int count_type()
 
 string first_employee()
 {
-    const char* name = nullptr;
-    for (auto const& row : employee_t::list())
-    {
-        name = row.name_first();
-    }
-    return name;
+    return employee_t::list().begin()->name_first();
 }
 
 int all_addressee()
 {
-    int count = 0;
-    const int addr_size = 6;
-    char addr_string[addr_size];
+    // This is the sum from 0 to N-1, with N=count_addresses.
+    auto count_addresses_sum = ((gaia_references_test::count_addresses * (gaia_references_test::count_addresses + 1)) / 2) - gaia_references_test::count_addresses;
+
+    // Decrement the sum of all addresses' numeric values by the current
+    // address's numeric value.
     for (auto const& address : address_t::list())
     {
-        sprintf(addr_string, "%d", count);
-        EXPECT_STREQ(addr_string, address.city());
-        count++;
-    }
-    int i = 0;
-    for (auto it = address_t::list().begin(); it != address_t::list().end(); ++it)
-    {
-        sprintf(addr_string, "%d", i);
-        EXPECT_STREQ(addr_string, (*it).city());
-        count--;
-        ++i;
+        auto str = address.city();
+        size_t value{};
+        std::from_chars(str, str + ::strlen(str), value);
+        count_addresses_sum -= value;
     }
 
-    return count;
+    return count_addresses_sum;
 }
 
 // Create a hierachy of records, then scan and count them.
@@ -349,15 +346,17 @@ TEST_F(gaia_references_test, connect_scan)
 
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
-    EXPECT_EQ(record_count, 4201);
+    auto total_count_addresses = gaia_references_test::count_employees * gaia_references_test::count_addresses;
+    auto total_count_phones = total_count_addresses * gaia_references_test::count_phones;
+    EXPECT_EQ(record_count, gaia_references_test::count_employees + total_count_addresses + total_count_phones);
 
     // Travel down, then up the hierarchy
     EXPECT_EQ(bounce_hierarchy(eptr), true);
 
     // Count the rows.
-    EXPECT_EQ(count_type<employee_t>(), 1);
-    EXPECT_EQ(count_type<address_t>(), 200);
-    EXPECT_EQ(count_type<phone_t>(), 4000);
+    EXPECT_EQ(count_type<employee_t>(), gaia_references_test::count_employees);
+    EXPECT_EQ(count_type<address_t>(), total_count_addresses);
+    EXPECT_EQ(count_type<phone_t>(), total_count_phones);
 
     // Scan through some rows.
     EXPECT_EQ(first_employee(), "Heidi");

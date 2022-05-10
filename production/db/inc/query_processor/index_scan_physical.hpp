@@ -10,8 +10,8 @@
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/index_builder.hpp"
@@ -68,8 +68,7 @@ protected:
  * - The RPC calls to the server for initialization.
  * - Merge operation between local and remote.
  * - Visibility resolution of locators.
- *
- * */
+ */
 template <typename T_index, typename T_index_iterator>
 class index_scan_physical_t : public base_index_scan_physical_t
 {

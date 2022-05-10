@@ -12,6 +12,7 @@
 
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
+#include "gaia_internal/db/db.hpp"
 
 #include "db_server.hpp"
 

@@ -1,0 +1,25 @@
+name: Build Tool Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload_tool_cache:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Clear existing tool cache
+        run: |
+          mv "${{ runner.tool_cache }}" "${{ runner.tool_cache }}.old"
+          mkdir -p "${{ runner.tool_cache }}"
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Archive tool cache
+        run: |
+          cd "${{ runner.tool_cache }}"
+          tar -czf tool_cache.tar.gz *
+      - name: Upload tool cache artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ${{runner.tool_cache}}/tool_cache.tar.gz

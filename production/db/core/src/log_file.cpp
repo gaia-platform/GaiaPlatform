@@ -10,7 +10,7 @@
 #include <libexplain/fsync.h>
 #include <libexplain/openat.h>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 using namespace gaia::common;
@@ -66,12 +66,12 @@ log_file_t::log_file_t(const std::string& dir, int dir_fd, file_sequence_t file_
     }
 }
 
-const file_offset_t log_file_t::get_current_offset()
+file_offset_t log_file_t::get_current_offset() const
 {
     return m_current_offset;
 }
 
-const int log_file_t::get_file_fd()
+int log_file_t::get_file_fd() const
 {
     return m_file_fd;
 }
@@ -81,12 +81,12 @@ void log_file_t::allocate(size_t size)
     m_current_offset += size;
 }
 
-const file_sequence_t log_file_t::get_file_sequence()
+file_sequence_t log_file_t::get_file_sequence() const
 {
     return m_file_seq;
 }
 
-const size_t log_file_t::get_bytes_remaining_after_append(size_t record_size)
+size_t log_file_t::get_bytes_remaining_after_append(size_t record_size) const
 {
     ASSERT_INVARIANT(m_file_size > 0, "Preallocated file size should be greater than 0.");
     if (m_file_size < (m_current_offset + record_size))

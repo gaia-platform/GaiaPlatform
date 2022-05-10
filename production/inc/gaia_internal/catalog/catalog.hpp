@@ -17,7 +17,7 @@
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 namespace gaia
@@ -32,6 +32,9 @@ namespace catalog
  * \addtogroup catalog
  * @{
  */
+
+// The total count of system indexes.
+constexpr size_t c_system_index_count = 11;
 
 // The top level namespace for all the Gaia generated code.
 const std::string c_gaia_namespace = "gaia";
@@ -50,9 +53,7 @@ const std::string c_empty_db_name = "";
 constexpr char c_db_table_name_connector = '.';
 
 const std::string c_catalog_db_name = "catalog";
-const std::string c_event_log_db_name = "event_log";
 const std::string c_default_db_name = "";
-const std::string c_event_log_table_name = "event_log";
 const std::string c_gaia_database_table_name = "gaia_database";
 const std::string c_gaia_table_table_name = "gaia_table";
 const std::string c_gaia_field_table_name = "gaia_field";
@@ -453,14 +454,6 @@ struct drop_statement_t : statement_t
 void initialize_catalog();
 
 /**
- * Switch to the database.
- *
- * @param name database name
- * @throw db_does_not_exist_internal
- */
-void use_database(const std::string& name);
-
-/**
  * Create a database in the catalog.
  *
  * @param name database name
@@ -704,11 +697,23 @@ std::string generate_fdw_ddl(
 
 inline void check_not_system_db(const std::string& name)
 {
-    if (name == c_catalog_db_name || name == c_event_log_db_name)
+    if (name == c_catalog_db_name)
     {
         throw forbidden_system_db_operation_internal(name);
     }
 }
+
+/**
+ * Generate and store hash values in a database definition.
+ *
+ * @param dbname database name
+ */
+void add_hash(const std::string dbname);
+
+/**
+ * Generate and store hash values in all non-system catalogs.
+ */
+void add_hash();
 
 /*@}*/
 } // namespace catalog

@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <thread>
+#include <unordered_set>
 
 #include <gtest/gtest.h>
 
@@ -23,11 +24,13 @@ using std::exception;
 using std::string;
 using std::thread;
 
-class dac_object_test : public db_catalog_test_base_t
+class direct_access_test : public db_catalog_test_base_t
 {
 protected:
-    dac_object_test()
-        : db_catalog_test_base_t(string("addr_book.ddl")){};
+    direct_access_test()
+        : db_catalog_test_base_t("addr_book.ddl", true, true, true)
+    {
+    }
 };
 
 int count_rows()
@@ -55,7 +58,7 @@ employee_t create_employee(const char* name)
 // Test invalid object instances
 // =============================
 
-TEST_F(dac_object_test, invalid_instances)
+TEST_F(direct_access_test, invalid_instances)
 {
     begin_transaction();
 
@@ -78,7 +81,7 @@ TEST_F(dac_object_test, invalid_instances)
 // ================================
 
 // Create, write & read, one row
-TEST_F(dac_object_test, create_employee)
+TEST_F(direct_access_test, create_employee)
 {
     begin_transaction();
     create_employee("Harold");
@@ -86,7 +89,7 @@ TEST_F(dac_object_test, create_employee)
 }
 
 // Delete one row
-TEST_F(dac_object_test, create_employee_delete)
+TEST_F(direct_access_test, create_employee_delete)
 {
     begin_transaction();
     auto e = create_employee("Jameson");
@@ -94,8 +97,30 @@ TEST_F(dac_object_test, create_employee_delete)
     commit_transaction();
 }
 
+// Verify that insert/update/delete outside a transaction throw the expected exception.
+TEST_F(direct_access_test, no_open_transaction)
+{
+    // An uninitialized writer can be created outside a transaction.
+    auto writer = employee_writer();
+
+    // Insert will fail with no open transaction.
+    EXPECT_THROW(writer.insert_row(), no_open_transaction);
+
+    // Now insert the row.
+    begin_transaction();
+    auto employee = employee_t::get(writer.insert_row());
+    commit_transaction();
+
+    // Update will fail with no open transaction.
+    writer.name_last = "Smith";
+    EXPECT_THROW(writer.update_row(), no_open_transaction);
+
+    // Delete will fail with no open transaction.
+    EXPECT_THROW(employee.delete_row(), no_open_transaction);
+}
+
 // Scan multiple rows
-TEST_F(dac_object_test, new_set_ins)
+TEST_F(direct_access_test, new_set_ins)
 {
     begin_transaction();
     create_employee("Harold");
@@ -105,7 +130,7 @@ TEST_F(dac_object_test, new_set_ins)
 }
 
 // Read back from new, unsaved object
-TEST_F(dac_object_test, net_set_get)
+TEST_F(direct_access_test, net_set_get)
 {
     // Note no transaction needed to create & use writer.
     auto w = employee_writer();
@@ -120,7 +145,7 @@ TEST_F(dac_object_test, net_set_get)
 }
 
 // Read original value from an inserted object
-TEST_F(dac_object_test, read_original_from_copy)
+TEST_F(direct_access_test, read_original_from_copy)
 {
     begin_transaction();
     auto e = create_employee("Zachary");
@@ -129,7 +154,7 @@ TEST_F(dac_object_test, read_original_from_copy)
 }
 
 // Insert a row with no field values
-TEST_F(dac_object_test, new_insert_get)
+TEST_F(direct_access_test, new_insert_get)
 {
     begin_transaction();
 
@@ -144,7 +169,7 @@ TEST_F(dac_object_test, new_insert_get)
 }
 
 // Read values from a non-inserted writer
-TEST_F(dac_object_test, new_get)
+TEST_F(direct_access_test, new_get)
 {
     begin_transaction();
     auto w = employee_writer();
@@ -157,7 +182,7 @@ TEST_F(dac_object_test, new_get)
 }
 
 // Attempt to insert with an update writer, this should work.
-TEST_F(dac_object_test, existing_insert_field)
+TEST_F(direct_access_test, existing_insert_field)
 {
     begin_transaction();
     auto e = employee_t::get(employee_writer().insert_row());
@@ -173,21 +198,27 @@ TEST_F(dac_object_test, existing_insert_field)
 // ====================================
 
 // Create, write two rows, read back by scan and verify
-TEST_F(dac_object_test, read_back_scan)
+TEST_F(direct_access_test, read_back_scan)
 {
     begin_transaction();
-    auto eid = create_employee("Howard").gaia_id();
+    auto eid1 = create_employee("Howard").gaia_id();
     auto eid2 = create_employee("Henry").gaia_id();
     commit_transaction();
 
     begin_transaction();
-    auto i = employee_t::list().begin();
-    auto e = *i;
-    EXPECT_EQ(eid, e.gaia_id());
-    EXPECT_STREQ("Howard", e.name_first());
-    e = *(++i);
-    EXPECT_EQ(eid2, e.gaia_id());
-    EXPECT_STREQ("Henry", e.name_first());
+    for (auto const& employee : employee_t::list())
+    {
+        auto eid = employee.gaia_id();
+        EXPECT_TRUE(eid == eid1 || eid == eid2);
+        if (eid == eid1)
+        {
+            EXPECT_STREQ("Howard", employee.name_first());
+        }
+        else if (eid == eid2)
+        {
+            EXPECT_STREQ("Henry", employee.name_first());
+        }
+    }
     commit_transaction();
 }
 
@@ -195,72 +226,81 @@ TEST_F(dac_object_test, read_back_scan)
 void update_read_back(bool update_flag)
 {
     auto_transaction_t txn;
-    create_employee("Howard");
-    create_employee("Henry");
+    auto eid1 = create_employee("Howard").gaia_id();
+    auto eid2 = create_employee("Henry").gaia_id();
     txn.commit();
 
-    auto i = employee_t::list().begin();
-    auto e = *i;
-    auto w = e.writer();
-    w.name_first = "Herald";
-    w.name_last = "Hollman";
-    if (update_flag)
+    for (auto& employee : employee_t::list())
     {
-        w.update_row();
-    }
-    e = *(++i);
-
-    // get writer for next row!
-    w = e.writer();
-    w.name_first = "Gerald";
-    w.name_last = "Glickman";
-    if (update_flag)
-    {
-        w.update_row();
+        auto eid = employee.gaia_id();
+        EXPECT_TRUE(eid == eid1 || eid == eid2);
+        auto writer = employee.writer();
+        if (eid == eid1)
+        {
+            writer.name_first = "Herald";
+            writer.name_last = "Hollman";
+        }
+        else if (eid == eid2)
+        {
+            writer.name_first = "Gerald";
+            writer.name_last = "Glickman";
+        }
+        if (update_flag)
+        {
+            writer.update_row();
+        }
     }
     txn.commit();
 
-    i = employee_t::list().begin();
-    e = *i;
-    if (update_flag)
+    for (auto const& employee : employee_t::list())
     {
-        EXPECT_STREQ("Herald", e.name_first());
-        EXPECT_STREQ("Hollman", e.name_last());
-    }
-    else
-    {
-        // unchanged by previous transaction
-        EXPECT_STREQ("Howard", e.name_first());
-        EXPECT_STREQ(nullptr, e.name_last());
-    }
-    e = *(++i);
-    if (update_flag)
-    {
-        EXPECT_STREQ("Gerald", e.name_first());
-        EXPECT_STREQ("Glickman", e.name_last());
-    }
-    else
-    {
-        // unchanged by previous transaction
-        EXPECT_STREQ("Henry", e.name_first());
-        EXPECT_STREQ(nullptr, e.name_last());
+        auto eid = employee.gaia_id();
+        EXPECT_TRUE(eid == eid1 || eid == eid2);
+        if (eid == eid1)
+        {
+            if (update_flag)
+            {
+                EXPECT_STREQ("Herald", employee.name_first());
+                EXPECT_STREQ("Hollman", employee.name_last());
+            }
+            else
+            {
+                // unchanged by previous transaction
+                EXPECT_STREQ("Howard", employee.name_first());
+                EXPECT_STREQ(nullptr, employee.name_last());
+            }
+        }
+        else if (eid == eid2)
+        {
+            if (update_flag)
+            {
+                EXPECT_STREQ("Gerald", employee.name_first());
+                EXPECT_STREQ("Glickman", employee.name_last());
+            }
+            else
+            {
+                // unchanged by previous transaction
+                EXPECT_STREQ("Henry", employee.name_first());
+                EXPECT_STREQ(nullptr, employee.name_last());
+            }
+        }
     }
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(dac_object_test, update_read_back)
+TEST_F(direct_access_test, update_read_back)
 {
     update_read_back(true);
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(dac_object_test, no_update_read_back)
+TEST_F(direct_access_test, no_update_read_back)
 {
     update_read_back(false);
 }
 
 // Delete an inserted object then insert after; the new row is good.
-TEST_F(dac_object_test, new_delete_insert)
+TEST_F(direct_access_test, new_delete_insert)
 {
     begin_transaction();
     auto e = create_employee("Hector");
@@ -274,14 +314,14 @@ TEST_F(dac_object_test, new_delete_insert)
 // ====================
 
 // Attempt to create a row outside of a transaction
-TEST_F(dac_object_test, no_txn)
+TEST_F(direct_access_test, no_txn)
 {
     EXPECT_THROW(create_employee("Harold"), no_open_transaction);
     // NOTE: the employee_t object is leaked here
 }
 
 // Scan beyond the end of the iterator.
-TEST_F(dac_object_test, scan_past_end)
+TEST_F(direct_access_test, scan_past_end)
 {
     auto_transaction_t txn;
     create_employee("Hvitserk");
@@ -300,18 +340,27 @@ TEST_F(dac_object_test, scan_past_end)
 }
 
 // Test pre/post increment of iterator.
-TEST_F(dac_object_test, pre_post_iterator)
+TEST_F(direct_access_test, pre_post_iterator)
 {
     auto_transaction_t txn;
     create_employee("Hvitserk");
     create_employee("Hubert");
     create_employee("Humphrey");
+
+    std::unordered_set<std::string> employee_names({"Hvitserk", "Hubert", "Humphrey"});
+
     auto e = employee_t::list().begin();
-    EXPECT_STREQ((*e).name_first(), "Hvitserk");
-    EXPECT_STREQ((*e++).name_first(), "Hvitserk");
-    EXPECT_STREQ((*e).name_first(), "Hubert");
-    EXPECT_STREQ((*++e).name_first(), "Humphrey");
-    EXPECT_STREQ((*e).name_first(), "Humphrey");
+    auto name_first = (*e).name_first();
+    EXPECT_EQ(employee_names.count(name_first), 1);
+    employee_names.extract(name_first);
+    EXPECT_STREQ((*e++).name_first(), name_first);
+    EXPECT_EQ(employee_names.count((*e).name_first()), 1);
+    employee_names.extract(e->name_first());
+    name_first = (*++e).name_first();
+    EXPECT_EQ(employee_names.count(name_first), 1);
+    employee_names.extract(name_first);
+    EXPECT_EQ(employee_names.size(), 0);
+    EXPECT_STREQ((*e).name_first(), name_first);
     e++;
     EXPECT_EQ(e == employee_t::list().end(), true);
     ++e;
@@ -319,7 +368,7 @@ TEST_F(dac_object_test, pre_post_iterator)
 }
 
 // Create row, try getting row from wrong type
-TEST_F(dac_object_test, read_wrong_type)
+TEST_F(direct_access_test, read_wrong_type)
 {
     begin_transaction();
     gaia_id_t eid = create_employee("Howard").gaia_id();
@@ -339,7 +388,7 @@ TEST_F(dac_object_test, read_wrong_type)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, delete_wrong_type)
+TEST_F(direct_access_test, delete_wrong_type)
 {
     begin_transaction();
     gaia_id_t eid = create_employee("Howard").gaia_id();
@@ -351,7 +400,7 @@ TEST_F(dac_object_test, delete_wrong_type)
 }
 
 // Create, write two rows, read back by ID and verify
-TEST_F(dac_object_test, read_back_id)
+TEST_F(direct_access_test, read_back_id)
 {
     auto_transaction_t txn;
     auto eid = create_employee("Howard").gaia_id();
@@ -381,7 +430,7 @@ TEST_F(dac_object_test, read_back_id)
     EXPECT_THROW(e.name_first(), invalid_object_state);
 }
 
-TEST_F(dac_object_test, new_del_field_ref)
+TEST_F(direct_access_test, new_del_field_ref)
 {
     // create GAIA-64 scenario
     begin_transaction();
@@ -398,7 +447,7 @@ TEST_F(dac_object_test, new_del_field_ref)
 }
 
 // Delete a found object then update
-TEST_F(dac_object_test, new_del_update)
+TEST_F(direct_access_test, new_del_update)
 {
     begin_transaction();
     auto e = create_employee("Hector");
@@ -408,7 +457,7 @@ TEST_F(dac_object_test, new_del_update)
 }
 
 // Delete a found object then insert after, it's good again.
-TEST_F(dac_object_test, found_del_ins)
+TEST_F(direct_access_test, found_del_ins)
 {
     begin_transaction();
 
@@ -428,7 +477,7 @@ TEST_F(dac_object_test, found_del_ins)
 }
 
 // Delete a found object then update
-TEST_F(dac_object_test, found_del_update)
+TEST_F(direct_access_test, found_del_update)
 {
     begin_transaction();
     gaia_id_t eid = create_employee("Hector").gaia_id();
@@ -459,7 +508,7 @@ TEST_F(dac_object_test, found_del_update)
 // only takes a writer object.
 
 // Delete a row twice
-TEST_F(dac_object_test, new_del_del)
+TEST_F(direct_access_test, new_del_del)
 {
     begin_transaction();
     auto e = create_employee("Hugo");
@@ -470,7 +519,7 @@ TEST_F(dac_object_test, new_del_del)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, auto_txn_begin)
+TEST_F(direct_access_test, auto_txn_begin)
 {
 
     // Default constructor enables auto_begin semantics
@@ -492,10 +541,9 @@ TEST_F(dac_object_test, auto_txn_begin)
     EXPECT_STREQ(e.name_last(), "Clinton");
 }
 
-TEST_F(dac_object_test, auto_txn)
+TEST_F(direct_access_test, auto_txn)
 {
-    // Specify auto_begin = false
-    auto_transaction_t txn(false);
+    auto_transaction_t txn(auto_transaction_t::no_auto_restart);
     auto writer = employee_writer();
 
     writer.name_last = "Hawkins";
@@ -513,7 +561,7 @@ TEST_F(dac_object_test, auto_txn)
     txn.commit();
 }
 
-TEST_F(dac_object_test, auto_txn_rollback)
+TEST_F(direct_access_test, auto_txn_rollback)
 {
     gaia_id_t id;
     {
@@ -527,7 +575,7 @@ TEST_F(dac_object_test, auto_txn_rollback)
     EXPECT_THROW(employee_t::get(id), invalid_object_id);
 }
 
-TEST_F(dac_object_test, writer_value_ref)
+TEST_F(direct_access_test, writer_value_ref)
 {
     begin_transaction();
     employee_writer w1 = employee_writer();
@@ -594,7 +642,7 @@ void delete_thread(gaia_id_t id)
     end_session();
 }
 
-TEST_F(dac_object_test, thread_insert)
+TEST_F(direct_access_test, thread_insert)
 {
     // Insert a record in another thread and verify
     // we can see it here.
@@ -608,7 +656,7 @@ TEST_F(dac_object_test, thread_insert)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, thread_update)
+TEST_F(direct_access_test, thread_update)
 {
     // Update a record in another thread and verify
     // we can see it here.
@@ -634,7 +682,7 @@ TEST_F(dac_object_test, thread_update)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, thread_update_conflict)
+TEST_F(direct_access_test, thread_update_conflict)
 {
     insert_thread(false);
 
@@ -659,7 +707,7 @@ TEST_F(dac_object_test, thread_update_conflict)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, thread_update_other_row)
+TEST_F(direct_access_test, thread_update_other_row)
 {
     gaia_id_t row1_id = 0;
     gaia_id_t row2_id = 0;
@@ -693,7 +741,7 @@ TEST_F(dac_object_test, thread_update_other_row)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, thread_delete)
+TEST_F(direct_access_test, thread_delete)
 {
     // update a record in another thread and verify
     // we can see it
@@ -718,7 +766,7 @@ TEST_F(dac_object_test, thread_delete)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, thread_insert_update_delete)
+TEST_F(direct_access_test, thread_insert_update_delete)
 {
     // Do three concurrent operations and make sure we see are isolated from them
     // and then do see them in a subsequent transaction.
@@ -758,7 +806,7 @@ TEST_F(dac_object_test, thread_insert_update_delete)
     commit_transaction();
 };
 
-TEST_F(dac_object_test, thread_delete_conflict)
+TEST_F(direct_access_test, thread_delete_conflict)
 {
     // Have two threads delete the same row.
     insert_thread(false);
@@ -812,7 +860,7 @@ void employee_func_val(employee_t e, const char* first_name)
     commit_transaction();
 }
 
-TEST_F(dac_object_test, default_construction)
+TEST_F(direct_access_test, default_construction)
 {
     // Valid use case to create an unbacked object that
     // you can't do anything with.  However, now you can
@@ -849,7 +897,7 @@ TEST_F(dac_object_test, default_construction)
 }
 
 // Testing the arrow dereference operator->() in dac_iterator_t.
-TEST_F(dac_object_test, iter_arrow_deref)
+TEST_F(direct_access_test, iter_arrow_deref)
 {
     const char* emp_name = "Phillip";
     auto_transaction_t txn;
@@ -865,10 +913,10 @@ TEST_F(dac_object_test, iter_arrow_deref)
 int count_names(size_t name_length)
 {
     int count = 0;
-    auto name_length_list = employee_t::list()
-                                .where([&](const employee_t& e) {
-                                    return strlen(e.name_first()) == name_length;
-                                });
+    auto name_length_list
+        = employee_t::list().where([&](const employee_t& e) {
+              return strlen(e.name_first()) == name_length;
+          });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
@@ -877,7 +925,7 @@ int count_names(size_t name_length)
     return count;
 }
 
-TEST_F(dac_object_test, list_filter)
+TEST_F(direct_access_test, list_filter)
 {
     auto_transaction_t txn;
 
@@ -898,11 +946,11 @@ TEST_F(dac_object_test, list_filter)
     EXPECT_EQ(count_names(8), 2);
 
     // Filter for names ending in 'y'.
-    auto names_ending_with_y = employee_t::list()
-                                   .where([&](const employee_t& e) {
-                                       const char* first_name = e.name_first();
-                                       return first_name[strlen(first_name) - 1] == 'y';
-                                   });
+    auto names_ending_with_y
+        = employee_t::list().where([&](const employee_t& e) {
+              const char* first_name = e.name_first();
+              return first_name[strlen(first_name) - 1] == 'y';
+          });
 
     for (const auto& e : names_ending_with_y)
     {
@@ -911,53 +959,10 @@ TEST_F(dac_object_test, list_filter)
     }
 }
 
-TEST_F(dac_object_test, array_insert)
-{
-    const char* customer_name = "Unibot";
-    const int32_t q1_sales = 200;
-    const int32_t q2_sales = 300;
-    const int32_t q3_sales = 500;
-
-    auto_transaction_t txn;
-    const std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
-    gaia_id_t id = customer_t::insert_row(customer_name, sales_by_quarter);
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    EXPECT_TRUE(std::equal(sales_by_quarter.begin(), sales_by_quarter.end(), c.sales_by_quarter().data()));
-}
-
-TEST_F(dac_object_test, array_writer)
-{
-    const char* customer_name = "xorlab";
-    const int32_t q1_sales = 100;
-    const int32_t q2_sales = 200;
-    const int32_t q3_sales = 300;
-
-    auto_transaction_t txn;
-    auto w = customer_writer();
-    w.name = customer_name;
-    w.sales_by_quarter = {q1_sales, q2_sales};
-    gaia_id_t id = w.insert_row();
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    EXPECT_STREQ(c.name(), customer_name);
-    EXPECT_EQ(c.sales_by_quarter()[0], q1_sales);
-    EXPECT_EQ(c.sales_by_quarter()[1], q2_sales);
-
-    w = c.writer();
-    w.sales_by_quarter.push_back(q3_sales);
-    w.update_row();
-    txn.commit();
-
-    EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
-}
-
 // TESTCASE: Delete rows accessed through a list() iterator.
 // GAIAPLAT-1049
 // The delete_row() interferes with iterator.
-TEST_F(dac_object_test, delete_row_in_loop)
+TEST_F(direct_access_test, delete_row_in_loop)
 {
     auto_transaction_t txn;
     phone_t::insert_row("206", "Y", true);

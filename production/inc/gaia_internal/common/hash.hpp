@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include <vector>
 
 namespace gaia
 {
@@ -17,103 +17,100 @@ namespace common
 namespace hash
 {
 
-// Replacement of `std::rotl` before C++ 20 from the post below:
-// https://blog.regehr.org/archives/1063
-inline uint32_t rotl32(uint32_t x, uint32_t n)
+/*
+ * Compute murmur3 32 bit hash for the key.
+ *
+ * Adapted from the public domain murmur3 hash implementation at:
+ * https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
+ *
+ * We made the following changes to the original implementation.
+ * - Use the key length as the seed.
+ * - Use `std::memcpy` for block read.
+ * - Return `uint32_t` directly to avoid block write.
+ * - Change C-style cast to C++ cast and switch to `auto` type.
+ * - Code format change in various places to adhering to Gaia coding guideline.
+ *
+ * Warning: murmur3 is not a cryptographic hash function and should not be used
+ * in places where security is a concern.
+ */
+uint32_t murmur3_32(const void* key, int len);
+
+/*
+ * Create a composite mash from 1 or more previous 128-bit hashes.
+ *
+ * Note that if only one hash has been included in this composite, it
+ * will not be hashed again, but will be returned in its origical value.
+ */
+class multi_segment_hash
 {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    ASSERT_PRECONDITION(n < 32, "Out of range rotation number.");
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    return (x << n) | (x >> (-n & 31));
-}
+public:
+    static constexpr int c_murmur3_128_hash_size_in_bytes = 16;
 
-// Compute murmur3 32 bit hash for the key. Adapted from the public domain
-// murmur3 hash implementation at:
-// https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
-//
-// We made the following changes to the original implementation.
-// - Use the key length as the seed.
-// - Use `std::memcpy` for block read.
-// - Return `uint32_t` directly to avoid block write.
-// - Change C-style cast to C++ cast and switch to `auto` type.
-// - Code format change in various places to adhering to Gaia coding guideline.
-//
-// Warning: murmur3 is not a cryptographic hash function and should not be used
-// in places where security is a concern.
-uint32_t murmur3_32(const void* key, int len)
-{
-    auto data = static_cast<const uint8_t*>(key);
-    const int nblocks = len / 4;
+    // Boolean encoding. These values are arbitrary. They just need to be different.
+    static constexpr uint8_t bool_true_encoding = 0xdd;
+    static constexpr uint8_t bool_false_encoding = 0x99;
 
-    uint32_t h1 = len;
+    /**
+     * Compute murmur3 128 bit hash for the key.
+     */
+    void murmur3_128(const void* key, const int len, void* out);
 
-    const uint32_t c1 = 0xcc9e2d51;
-    const uint32_t c2 = 0x1b873593;
-
-    //----------
-    // body
-
-    auto blocks = reinterpret_cast<const uint32_t*>(data + nblocks * 4);
-
-    for (int i = -nblocks; i; i++)
+    /**
+     * Add a hash to the composite resulting from a key.
+     * Scalar values are encoded in such a way that the hash values are most diverse.
+     * An issue with the murmur3 algorithm is that trailing 0's don't affect the
+     * hash value. The encoding rules implemented here will reduce the odds of that.
+     * Strings and floating point require no encoding.
+     * Booleans are changed to two different non-zero values.
+     * All other scalars are inverted because of the frequency of 0.
+     */
+    void hash_add(const char* key);
+    void hash_add(float key);
+    void hash_add(double key);
+    void hash_add(bool key);
+    template <typename T>
+    void hash_add(T key)
     {
-        uint32_t k1;
-        std::memcpy(&k1, (blocks + i), sizeof(k1));
-
-        k1 *= c1;
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 = rotl32(k1, 15);
-        k1 *= c2;
-
-        h1 ^= k1;
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        h1 = rotl32(h1, 13);
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        h1 = h1 * 5 + 0xe6546b64;
+        uint8_t hash[c_murmur3_128_hash_size_in_bytes];
+        T use_key = ~key;
+        murmur3_128(&use_key, sizeof(T), hash);
+        hash_include(hash);
     }
 
-    //----------
-    // tail
+    /**
+     * Add a hash value to the composite.
+     */
+    void hash_include(const uint8_t* hash_in);
 
-    auto tail = static_cast<const uint8_t*>(data + nblocks * 4);
+    /**
+     * Calculate the hash of all included hashes, optionally return the value.
+     */
+    void hash_calc(uint8_t* hash_out);
+    void hash_calc();
 
-    uint32_t k1 = 0;
-
-    switch (len & 3)
+    /**
+     * Return a pointer to the calculated hash value;
+     */
+    uint8_t* hash()
     {
-    case 3:
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 ^= tail[2] << 16;
-    case 2:
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 ^= tail[1] << 8;
-    case 1:
-        k1 ^= tail[0];
-        k1 *= c1;
-        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 = rotl32(k1, 15);
-        k1 *= c2;
-        h1 ^= k1;
-    };
+        return m_hash;
+    }
 
-    //----------
-    // finalization
+    /**
+     * Return the calculated hash value as a char string.
+     */
+    char* to_string();
 
-    h1 ^= len;
+private:
+    // All the hashes that will be used to compose this one hash.
+    std::vector<uint8_t> m_hashes;
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    h1 ^= h1 >> 16;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    h1 *= 0x85ebca6b;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    h1 ^= h1 >> 13;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    h1 *= 0xc2b2ae35;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    h1 ^= h1 >> 16;
+    // The final hash value.
+    uint8_t m_hash[c_murmur3_128_hash_size_in_bytes];
 
-    return h1;
-}
+    // A printable form of the hash for human consumption.
+    char m_hash_string[(c_murmur3_128_hash_size_in_bytes * 2) + 1];
+};
 
 } // namespace hash
 } // namespace common

@@ -97,7 +97,7 @@ protected:
         while (true)
         {
             // Produce the JSON string of this selection.
-            auto extracted_rows = gaia_db_extract("addr_book", "employee", row_id, block_size);
+            auto extracted_rows = gaia_db_extract("addr_book", "employee", row_id, block_size, "", c_start_at_first);
             if (!extracted_rows.compare(c_empty_object))
             {
                 break;
@@ -144,9 +144,6 @@ protected:
 // Store rows, convert them to JSON, scan through them as multiple blocks.
 TEST_F(row_extract_test, read_blocks)
 {
-    // Initialization is needed when using reflection.
-    ASSERT_TRUE(gaia_db_extract_initialize());
-
     // Try this with a number of permutations. The number of rows created goes from
     // 0 to over 1K. The test will scan the created rows in blocks of varying sizes
     // ranging from 0 to a few to unlimited.
@@ -182,9 +179,6 @@ constexpr double double_tolerance = 0.00001;
 // Using amr_swarm DDL because of it's variety of data types.
 TEST_F(row_field_values_test, verify_field_values)
 {
-    // Initialization is needed when using reflection.
-    ASSERT_TRUE(gaia_db_extract_initialize());
-
     // Using configuration_t.
     {
         begin_transaction();
@@ -204,7 +198,7 @@ TEST_F(row_field_values_test, verify_field_values)
         commit_transaction();
 
         // Produce the JSON string of this selection.
-        auto extracted_rows = gaia_db_extract("amr_swarm", "configuration", c_start_at_first, c_row_limit_unlimited);
+        auto extracted_rows = gaia_db_extract("amr_swarm", "configuration", c_start_at_first, c_row_limit_unlimited, "", c_start_at_first);
         EXPECT_NE(extracted_rows.compare(c_empty_object), 0);
 
         // Parse all of the rows.
@@ -256,7 +250,7 @@ TEST_F(row_field_values_test, verify_field_values)
         commit_transaction();
 
         // Produce the JSON string of this selection.
-        auto extracted_rows = gaia_db_extract("amr_swarm", "robot", c_start_at_first, c_row_limit_unlimited);
+        auto extracted_rows = gaia_db_extract("amr_swarm", "robot", c_start_at_first, c_row_limit_unlimited, "", c_start_at_first);
         EXPECT_NE(extracted_rows.compare(c_empty_object), 0);
 
         // Parse all of the rows.

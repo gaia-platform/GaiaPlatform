@@ -1,3 +1,8 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 enable_testing()
 project(gaiat VERSION 0.0.0)
 
@@ -63,6 +68,10 @@ if("$CACHE{ENABLE_SDK_TESTS}")
   set(RULESET_PREFIX "${GAIA_REPO}/production/tools/gaia_translate/tests")
   set(RULES_TEST_HELPERS "${GAIA_REPO}/production/rules/event_manager/tests/rules_test_helpers.cpp")
 
+  # The rules perf test needs a logger configuration to ensure that we write out
+  # the rule stats.
+  configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
+
   translate_ruleset_internal(
     RULESET_FILE ${RULESET_PREFIX}/test_translation.ruleset
     DAC_LIBRARY dac_barn_storage
@@ -97,6 +106,18 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     DAC_LIBRARY dac_prerequisites
   )
   target_include_directories(test_metarule3_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_array.ruleset
+    DAC_LIBRARY dac_addr_book
+  )
+  target_include_directories(test_array_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_rules_perf_basic.ruleset
+    DAC_LIBRARY dac_perf_rules
+  )
+  target_include_directories(test_rules_perf_basic_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
   # Smoke test for basic ruleset translation functionality
   add_gtest(test_translation_engine
@@ -142,8 +163,19 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     "${TEST_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;test_amr_swarm_ruleset")
 
-    add_gtest(test_metarule3
-      "tests/test_metarule3.cpp;${RULES_TEST_HELPERS}"
-      "${TEST_INCLUDES}"
-      "rt;gaia_system;gaia_db_catalog_test;test_metarule3_ruleset")
+  add_gtest(test_metarule3
+    "tests/test_metarule3.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_metarule3_ruleset")
+
+  add_gtest(test_array
+    "tests/test_array.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_array_ruleset")
+
+  add_gtest(test_rules_perf_basic
+    "tests/test_rules_perf_basic.cpp;${RULES_TEST_HELPERS};${GAIA_REPO}/production/common/src/debug_logger.cpp"
+    "${TEST_INCLUDES};${GAIA_REPO}/production/benchmarks/inc"
+    "rt;gaia_system;gaia_db_catalog_test;test_rules_perf_basic_ruleset")
+
 endif()

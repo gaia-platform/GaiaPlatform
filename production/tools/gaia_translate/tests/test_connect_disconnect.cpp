@@ -20,11 +20,13 @@ using namespace gaia::rules;
 using namespace gaia::prerequisites;
 using namespace gaia::prerequisites::registration_expr;
 
-class test_connect_disconnect : public db_catalog_test_base_t
+class test_connect_disconnect_ruleset : public db_catalog_test_base_t
 {
 public:
-    test_connect_disconnect()
-        : db_catalog_test_base_t("prerequisites.ddl"){};
+    test_connect_disconnect_ruleset()
+        : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override
@@ -42,7 +44,7 @@ protected:
     }
 };
 
-TEST_F(test_connect_disconnect, test_connect_1_n)
+TEST_F(test_connect_disconnect_ruleset, test_connect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_n");
 
@@ -71,7 +73,7 @@ TEST_F(test_connect_disconnect, test_connect_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_connect_1_1)
+TEST_F(test_connect_disconnect_ruleset, test_connect_1_1)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_1");
 
@@ -95,7 +97,7 @@ TEST_F(test_connect_disconnect, test_connect_1_1)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_disconnect_1_n)
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_1_n");
 
@@ -139,7 +141,7 @@ TEST_F(test_connect_disconnect, test_disconnect_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_disconnect_1_1)
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_1_1)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_1_1");
 
@@ -156,7 +158,7 @@ TEST_F(test_connect_disconnect, test_disconnect_1_1)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, disconnect_delete)
+TEST_F(test_connect_disconnect_ruleset, disconnect_delete)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_delete");
 
@@ -172,4 +174,126 @@ TEST_F(test_connect_disconnect, disconnect_delete)
     int count = student_1.registrations().size();
     gaia::db::commit_transaction();
     ASSERT_EQ(count, 0);
+}
+
+TEST_F(test_connect_disconnect_ruleset, test_connect_1_1_child_parent)
+{
+    gaia::rules::subscribe_ruleset("test_connect_child_parent_1_1");
+
+    gaia::db::begin_transaction();
+
+    parents_t parents = parents_t::get(parents_t::insert_row("John", "Jane"));
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+
+    ASSERT_STREQ(parents.student().student_id(), "1");
+    ASSERT_STREQ(parents.student().surname(), "test");
+
+    gaia::db::commit_transaction();
+}
+
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_1_1_child_parent)
+{
+    gaia::rules::subscribe_ruleset("test_disconnect_child_parent_1_1");
+
+    gaia::db::begin_transaction();
+    gaia_id_t parents_1 = parents_t::insert_row("Winnie", "Pontus");
+    student_t student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+    student_1.parents().connect(parents_1);
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+    ASSERT_FALSE(student_1.parents());
+    gaia::db::commit_transaction();
+}
+
+TEST_F(test_connect_disconnect_ruleset, test_connect_child_parent_1_n)
+{
+    gaia::rules::subscribe_ruleset("test_connect_child_parent_1_n");
+
+    gaia::db::begin_transaction();
+
+    course_t course = course_t::get(course_t::insert_row("course001", "test", 45));
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+
+    ASSERT_TRUE(course.course_major());
+    ASSERT_STREQ(course.course_major().major_name(), "test1");
+
+    gaia::db::commit_transaction();
+}
+
+TEST_F(test_connect_disconnect_ruleset, test_disconnect_child_parent_1_n)
+{
+    gaia::rules::subscribe_ruleset("test_disconnect_child_parent_1_n");
+
+    gaia::db::begin_transaction();
+
+    gaia_id_t course_id = course_t::insert_row("course001", "test", 45);
+    major_t major = major_t::get(major_t::insert_row("test_major"));
+    major.courses().connect(course_id);
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+
+    ASSERT_FALSE(course_t::get(course_id).course_major());
+    ASSERT_EQ(major.courses().size(), 0);
+
+    gaia::db::commit_transaction();
+}
+
+TEST_F(test_connect_disconnect_ruleset, test_clear_child_parent_1_n)
+{
+    gaia::rules::subscribe_ruleset("test_clear_child_parent_1_n");
+
+    gaia::db::begin_transaction();
+
+    gaia_id_t course_id = course_t::insert_row("course001", "test", 45);
+    major_t major = major_t::get(major_t::insert_row("test_major"));
+    major.courses().connect(course_id);
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+
+    ASSERT_FALSE(course_t::get(course_id).course_major());
+    ASSERT_EQ(major.courses().size(), 0);
+
+    gaia::db::commit_transaction();
+}
+
+TEST_F(test_connect_disconnect_ruleset, force_delete)
+{
+    gaia::rules::subscribe_ruleset("test_force_delete");
+
+    gaia::db::begin_transaction();
+    major_t major = major_t::get(major_t::insert_row("test"));
+    gaia_id_t course1_id = course_t::insert_row("course001", "test1", 45);
+    major.courses().connect(course1_id);
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+    gaia::db::begin_transaction();
+
+    int major_count = major_t::list().size();
+    int course_count = course_t::list().size();
+
+    gaia::db::commit_transaction();
+    ASSERT_EQ(major_count, 0);
+    ASSERT_EQ(course_count, 1);
 }

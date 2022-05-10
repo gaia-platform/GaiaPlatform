@@ -15,6 +15,7 @@
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
+#include "db_shared_data.hpp"
 #include "rdb_object_converter.hpp"
 #include "rdb_wrapper.hpp"
 
@@ -122,7 +123,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     rocksdb::Transaction* txn = m_rdb_wrapper->get_txn_by_name(txn_name);
     for (size_t i = 0; i < log->record_count; i++)
     {
-        txn_log_t::log_record_t* lr = log->log_records + i;
+        log_record_t* lr = log->log_records + i;
         if (lr->operation() == gaia_operation_t::remove)
         {
             // Encode key to be deleted.
@@ -191,7 +192,6 @@ void persistent_store_manager::recover()
     // Check for any errors found during the scan
     m_rdb_wrapper->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
-    m_counters->last_type_id = max_type_id;
 }
 
 void persistent_store_manager::destroy_persistent_store()

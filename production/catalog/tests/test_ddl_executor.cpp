@@ -76,12 +76,27 @@ protected:
     ddl_executor_test()
         : db_catalog_test_base_t("addr_book.ddl"){};
 
+    void SetUp() override
+    {
+        db_catalog_test_base_t::SetUp();
+    }
+
     void check_table_name(gaia_id_t id, const string& name)
     {
         gaia::db::begin_transaction();
         gaia_table_t t = gaia_table_t::get(id);
         EXPECT_EQ(name, t.name());
         gaia::db::commit_transaction();
+    }
+
+    string get_database_hash(const string& db_name)
+    {
+        gaia::db::begin_transaction();
+        const auto& db_list = gaia_database_t::list().where(gaia_database_expr::name == db_name);
+        EXPECT_TRUE(db_list.begin() != db_list.end());
+        const char* database_hash = db_list.begin()->hash();
+        gaia::db::commit_transaction();
+        return string(database_hash);
     }
 };
 
@@ -102,7 +117,7 @@ TEST_F(ddl_executor_test, create_table)
     string test_table_name{"create_table_test"};
     ddl::field_def_list_t fields;
 
-    gaia_id_t table_id = create_table(test_table_name, fields);
+    gaia_id_t table_id = create_table(test_db_name, test_table_name, fields);
     check_table_name(table_id, test_table_name);
 
     ASSERT_THROW(create_table(test_db_name, test_table_name, fields), table_already_exists);
@@ -120,8 +135,7 @@ TEST_F(ddl_executor_test, system_tables)
 
     for (gaia_table_t gaia_table : gaia_table_t::list())
     {
-        if (strcmp(c_catalog_db_name.c_str(), gaia_table.database().name()) == 0
-            || strcmp(c_event_log_db_name.c_str(), gaia_table.database().name()) == 0)
+        if (strcmp(c_catalog_db_name.c_str(), gaia_table.database().name()) == 0)
         {
             ASSERT_TRUE(gaia_table.is_system());
         }
@@ -139,8 +153,6 @@ TEST_F(ddl_executor_test, create_existing_table)
 
 TEST_F(ddl_executor_test, list_tables)
 {
-    use_database(c_empty_db_name);
-
     ddl::field_def_list_t fields;
     set<gaia_id_t> table_ids;
     constexpr int c_num_fields = 10;
@@ -250,8 +262,8 @@ TEST_F(ddl_executor_test, drop_table_with_self_reference)
 
     gaia::catalog::create_relationship(
         test_table_name + "_self_ref_rel",
-        {"", test_table_name, "refs", "", test_table_name, gaia::catalog::relationship_cardinality_t::many},
-        {"", test_table_name, "ref", "", test_table_name, gaia::catalog::relationship_cardinality_t::one},
+        {c_empty_db_name, test_table_name, "refs", c_empty_db_name, test_table_name, gaia::catalog::relationship_cardinality_t::many},
+        {c_empty_db_name, test_table_name, "ref", c_empty_db_name, test_table_name, gaia::catalog::relationship_cardinality_t::one},
         false);
 
     drop_table(test_table_name);
@@ -274,8 +286,8 @@ TEST_F(ddl_executor_test, drop_table_parent_reference_fail)
 
     gaia::catalog::create_relationship(
         parent_table_name + child_table_name + "_test_rel1",
-        {"", parent_table_name, "children", "", child_table_name, gaia::catalog::relationship_cardinality_t::many},
-        {"", child_table_name, "parent", "", parent_table_name, gaia::catalog::relationship_cardinality_t::one},
+        {c_empty_db_name, parent_table_name, "children", c_empty_db_name, child_table_name, gaia::catalog::relationship_cardinality_t::many},
+        {c_empty_db_name, child_table_name, "parent", c_empty_db_name, parent_table_name, gaia::catalog::relationship_cardinality_t::one},
         false);
 
     EXPECT_THROW(
@@ -301,8 +313,8 @@ TEST_F(ddl_executor_test, drop_table_child_reference)
 
     gaia::catalog::create_relationship(
         parent_table_name + child_table_name + "_test_rel2",
-        {"", parent_table_name, "children", "", child_table_name, gaia::catalog::relationship_cardinality_t::many},
-        {"", child_table_name, "parent", "", parent_table_name, gaia::catalog::relationship_cardinality_t::one},
+        {c_empty_db_name, parent_table_name, "children", c_empty_db_name, child_table_name, gaia::catalog::relationship_cardinality_t::many},
+        {c_empty_db_name, child_table_name, "parent", c_empty_db_name, parent_table_name, gaia::catalog::relationship_cardinality_t::one},
         false);
 
     begin_transaction();
@@ -551,7 +563,7 @@ TEST_F(ddl_executor_test, create_index)
 
     check_table_name(table_id, test_table_name);
     string test_index_name{"test_index"};
-    gaia_id_t index_id = create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"});
+    gaia_id_t index_id = create_index(test_index_name, true, index_type_t::hash, c_empty_db_name, test_table_name, {"name"});
 
     auto_transaction_t txn(false);
     ASSERT_STREQ(gaia_index_t::get(index_id).name(), test_index_name.c_str());
@@ -560,10 +572,10 @@ TEST_F(ddl_executor_test, create_index)
     txn.commit();
 
     ASSERT_THROW(
-        create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"}),
+        create_index(test_index_name, true, index_type_t::hash, c_empty_db_name, test_table_name, {"name"}),
         index_already_exists);
 
-    ASSERT_NO_THROW(create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name"}, false));
+    ASSERT_NO_THROW(create_index(test_index_name, true, index_type_t::hash, c_empty_db_name, test_table_name, {"name"}, false));
 }
 
 TEST_F(ddl_executor_test, create_index_duplicate_field)
@@ -576,7 +588,7 @@ TEST_F(ddl_executor_test, create_index_duplicate_field)
 
     string test_index_name{"test_index_dup"};
     ASSERT_THROW(
-        create_index(test_index_name, true, index_type_t::hash, "", test_table_name, {"name", "name"}),
+        create_index(test_index_name, true, index_type_t::hash, c_empty_db_name, test_table_name, {"name", "name"}),
         duplicate_field);
 }
 
@@ -592,11 +604,11 @@ TEST_F(ddl_executor_test, list_indexes)
     fields.emplace_back(std::make_unique<gaia::catalog::ddl::data_field_def_t>("isbn", data_type_t::e_string, 1));
     auto table_id = gaia::catalog::create_table("book", fields);
     auto title_idx_id = gaia::catalog::create_index(
-        "title_idx", false, gaia::catalog::index_type_t::range, "", "book", {"title"});
+        "title_idx", false, gaia::catalog::index_type_t::range, c_empty_db_name, "book", {"title"});
     auto author_idx_id = gaia::catalog::create_index(
-        "author_idx", false, gaia::catalog::index_type_t::range, "", "book", {"author"});
+        "author_idx", false, gaia::catalog::index_type_t::range, c_empty_db_name, "book", {"author"});
     auto isbn_idx_id = gaia::catalog::create_index(
-        "isbn_idx", true, gaia::catalog::index_type_t::hash, "", "book", {"isbn"});
+        "isbn_idx", true, gaia::catalog::index_type_t::hash, c_empty_db_name, "book", {"isbn"});
 
     std::set<gaia_id_t> index_ids;
     auto_transaction_t txn(false);
@@ -664,4 +676,89 @@ TEST_F(ddl_executor_test, drop_relationship_with_data)
     EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).addresses().size(), 0);
 
     commit_transaction();
+}
+
+// Create a table, check resulting hash. Do same after dropping table. Expect euality.
+TEST_F(ddl_executor_test, create_drop_create_hash)
+{
+    string test_table_name{"create_drop_create"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    create_table(test_table_name, fields);
+    string first_hash = get_database_hash(c_empty_db_name);
+
+    drop_table(test_table_name);
+
+    // Add the table again and expect database hash to be the same.
+    create_table(test_table_name, fields);
+    string second_hash = get_database_hash(c_empty_db_name);
+    EXPECT_STREQ(first_hash.c_str(), second_hash.c_str());
+}
+
+// Reverse table order in a named database. Expect equal hash results.
+TEST_F(ddl_executor_test, reverse_table_order_hash)
+{
+    string test_db_name{"hash_db"};
+    create_database(test_db_name);
+    string first_test_table_name{"first_test_table"};
+    string second_test_table_name{"second_test_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    create_table(test_db_name, first_test_table_name, fields);
+    create_table(test_db_name, second_test_table_name, fields);
+    string first_hash = get_database_hash(test_db_name);
+
+    drop_table(test_db_name, first_test_table_name);
+    drop_table(test_db_name, second_test_table_name);
+
+    // Add the tables again in reverse order and expect database hash to be the same.
+    create_table(test_db_name, second_test_table_name, fields);
+    create_table(test_db_name, first_test_table_name, fields);
+    string second_hash = get_database_hash(test_db_name);
+    EXPECT_STREQ(first_hash.c_str(), second_hash.c_str());
+}
+
+// Reverse table order in an unnamed database. Expect equal hash results.
+TEST_F(ddl_executor_test, empty_db_name_hash)
+{
+    string first_test_table_name{"first_test_table"};
+    string second_test_table_name{"second_test_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    create_table(c_empty_db_name, first_test_table_name, fields);
+    create_table(c_empty_db_name, second_test_table_name, fields);
+    string first_hash = get_database_hash(c_empty_db_name);
+
+    // The database with empty name must have a real hash.
+    EXPECT_STRNE(first_hash.c_str(), "00000000000000000000000000000000");
+
+    drop_table(first_test_table_name);
+    drop_table(second_test_table_name);
+
+    // Add the tables again in reverse order and expect database hash to be the same.
+    create_table(c_empty_db_name, second_test_table_name, fields);
+    create_table(c_empty_db_name, first_test_table_name, fields);
+    string second_hash = get_database_hash(c_empty_db_name);
+    EXPECT_STREQ(first_hash.c_str(), second_hash.c_str());
+}
+
+// Reverse field order in a table. Expect hash to be different.
+TEST_F(ddl_executor_test, reverse_field_order_hash)
+{
+    string test_table_name{"field_order_table"};
+    ddl::field_def_list_t fields;
+    fields.emplace_back(make_unique<data_field_def_t>("id", data_type_t::e_string, 1));
+    fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    create_table(test_table_name, fields);
+    string first_hash = get_database_hash(c_empty_db_name);
+
+    drop_table(test_table_name);
+
+    // Add the table again with fields in reverse order and expect database hash to be different.
+    ddl::field_def_list_t reverse_fields;
+    reverse_fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+    reverse_fields.emplace_back(make_unique<data_field_def_t>("id", data_type_t::e_string, 1));
+    create_table(test_table_name, reverse_fields);
+    string second_hash = get_database_hash(c_empty_db_name);
+    EXPECT_STRNE(first_hash.c_str(), second_hash.c_str());
 }

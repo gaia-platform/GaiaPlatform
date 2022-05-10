@@ -17,13 +17,13 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/hash.hpp"
 #include "gaia_internal/common/logger.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
-#include "db_helpers.hpp"
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
 
@@ -48,20 +48,21 @@ static constexpr char c_assert_throw_and_auto_drop[]
     = "Cannot auto drop and skip on exists at the same time.";
 static constexpr char c_empty_hash[] = "";
 
-ddl_executor_t::ddl_executor_t()
-{
-    bootstrap_catalog();
-}
-
 ddl_executor_t& ddl_executor_t::get()
 {
     static ddl_executor_t s_instance;
     return s_instance;
 }
 
+ddl_executor_t::ddl_executor_t()
+{
+    bootstrap_catalog();
+}
+
 void ddl_executor_t::bootstrap_catalog()
 {
-    static constexpr char c_event_log_table_name[] = "event_log";
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     static constexpr char c_gaia_database_table_name[] = "gaia_database";
     static constexpr char c_gaia_table_table_name[] = "gaia_table";
     static constexpr char c_gaia_field_table_name[] = "gaia_field";
@@ -249,32 +250,9 @@ void ddl_executor_t::bootstrap_catalog()
             static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_ref_anchor));
     }
 
-    create_database(c_event_log_db_name, false);
-    {
-        // create table event_log (
-        //     event_type: uint32,
-        //     type_id: uint64,
-        //     record_id: uint64,
-        //     column_id: uint16,
-        //     timestamp: uint64,
-        //     rules_invoked: bool
-        // );
-        field_def_list_t fields;
-        fields.emplace_back(make_unique<data_field_def_t>("event_type", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("type_id", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("record_id", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("column_id", data_type_t::e_uint16, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("timestamp", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("rules_invoked", data_type_t::e_bool, 1));
-        create_table_impl(
-            c_event_log_db_name, c_event_log_table_name, fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(system_table_type_t::event_log));
-    }
-
     // Create the special empty database. Tables created without specifying a
     // database name will be created in it.
     m_empty_db_id = create_database(c_empty_db_name, false);
-    m_db_context = c_empty_db_name;
 
     // Initialize the rule catalog tables.
     //
@@ -459,7 +437,7 @@ void ddl_executor_t::bootstrap_catalog()
         vector<string> child_fields{"gaia_rule_name"};
         table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_table_table_name, child_fields}};
         create_relationship(
-            "rule_catalog_gaia_rule_gaia_rule_rule_table",
+            "rule_catalog_gaia_rule_rule_table",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_tables", c_catalog_db_name, c_rule_table_table_name, relationship_cardinality_t::many},
             {c_catalog_db_name, c_rule_table_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
             value_link,
@@ -473,7 +451,7 @@ void ddl_executor_t::bootstrap_catalog()
         vector<string> child_fields{"gaia_rule_name"};
         table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_field_table_name, child_fields}};
         create_relationship(
-            "rule_catalog_gaia_rule_gaia_rule_field_table",
+            "rule_catalog_gaia_rule_field_table",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_fields", c_catalog_db_name, c_rule_field_table_name, relationship_cardinality_t::many},
             {c_catalog_db_name, c_rule_field_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
             value_link,
@@ -487,7 +465,7 @@ void ddl_executor_t::bootstrap_catalog()
         vector<string> child_fields{"gaia_rule_name"};
         table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_relationship_table_name, child_fields}};
         create_relationship(
-            "rule_catalog_gaia_rule_gaia_rule_rule_relationship",
+            "rule_catalog_gaia_rule_rule_relationship",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_relationships", c_catalog_db_name, c_rule_relationship_table_name, relationship_cardinality_t::many},
             {c_catalog_db_name, c_rule_relationship_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
             value_link,
@@ -500,6 +478,7 @@ void ddl_executor_t::bootstrap_catalog()
 
 gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exists, bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
     // TODO: switch to index for fast lookup.
@@ -520,13 +499,11 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
         }
     }
 
-    gaia_log::catalog().debug("Creating database '{}'", name);
+    gaia_log::catalog().debug("Creating database '{}'...", name);
 
     gaia_id_t id = gaia_database_t::insert_row(name.c_str(), c_empty_hash);
 
-    gaia_log::catalog().debug("Created database '{}', id:'{}'", name, id);
-
-    switch_db_context(name);
+    gaia_log::catalog().debug("Created database '{}' with id '{}'.", name, id);
 
     return id;
 }
@@ -538,6 +515,7 @@ gaia_id_t ddl_executor_t::create_table(
     bool throw_on_exists,
     bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     return create_table_impl(db_name, name, fields, false, throw_on_exists, auto_drop);
 }
 
@@ -569,6 +547,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     bool throw_on_exists,
     bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
     // TODO: switch to index for fast lookup.
@@ -589,11 +568,11 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
     }
 
-    gaia_id_t link1_src_table_id = get_table_id(in_context(link1.from_database), link1.from_table);
-    gaia_id_t link1_dest_table_id = get_table_id(in_context(link1.to_database), link1.to_table);
+    gaia_id_t link1_src_table_id = get_table_id(link1.from_database, link1.from_table);
+    gaia_id_t link1_dest_table_id = get_table_id(link1.to_database, link1.to_table);
 
-    gaia_id_t link2_src_table_id = get_table_id(in_context(link2.from_database), link2.from_table);
-    gaia_id_t link2_dest_table_id = get_table_id(in_context(link2.to_database), link2.to_table);
+    gaia_id_t link2_src_table_id = get_table_id(link2.from_database, link2.from_table);
+    gaia_id_t link2_dest_table_id = get_table_id(link2.to_database, link2.to_table);
 
     if (link1_src_table_id != link2_dest_table_id)
     {
@@ -679,12 +658,22 @@ gaia_id_t ddl_executor_t::create_relationship(
                 + link1.from_table + "' and table '" + link1.to_table + "') is not supported.");
         }
 
-        if (field_map->first.fields.size() != 1 || field_map->second.fields.size() != 1)
+        if (field_map->first.fields.size() != field_map->second.fields.size())
         {
-            throw invalid_relationship_field_internal("Defining relationships using composite keys are not supported currently.");
+            throw invalid_relationship_field_internal(
+                "The number of parent fields does not match the number of child fields in the relationship.");
         }
-        gaia_id_t first_table_id = get_table_id(in_context(field_map->first.database), field_map->first.table);
-        gaia_id_t second_table_id = get_table_id(in_context(field_map->second.database), field_map->second.table);
+        else if (field_map->first.fields.size() != 1)
+        {
+            ASSERT_INVARIANT(
+                field_map->second.fields.size() != 1, "Relationship field counts should match at this point!");
+
+            throw invalid_relationship_field_internal(
+                "Defining relationships using composite keys is not supported currently.");
+        }
+
+        gaia_id_t first_table_id = get_table_id(field_map->first.database, field_map->first.table);
+        gaia_id_t second_table_id = get_table_id(field_map->second.database, field_map->second.table);
 
         std::vector<gaia_id_t> parent_field_ids, child_field_ids;
         if (first_table_id == parent_table_id && second_table_id == child_table_id)
@@ -699,7 +688,21 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
         else
         {
-            throw invalid_relationship_field_internal("The field's table(s) do not match the tables of the relationship");
+            throw invalid_relationship_field_internal(
+                "The tables of the fields do not match the tables of the relationship.");
+        }
+
+        // The types of the fields must match.
+        for (size_t i = 0; i < parent_field_ids.size(); i++)
+        {
+            auto parent_field = gaia_field_t::get(parent_field_ids[i]);
+            auto child_field = gaia_field_t::get(child_field_ids[i]);
+
+            if (parent_field.type() != child_field.type())
+            {
+                throw invalid_relationship_field_internal(
+                    "The type of fields used in the relationship does not match.");
+            }
         }
 
         // Parent side fields must be unique.
@@ -831,6 +834,8 @@ void ddl_executor_t::drop_relationship_no_ri(gaia_relationship_t& relationship)
 
 void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unless_exists)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     // TODO: switch to index for fast lookup.
     auto rel_iter = gaia_relationship_t::list().where(gaia_relationship_expr::name == name).begin();
     if (rel_iter == gaia_relationship_t::list().end())
@@ -933,6 +938,8 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
 
 void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     gaia_id_t db_id = find_db_id(name);
     if (db_id == c_invalid_gaia_id)
     {
@@ -958,7 +965,9 @@ void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
 
 void ddl_executor_t::drop_table(const string& db_name, const string& name, bool throw_unless_exists)
 {
-    gaia_id_t db_id = find_db_id(in_context(db_name));
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
+    gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
         if (throw_unless_exists)
@@ -990,7 +999,8 @@ void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_
     }
 }
 
-reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table_t::outgoing_relationships_list_t& relationships)
+reference_offset_t ddl_executor_t::find_parent_available_offset(
+    const gaia_table_t::outgoing_relationships_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -1012,7 +1022,8 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table
     return next_available_offset;
 }
 
-reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_t::incoming_relationships_list_t& relationships)
+reference_offset_t ddl_executor_t::find_child_available_offset(
+    const gaia_table_t::incoming_relationships_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -1051,11 +1062,27 @@ uint32_t generate_table_type(const string& db_name, const string& table_name)
     // size of the bison/flex input buffer (YY_BUF_SIZE). We currently use
     // default setting which is 16k. The assertions below make sure the token
     // length does not exceed the `len` parameter of the hash function.
-    ASSERT_PRECONDITION(db_name.length() <= std::numeric_limits<int>::max(), "The DB name is too long.");
+    ASSERT_PRECONDITION(db_name.length() <= std::numeric_limits<int>::max(), "The database name is too long.");
     ASSERT_PRECONDITION(table_name.length() <= std::numeric_limits<int>::max(), "The table name is too long.");
 
     return hash::murmur3_32(table_name.data(), static_cast<int>(table_name.length()))
         ^ (hash::murmur3_32(db_name.data(), static_cast<int>(db_name.length())) << 1);
+}
+
+bool is_type_used(gaia_type_t type)
+{
+    for (auto& database : gaia_database_t::list())
+    {
+        for (auto& table : gaia_database_t::get(database.gaia_id()).gaia_tables())
+        {
+            if (table.type() == type)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 gaia_id_t ddl_executor_t::create_table_impl(
@@ -1069,7 +1096,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 {
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
-    gaia_id_t db_id = find_db_id(in_context(db_name));
+    gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
         throw db_does_not_exist_internal(db_name);
@@ -1105,7 +1132,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
     }
 
-    gaia_log::catalog().debug("Creating table '{}'", table_name);
+    gaia_log::catalog().debug("Creating table '{}'...", table_name);
 
     // Check for any duplication in field names.
     // We do this before generating fbs because FlatBuffers schema
@@ -1126,19 +1153,24 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_type_t table_type
         = (fixed_type.is_valid())
         ? fixed_type
-        : gaia_type_t(generate_table_type(in_context(db_name), table_name));
+        : gaia_type_t(generate_table_type(db_name, table_name));
+
+    ASSERT_INVARIANT(
+        !is_type_used(table_type),
+        "A table type collision was detected!");
 
     gaia_table_writer table_w;
     table_w.name = table_name.c_str();
     table_w.type = table_type;
     table_w.is_system = is_system;
+    table_w.hash = c_empty_hash;
     gaia_id_t table_id = table_w.insert_row();
     gaia_table_t gaia_table = gaia_table_t::get(table_id);
 
     // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_tables().insert(table_id);
 
-    gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
+    gaia_log::catalog().debug("Created table '{}' with type '{}' and id '{}'.", table_name, table_type, table_id);
 
     uint16_t data_field_position = 0;
     for (const auto& field : fields)
@@ -1215,16 +1247,6 @@ string ddl_executor_t::get_full_table_name(const string& db, const string& table
     }
 }
 
-void ddl_executor_t::switch_db_context(const string& db_name)
-{
-    if (!db_name.empty() && find_db_id(db_name) == c_invalid_gaia_id)
-    {
-        throw db_does_not_exist_internal(db_name);
-    }
-
-    m_db_context = db_name;
-}
-
 std::vector<gaia_id_t> ddl_executor_t::find_table_field_ids(
     gaia_id_t table_id, const std::vector<std::string>& field_names)
 {
@@ -1266,9 +1288,10 @@ gaia_id_t ddl_executor_t::create_index(
     bool throw_on_exists,
     bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
-    gaia_id_t table_id = get_table_id(in_context(db_name), table_name);
+    gaia_id_t table_id = get_table_id(db_name, table_name);
 
     for (const auto& index : gaia_table_t::get(table_id).gaia_indexes())
     {
@@ -1330,6 +1353,8 @@ gaia_id_t ddl_executor_t::create_index(
 
 void ddl_executor_t::drop_index(const std::string& name, bool throw_unless_exists)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     // TODO: switch to index for fast lookup.
     auto index_iter = gaia_index_t::list().where(gaia_index_expr::name == name).begin();
     if (index_iter == gaia_index_t::list().end())

@@ -26,7 +26,7 @@ ruleset test19: tables(sensor)
 ruleset test15
 {
     {
-        actuator.value1++; // expected-error {{no member named 'value1' in 'actuator__type'; did you mean 'value'?}} \
+        actuator.value1++; // expected-error {{no member named 'value1' in 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type'; did you mean 'value'?}} \
                            // expected-note {{'value' declared here}}
     }
 }
@@ -34,7 +34,7 @@ ruleset test15
 ruleset test16
 {
     {
-        value++; // expected-error {{Duplicate field 'value'}} \
+        value++; // expected-error {{The reference to field 'value'}} \
                  // expected-error {{use of undeclared identifier 'value'}}
     }
 }

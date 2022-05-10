@@ -115,11 +115,13 @@ void rule_monitor_t::set_group(bool value)
     }
 }
 
-class serial_ruleset_test : public db_catalog_test_base_t
+class test_serial : public db_catalog_test_base_t
 {
 public:
-    serial_ruleset_test()
-        : db_catalog_test_base_t("incubator.ddl"){};
+    test_serial()
+        : db_catalog_test_base_t("incubator.ddl", true, true, true)
+    {
+    }
 
     void init_storage()
     {
@@ -206,7 +208,7 @@ protected:
     }
 };
 
-TEST_F(serial_ruleset_test, default_serial)
+TEST_F(test_serial, default_serial)
 {
     subscribe_ruleset("test_default_serial");
     init_storage();
@@ -216,7 +218,7 @@ TEST_F(serial_ruleset_test, default_serial)
     verify_values(c_g_incubator_min_temperature * 4);
 }
 
-TEST_F(serial_ruleset_test, default_parallel)
+TEST_F(test_serial, default_parallel)
 {
     subscribe_ruleset("test_default_parallel");
     init_storage();
@@ -226,7 +228,7 @@ TEST_F(serial_ruleset_test, default_parallel)
     verify_values(c_g_incubator_min_temperature * 2, c_g_incubator_max_temperature, c_g_sensor_value * 2);
 }
 
-TEST_F(serial_ruleset_test, multiple_serial_same_group)
+TEST_F(test_serial, multiple_serial_same_group)
 {
     subscribe_ruleset("test_serial_1A");
     subscribe_ruleset("test_serial_2A");
@@ -237,7 +239,7 @@ TEST_F(serial_ruleset_test, multiple_serial_same_group)
     verify_values(c_g_incubator_min_temperature * 4, c_g_incubator_max_temperature * 4);
 }
 
-TEST_F(serial_ruleset_test, multiple_serial_different_groups)
+TEST_F(test_serial, multiple_serial_different_groups)
 {
     subscribe_ruleset("test_serial_1A");
     subscribe_ruleset("test_serial_2A");
@@ -251,7 +253,7 @@ TEST_F(serial_ruleset_test, multiple_serial_different_groups)
     verify_values(c_g_incubator_min_temperature * 4, c_g_incubator_max_temperature * 4, c_g_sensor_value * 4, c_g_sensor_timestamp * 4);
 }
 
-TEST_F(serial_ruleset_test, mixed_serial_parallel)
+TEST_F(test_serial, mixed_serial_parallel)
 {
     subscribe_ruleset("test_serial_1A");
     subscribe_ruleset("test_serial_2A");

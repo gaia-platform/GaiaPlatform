@@ -29,7 +29,9 @@ class test_metarule3 : public db_catalog_test_base_t
 {
 public:
     test_metarule3()
-        : db_catalog_test_base_t("prerequisites.ddl"){};
+        : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override

@@ -20,6 +20,11 @@ using namespace std;
 
 class gaia_dump_test : public db_test_base_t
 {
+public:
+    gaia_dump_test()
+        : db_test_base_t(true, true)
+    {
+    }
 };
 
 constexpr gaia_id_t c_start = 1;

@@ -14,14 +14,16 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "client_messenger.hpp"
+#include "db_caches.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
@@ -30,123 +32,16 @@
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
-using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
+using namespace gaia::db::messages;
 using namespace flatbuffers;
 using namespace scope_guard;
-
-std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
-{
-    // Build the cursor socket request.
-    FlatBufferBuilder builder;
-    auto table_scan_info = Createtable_scan_info_t(builder, type);
-    auto client_request = Createclient_request_t(
-        builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
-    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
-    builder.Finish(message);
-
-    client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
-
-    int stream_socket = client_messenger.received_fd(client_messenger_t::c_index_stream_socket);
-    auto cleanup_stream_socket = make_scope_guard([&]() { close_fd(stream_socket); });
-
-    const session_event_t event = client_messenger.server_reply()->event();
-    ASSERT_INVARIANT(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
-
-    // Check that our stream socket is blocking (because we need to perform blocking reads).
-    ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
-
-    // We use shared_ptr with a custom deleter to guarantee that the socket is
-    // closed when its owning object is destroyed. We could possibly achieve the
-    // same effect with an RAII wrapper, but it would need to have copy rather
-    // than move semantics, since the socket is captured by a lambda that must
-    // be copyable (since it is coerced to std::function).
-    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) {
-        close_fd(*fd_ptr);
-        delete fd_ptr; });
-
-    // Both our explicit new() and the shared_ptr constructor dynamically allocate
-    // memory, so we might need to clean up the socket if either fails.
-    cleanup_stream_socket.dismiss();
-
-    return stream_socket_ptr;
-}
-
-std::function<std::optional<gaia_id_t>()>
-client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::optional<gaia_id_t>()> id_generator)
-{
-    bool has_exhausted_id_generator = false;
-    size_t log_index = 0;
-
-    std::function<std::optional<gaia_id_t>()> augmented_id_generator
-        = [type, id_generator, has_exhausted_id_generator, log_index]() mutable -> std::optional<gaia_id_t> {
-        // First, we use the id_generator until it's exhausted.
-        if (!has_exhausted_id_generator)
-        {
-            std::optional<gaia_id_t> id_opt = id_generator();
-            if (id_opt)
-            {
-                return id_opt;
-            }
-            else
-            {
-                has_exhausted_id_generator = true;
-            }
-        }
-
-        // Once the id_generator is exhausted, we start iterating over our transaction log.
-        if (has_exhausted_id_generator)
-        {
-            while (log_index < s_log.data()->record_count)
-            {
-                txn_log_t::log_record_t* lr = &(s_log.data()->log_records[log_index++]);
-
-                // Look for insertions of objects of the given data type and return their gaia_id.
-                if (lr->old_offset == c_invalid_gaia_offset)
-                {
-                    gaia_offset_t offset = lr->new_offset;
-
-                    ASSERT_INVARIANT(
-                        offset.is_valid(),
-                        "An unexpected invalid object offset was found in the log record!");
-
-                    db_object_t* db_object = offset_to_ptr(offset);
-
-                    if (db_object->type == type)
-                    {
-                        ASSERT_PRECONDITION(
-                            db_object->id != c_invalid_gaia_id, "Database object has an invalid gaia_id value!");
-                        return db_object->id;
-                    }
-                }
-            }
-        }
-
-        return std::nullopt;
-    };
-
-    return augmented_id_generator;
-}
-
-std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
-client_t::get_id_generator_for_type(gaia_type_t type)
-{
-    std::shared_ptr<int> stream_socket_ptr = get_id_cursor_socket_for_type(type);
-
-    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket_ptr);
-
-    // We need to augment the server-based id generator with a local generator
-    // that will also return the elements that have been added by the client
-    // in the current transaction, which the server does not yet know about.
-    auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
-    return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
-}
 
 static void build_client_request(
     FlatBufferBuilder& builder,
     session_event_t event)
 {
+    builder.ForceDefaults(true);
     flatbuffers::Offset<client_request_t> client_request;
     client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
@@ -163,7 +58,6 @@ void client_t::clear_shared_memory()
 
     // We closed our original fds for these data segments, so we only need to unmap them.
     data_mapping_t::close(s_data_mappings);
-    s_log.close();
 
     // If the server has already closed its fd for the locator segment
     // (and there are no other clients), this will release it.
@@ -172,14 +66,23 @@ void client_t::clear_shared_memory()
 
 void client_t::txn_cleanup()
 {
-    // Destroy the log memory mapping.
-    s_log.close();
-
     // Destroy the locator mapping.
     s_private_locators.close();
 
     // Reset transaction id.
     s_txn_id = c_invalid_gaia_txn_id;
+
+    // Reset transaction log offset.
+    s_txn_log_offset = c_invalid_log_offset;
+
+    // Reset the log processing watermark that is used for index building.
+    s_last_index_processed_log_count = 0;
+
+    // Clear the local indexes.
+    for (const auto& index : client_t::s_local_indexes)
+    {
+        index.second->clear();
+    }
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
@@ -251,19 +154,26 @@ void client_t::begin_session(config::session_options_t session_options)
         ASSERT_INVARIANT(!data_mapping.is_set(), "Segment is already mapped!");
     }
 
-    ASSERT_INVARIANT(!s_log.is_set(), "Log segment is already mapped!");
-
     s_session_options = session_options;
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
-    s_session_socket = get_session_socket(s_session_options.db_instance_name);
+    try
+    {
+        s_session_socket = get_session_socket(s_session_options.db_instance_name);
+    }
+    catch (const system_error& e)
+    {
+        throw server_connection_failed_internal(e.what(), e.get_errno());
+    }
 
     auto cleanup_session_socket = make_scope_guard([&]() { close_fd(s_session_socket); });
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::CONNECT);
+    build_client_request(
+        builder,
+        s_session_options.is_ddl_session ? session_event_t::CONNECT_DDL : session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
 
@@ -360,58 +270,44 @@ void client_t::begin_transaction()
     s_private_locators.open(s_fd_locators, manage_fd, is_shared);
     auto cleanup_private_locators = make_scope_guard([&]() { s_private_locators.close(); });
 
-    // Send a TXN_BEGIN request to the server and receive a new txn ID,
-    // the fd of a new txn log, and txn log fds for all committed txns within
-    // the snapshot window.
+    // Send a TXN_BEGIN request to the server and receive a new txn ID, the
+    // offset of a new txn log, and txn log offsets for all committed txns
+    // within the snapshot window.
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::BEGIN_TXN);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
-    int log_fd = client_messenger.received_fd(client_messenger_t::c_index_txn_log_fd);
-    // We can unconditionally close the log fd, because the memory mapping owns
-    // an implicit reference to the memfd object.
-    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(log_fd); });
+    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
+    s_txn_log_offset = txn_info->transaction_log_offset();
     ASSERT_INVARIANT(
         s_txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
+    ASSERT_INVARIANT(
+        s_txn_log_offset.is_valid(),
+        "Txn log offset should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.
-    size_t fds_remaining_count = txn_info->log_fds_to_apply_count();
-    while (fds_remaining_count > 0)
+    const auto transaction_logs_to_apply = txn_info->transaction_logs_to_apply();
+    for (const auto txn_log_info : *transaction_logs_to_apply)
     {
-        client_messenger.receive_server_reply();
-
-        // Apply log fds as we receive them, to avoid having to buffer all of them.
-        for (size_t i = 0; i < client_messenger.count_received_fds(); ++i)
-        {
-            int txn_log_fd = client_messenger.received_fd(i);
-            auto cleanup_txn_log_fd = make_scope_guard([&]() { close_fd(txn_log_fd); });
-            apply_txn_log(txn_log_fd);
-        }
-
-        fds_remaining_count -= client_messenger.count_received_fds();
+        // REVIEW: After snapshot reuse (GAIAPLAT-2068) is enabled, skip applying logs with
+        // txn_log_info.commit_timestamp <= s_latest_applied_commit_ts.
+        apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
     }
 
-    // Map the txn log fd we received from the server, for read/write access.
-    bool read_only = false;
-    s_log.open(log_fd, read_only);
+    // We need to perform this initialization in the context of a transaction,
+    // so we'll just piggyback on the first transaction started by the client
+    // that is not a DDL transaction.
+    if (!s_session_options.is_ddl_session)
+    {
+        std::call_once(s_are_db_caches_initialized, init_db_caches);
+    }
 
     cleanup_private_locators.dismiss();
-}
-
-void client_t::apply_txn_log(int log_fd)
-{
-    ASSERT_PRECONDITION(s_private_locators.is_set(), "Locators segment must be mapped!");
-
-    mapped_log_t txn_log;
-    txn_log.open(log_fd);
-
-    apply_log_to_locators(s_private_locators.data(), txn_log.data());
 }
 
 void client_t::rollback_transaction()
@@ -420,9 +316,6 @@ void client_t::rollback_transaction()
 
     // Clean up all transaction-local session state.
     auto cleanup = make_scope_guard(txn_cleanup);
-
-    // We need to close our log mapping so the server can seal and truncate it.
-    s_log.close();
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
@@ -458,11 +351,10 @@ void throw_exception_from_message(const char* error_message)
 void client_t::commit_transaction()
 {
     verify_txn_active();
-    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
 
     // This optimization to treat committing a read-only txn as a rollback
     // allows us to avoid any special cases in the server for empty txn logs.
-    if (s_log.data()->record_count == 0)
+    if (get_txn_log()->record_count == 0)
     {
         rollback_transaction();
         return;
@@ -470,9 +362,6 @@ void client_t::commit_transaction()
 
     // Clean up all transaction-local session state when we exit.
     auto cleanup = make_scope_guard(txn_cleanup);
-
-    // We need to close our log mapping so the server can seal and truncate it.
-    s_log.close();
 
     // Send the server the commit message.
     FlatBufferBuilder builder;
@@ -535,4 +424,32 @@ void client_t::init_memory_manager()
     s_memory_manager.load(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
+}
+
+void client_t::init_db_caches()
+{
+    // Initialize table_relationship_fields_cache_t.
+    for (const auto& table : catalog_core::list_tables())
+    {
+        gaia_id_t table_id = table.id();
+        caches::table_relationship_fields_cache_t::get()->put(table_id);
+
+        for (const auto& relationship : catalog_core::list_relationship_from(table_id))
+        {
+            if (relationship.parent_field_positions()->size() == 1)
+            {
+                field_position_t field = relationship.parent_field_positions()->Get(0);
+                caches::table_relationship_fields_cache_t::get()->put_parent_relationship_field(table_id, field);
+            }
+        }
+
+        for (const auto& relationship : catalog_core::list_relationship_to(table_id))
+        {
+            if (relationship.child_field_positions()->size() == 1)
+            {
+                field_position_t field = relationship.child_field_positions()->Get(0);
+                caches::table_relationship_fields_cache_t::get()->put_child_relationship_field(table_id, field);
+            }
+        }
+    }
 }

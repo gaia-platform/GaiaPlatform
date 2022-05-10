@@ -33,11 +33,13 @@ const float c_g_incubator_max_temperature = 102.0;
 const int c_g_expected_sensor_value = 6;
 const int c_g_expected_actuator_value = 1000;
 
-class DISABLED_translation_engine_test : public db_catalog_test_base_t
+class translation_engine_test : public db_catalog_test_base_t
 {
 public:
-    DISABLED_translation_engine_test()
-        : db_catalog_test_base_t("incubator.ddl"){};
+    translation_engine_test()
+        : db_catalog_test_base_t("incubator.ddl", true, true, true)
+    {
+    }
 
     gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     {
@@ -72,13 +74,13 @@ protected:
     }
 };
 
-TEST_F(DISABLED_translation_engine_test, subscribe_invalid_ruleset)
+TEST_F(translation_engine_test, subscribe_invalid_ruleset)
 {
     EXPECT_THROW(subscribe_ruleset("bogus"), ruleset_not_found);
     EXPECT_THROW(unsubscribe_ruleset("bogus"), ruleset_not_found);
 }
 
-TEST_F(DISABLED_translation_engine_test, subscribe_valid_ruleset)
+TEST_F(translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
 
@@ -181,7 +183,7 @@ TEST_F(DISABLED_translation_engine_test, subscribe_valid_ruleset)
     gaia::db::commit_transaction();
 }
 
-TEST_F(DISABLED_translation_engine_test, test_navigation_looping)
+TEST_F(translation_engine_test, test_navigation_looping)
 {
     init_storage();
 

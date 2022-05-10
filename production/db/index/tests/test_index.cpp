@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia/exceptions.hpp"
+#include "gaia/optional.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
@@ -314,6 +315,33 @@ TEST(index, key_comparator_test)
     index_key_t k4(1, 1);
 
     ASSERT_EQ(k3, k4);
+}
+
+// Ordering needs to be consistent with optional's comparator.
+TEST(index, key_optional_comparator_test)
+{
+    data_holder_t null_value(reflection::Int, nullptr);
+    index_key_t null_key(null_value);
+    index_key_t value_key(0);
+
+    gaia::common::optional_t<int> null_optional(std::nullopt);
+    gaia::common::optional_t<int> value_optional(0);
+
+    bool index_key_gt = null_key > value_key;
+    bool optional_gt = null_optional > value_optional;
+    ASSERT_EQ(index_key_gt, optional_gt);
+
+    bool index_key_lt = null_key < value_key;
+    bool optional_lt = null_optional < value_optional;
+    ASSERT_EQ(index_key_lt, optional_lt);
+
+    bool index_key_ge = null_key >= value_key;
+    bool optional_ge = null_optional >= value_optional;
+    ASSERT_EQ(index_key_ge, optional_ge);
+
+    bool index_key_le = null_key <= value_key;
+    bool optional_le = null_key <= value_optional;
+    ASSERT_EQ(index_key_le, optional_le);
 }
 
 class index_test : public db_catalog_test_base_t

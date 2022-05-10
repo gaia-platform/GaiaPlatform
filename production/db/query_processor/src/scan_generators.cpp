@@ -44,12 +44,13 @@ std::shared_ptr<int> scan_generator_t::get_record_cursor_socket_for_index(
     std::shared_ptr<query_processor::scan::index_predicate_t> predicate)
 {
     FlatBufferBuilder builder;
+    builder.ForceDefaults(true);
 
     flatbuffers::Offset<void> serialized_predicate = 0;
 
     if (predicate)
     {
-        serialized_predicate = predicate->as_query(builder);
+        serialized_predicate = predicate->as_query(index_id, builder);
     }
 
     auto info_builder = index_scan_info_tBuilder(builder);
@@ -98,6 +99,7 @@ std::shared_ptr<int> scan_generator_t::get_record_cursor_socket_for_index(
 
     return stream_socket_ptr;
 }
+
 } // namespace scan
 } // namespace query_processor
 } // namespace db

@@ -10,11 +10,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include(UseJava)
-
 enable_testing()
 
-project(production VERSION 0.3.3)
+project(production VERSION 0.5.0)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
@@ -31,11 +29,15 @@ option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
+option(ENABLE_PROFILING_SUPPORT "Instrument binaries for profiling" OFF)
+
 option(DISABLE_ASSERTS "Disable assertions" OFF)
 
 option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
 
-option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally")
+option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally" OFF)
+
+option(ENABLE_LTO "Enable Link Time Optimization" ON)
 
 if (NOT ENABLE_CLANG_TIDY)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -101,6 +103,11 @@ target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>
 target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
 # Disabling asserts will produce bogus unused variable warnings.
 target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
+# Enable Thin LTO
+if(ENABLE_LTO)
+  target_compile_options(gaia_build_options INTERFACE -flto=thin)
+  target_link_options(gaia_build_options INTERFACE -flto=thin)
+endif()
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)
@@ -260,44 +267,6 @@ endif()
 
 message(VERBOSE "GAIA_INC=${GAIA_INC}")
 
-message(CHECK_START "Looking for Python3")
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-if(Python3_FOUND)
-  list(APPEND CMAKE_MESSAGE_INDENT "  ")
-  message(VERBOSE "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
-  message(VERBOSE "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
-  list(POP_BACK CMAKE_MESSAGE_INDENT)
-  message(CHECK_PASS "found")
-else()
-  message(CHECK_FAIL "not found")
-endif()
-
-message(CHECK_START "Looking for Java")
-find_package(Java)
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-if(JAVA_FOUND)
-  list(APPEND CMAKE_MESSAGE_INDENT "  ")
-  message (VERBOSE "Java_JAVAC_EXECUTABLE=${Java_JAVAC_EXECUTABLE}")
-  message (VERBOSE "Java_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}")
-  list(POP_BACK CMAKE_MESSAGE_INDENT)
-  message(CHECK_PASS "found")
-else()
-  message(CHECK_FAIL "not found")
-endif()
-
-message(CHECK_START "Looking for JNI")
-find_package(JNI)
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-if(JNI_FOUND)
-  list(APPEND CMAKE_MESSAGE_INDENT "  ")
-  message (VERBOSE "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
-  message (VERBOSE "JNI_LIBRARIES=${JNI_LIBRARIES}")
-  list(POP_BACK CMAKE_MESSAGE_INDENT)
-  message(CHECK_PASS "found")
-else()
-  message(CHECK_FAIL "not found")
-endif()
-
 # External project dependencies.
 
 # Backward (this needs to come first because it changes build options for subsequent dependencies).
@@ -367,6 +336,12 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
+# Examples
+add_subdirectory(examples)
+
+# Benchmarks
+add_subdirectory(benchmarks)
+
 if(BUILD_GAIA_SDK)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
@@ -387,102 +362,11 @@ set(EXPORT_SYMBOLS OFF)
 # then we can add gaia_fdw to the list of dependencies for the package.
 add_subdirectory(sdk)
 
-# Java Tinkerpop project.
-if(JAVA_FOUND AND JNI_FOUND)
-  # set(CMAKE_JAVA_INCLUDE_PATH ${GREMLIN_CONSOLE_PATH}/lib/*:${GREMLIN_CONSOLE_PATH}/ext/tinkergraph-gremlin/lib/*)
-
-  # Java Tinkerpop graph provider implementation. This also generates native headers for the database wrapper.
-  add_jar(GaiaTinkerpop
-    SOURCES
-      java/com/gaiaplatform/database/GaiaDatabase.java
-      # java/com/gaiaplatform/database/Airline.java
-      # java/com/gaiaplatform/database/Airport.java
-      # java/com/gaiaplatform/database/Route.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheEdge.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheElement.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheFactory.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheGraph.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheHelper.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheProperty.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheTransaction.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertex.java
-      # java/com/gaiaplatform/database/cachegraph/tinkerpop/gremlin/structure/CacheVertexProperty.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/ArrayReadWriteBuf.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/BaseVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/BooleanVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferReadWriteBuf.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/ByteBufferUtil.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/ByteVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/Constants.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/DoubleVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/FlatBufferBuilder.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffers.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/FlexBuffersBuilder.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/FloatVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/IntVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/LongVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/ReadBuf.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/ReadWriteBuf.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/ShortVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/StringVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/Struct.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/Table.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/UnionVector.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Old.java
-      # ${FLATBUFFERS}/java/com/google/flatbuffers/Utf8Safe.java
-    OUTPUT_DIR ${PROJECT_BINARY_DIR}/java
-    GENERATE_NATIVE_HEADERS db_jni_headers
-      DESTINATION ${PROJECT_BINARY_DIR}/db/core/)
-  get_target_property(GAIA_TINKERPOP_JAR GaiaTinkerpop JAR_FILE)
-
-  # Java tests.
-  # add_jar(GaiaTests
-  #   SOURCES
-  #     java/com/gaiaplatform/tests/database/cachegraph/TestCacheGraph.java
-  #   INCLUDE_JARS GaiaTinkerpop)
-  # get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
-
-  # Add JNI test.
-  # This test is disabled for Debug builds.
-  # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
-  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_test(
-      NAME test_db_jni
-      COMMAND ${Java_JAVA_EXECUTABLE}
-        -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-        -cp ${GAIA_TINKERPOP_JAR}
-        com.gaiaplatform.database.GaiaDatabase)
-  endif()
-
-  # Add CacheGraph tests.
-  # add_test(
-  #   NAME test_cachegraph_basic
-  #   COMMAND ${Java_JAVA_EXECUTABLE} -ea
-  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-  #     -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
-  #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph basic)
-  # add_test(
-  #   NAME test_cachegraph_factory
-  #   COMMAND ${Java_JAVA_EXECUTABLE} -ea
-  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-  #     -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
-  #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph factory)
-  # add_test(
-  #   NAME test_cachegraph_graphml
-  #   COMMAND ${Java_JAVA_EXECUTABLE} -ea
-  #     -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-  #     -cp ${CMAKE_JAVA_INCLUDE_PATH}:${GAIA_TINKERPOP_JAR}:${GAIA_TESTS_JAR}
-  #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
-endif()
+# Java Tinkerpop bindings
+add_subdirectory(java)
 
 # Handle Gaia versioning.
 include(cmake/gaia_version.cmake)
-
-# Customize test commands.
-file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
-)
 
 # Copy log configuration file to make it visible during
 # common/ tests (currently not in use). Leaving this for reference
@@ -493,7 +377,7 @@ file(
 
 # We want to disable all clang-tidy checks for generated code.
 # However, if no checks are specified, clang-tidy will assume we
-# did not configure it correctly. Just add one check that will never be found.
+# did not configure it correctly. Just add one check that will never be triggered.
 file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
 
 # Generate dependencies graph

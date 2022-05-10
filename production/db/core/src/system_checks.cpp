@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 #include <charconv>
-
 #include <iostream>
 
 #include <libexplain/getrlimit.h>
@@ -18,8 +17,8 @@
 
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/fd_helpers.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db.hpp"
@@ -40,7 +39,7 @@ bool is_little_endian()
 
 bool has_expected_page_size()
 {
-    return (::sysconf(_SC_PAGESIZE) == memory_manager::c_page_size_in_bytes);
+    return (::sysconf(_SC_PAGESIZE) == c_page_size_in_bytes);
 }
 
 static uint64_t read_integer_from_proc_fd(int proc_fd)
@@ -187,11 +186,6 @@ static bool check_and_adjust_resource_limit(int rlimit_id, const char* rlimit_de
 bool check_and_adjust_vm_limit()
 {
     return check_and_adjust_resource_limit(RLIMIT_AS, "virtual address space", c_min_vm_limit);
-}
-
-bool check_and_adjust_fd_limit()
-{
-    return check_and_adjust_resource_limit(RLIMIT_NOFILE, "open file descriptor", c_min_fd_limit);
 }
 
 } // namespace db

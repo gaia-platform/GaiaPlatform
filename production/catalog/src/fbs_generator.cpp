@@ -13,7 +13,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 using namespace gaia::common;
@@ -58,7 +58,7 @@ string generate_fbs_field(const gaia_field_t& field, bool ignore_optional = fals
     }
     else if (repeated_count == 0)
     {
-        ss << ":[" + type_name + "]";
+        ss << ":[" + type_name + "] (required)";
     }
     else
     {

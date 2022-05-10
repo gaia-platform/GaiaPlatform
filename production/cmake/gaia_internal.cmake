@@ -30,6 +30,7 @@ endfunction()
 function(configure_gaia_target TARGET)
   # Keep this dependency PRIVATE to avoid leaking Gaia build options into all dependent targets.
   target_link_libraries(${TARGET} PRIVATE gaia_build_options)
+
   if(NOT EXPORT_SYMBOLS)
     # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
     cmake_policy(SET CMP0063 NEW)
@@ -42,6 +43,23 @@ function(configure_gaia_target TARGET)
     # (https://gcc.gnu.org/wiki/Visibility).
     set_target_properties(${TARGET} PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
   endif(NOT EXPORT_SYMBOLS)
+
+  if(ENABLE_PROFILING_SUPPORT)
+    # Profiling support only makes sense in Release mode.
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+      message(FATAL_ERROR "ENABLE_PROFILING_SUPPORT=ON is only supported in Release builds.")
+    endif()
+
+    # Instrument all Gaia static libraries/executables for profiling (e.g. uftrace).
+    # Keep this property PRIVATE to avoid leaking it into dependent targets.
+    # REVIEW: Listing alternative profiling options for trial-and-error
+    # evaluation. Only `-pg` is supported by gcc, while the other 2 options are
+    # supported by clang, so if we decide to internally support gcc, we could use
+    # that option when gcc is the configured compiler.
+    target_compile_options(${TARGET} PRIVATE -finstrument-functions)
+    # target_compile_options(${TARGET} PRIVATE -fxray-instrument)
+    # target_compile_options(${TARGET} PRIVATE -pg)
+  endif(ENABLE_PROFILING_SUPPORT)
 endfunction(configure_gaia_target)
 
 #
@@ -284,8 +302,9 @@ endfunction()
 #     schema headers.
 #     If not specified, translation will depend on the targets listed in
 #     ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS}
+# - SKIP_LIB: Translates rulesets, skipping the library creation.
 function(translate_ruleset_internal)
-  set(options "")
+  set(options "SKIP_LIB")
   set(oneValueArgs RULESET_FILE LIB_NAME TARGET_NAME DAC_LIBRARY GAIAT_CMD)
   set(multiValueArgs CLANG_PARAMS DEPENDS)
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -354,18 +373,137 @@ function(translate_ruleset_internal)
     DEPENDS ${ARG_RULESET_FILE}
   )
 
-  if(NOT DEFINED ARG_LIB_NAME)
-    set(ARG_LIB_NAME "${RULESET_NAME}_ruleset")
-    message(VERBOSE "Ruleset LIB_NAME not specified, using: ${ARG_LIB_NAME}.")
+  if (NOT ARG_SKIP_LIB)
+    if(NOT DEFINED ARG_LIB_NAME)
+      set(ARG_LIB_NAME "${RULESET_NAME}_ruleset")
+      message(VERBOSE "Ruleset LIB_NAME not specified, using: ${ARG_LIB_NAME}.")
+    endif()
+
+    add_library(${ARG_LIB_NAME}
+      ${RULESET_CPP_PATH})
+
+    configure_gaia_target(${ARG_LIB_NAME})
+    target_include_directories(${ARG_LIB_NAME} PRIVATE ${FLATBUFFERS_INC})
+    target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
+    target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${ARG_DAC_LIBRARY})
+  endif()
+endfunction()
+
+# Make the Gaia examples, shipped as part of the SDK, buildable against the production
+# CMake project. This makes the examples built as part of regular gaia builds.
+#
+# Args:
+# - NAME: example name, used also as CMake target name.
+# - DDL_FILE: the path to the .ddl file.
+# - DB_NAME: [optional] name of the database the headers are generated from.
+#     If not specified the default database is used.
+# - RULESET_FILE: [optional] the path to the .ruleset file.
+# - SRC_FILES: The .cpp files.
+# - INC_DIRS: Include directories
+function(add_example)
+  set(options "")
+  set(oneValueArgs NAME DDL_FILE DB_NAME RULESET_FILE)
+  set(multiValueArgs SRC_FILES INC_DIRS)
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  check_param(ARG_NAME)
+  check_param(ARG_DDL_FILE)
+  check_param(ARG_DB_NAME)
+  check_param(ARG_SRC_FILES)
+
+  # Prevents conflicts with targets with the same names.
+  set(DAC_LIB_NAME "dac_examples_${ARG_NAME}")
+
+  process_schema_internal(
+    DDL_FILE ${ARG_DDL_FILE}
+    DATABASE_NAME ${ARG_DB_NAME}
+    LIB_NAME ${DAC_LIB_NAME})
+
+  # Not all the examples have a ruleset file.
+  if(DEFINED ARG_RULESET_FILE)
+    get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
+    string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
+
+    if(DEFINED ARG_INC_DIRS)
+      translate_ruleset_internal(
+        RULESET_FILE ${ARG_RULESET_FILE}
+        DAC_LIBRARY "${DAC_LIB_NAME}"
+        SKIP_LIB
+        CLANG_PARAMS -I${ARG_INC_DIRS})
+    else()
+      translate_ruleset_internal(
+        RULESET_FILE ${ARG_RULESET_FILE}
+        SKIP_LIB
+        DAC_LIBRARY "${DAC_LIB_NAME}")
+    endif()
+
+    string(APPEND ARG_SRC_FILES ";" ${GAIA_GENERATED_CODE}/rules/${RULESET_NAME}/${RULESET_NAME}_ruleset.cpp)
   endif()
 
-  add_library(${ARG_LIB_NAME}
-    ${RULESET_CPP_PATH})
+  add_executable(${ARG_NAME}
+    ${ARG_SRC_FILES}
+  )
 
-  configure_gaia_target(${ARG_LIB_NAME})
-  target_include_directories(${ARG_LIB_NAME} PRIVATE ${FLATBUFFERS_INC})
-  target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
-  target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${ARG_DAC_LIBRARY})
+  target_link_libraries(${ARG_NAME}
+    gaia
+    "${DAC_LIB_NAME}"
+    Threads::Threads
+  )
+  target_include_directories(${ARG_NAME} PRIVATE
+    ${GAIA_INC}
+    ${ARG_INC_DIRS}
+  )
+endfunction()
+
+# Add a benchmark linking against the public gaia library instead of the internal Cmake
+# targets. The intention is to run benchmarks in an environment that is as close as possible
+# to what the customer runs. We noticed a significant performance drop when linking against
+# the gaia shared library instead of the internal static targets.
+#
+# Args:
+# - NAME benchmark name, used also as CMake target name.
+# - SRC_FILES: The .cpp files.
+# - DAC_LIB: The DAC library from which retrieve the source files and link them against the
+#                the benchmark code. Note: this implies that the DAC code is compiled twice.
+function (add_benchmark)
+  set(options "")
+  set(oneValueArgs NAME DAC_LIB)
+  set(multiValueArgs SRC_FILES)
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  check_param(ARG_NAME)
+  check_param(ARG_DAC_LIB)
+  check_param(ARG_SRC_FILES)
+
+  get_target_property(DAC_SRC ${ARG_DAC_LIB} SOURCES)
+  get_target_property(DAC_INC ${ARG_DAC_LIB} INTERFACE_INCLUDE_DIRECTORIES)
+
+  set_source_files_properties(${DAC_SRC} PROPERTIES GENERATED TRUE)
+
+  add_executable(${ARG_NAME}
+    ${ARG_SRC_FILES}
+    ${DAC_SRC}
+  )
+
+  target_include_directories(${ARG_NAME} PRIVATE
+    ${GAIA_REPO}/production/benchmarks/inc
+    ${GAIA_INC}
+    ${GAIA_SPDLOG_INC}
+    ${DAC_INC}
+  )
+
+  target_link_libraries(${ARG_NAME} PRIVATE
+    gaia
+    gtest_main
+    gaia_tools
+    gaia_benchmark
+  )
+
+  add_dependencies(${ARG_NAME}
+    ${ARG_DAC_LIB}
+  )
+
+  gtest_discover_tests(${ARG_NAME})
 endfunction()
 
 # Stop CMake if the given parameter was not passed to the function.

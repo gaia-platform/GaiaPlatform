@@ -12,8 +12,8 @@
 
 #include "gaia/db/events.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/logger.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/triggers.hpp"
@@ -80,6 +80,7 @@ void event_manager_t::init(const event_manager_settings_t& settings)
     {
         count_worker_threads = thread::hardware_concurrency();
     }
+    gaia_log::rules().debug("The rules engine is using '{}' worker threads.", count_worker_threads);
 
     m_stats_manager = make_unique<rule_stats_manager_t>(
         settings.enable_rule_stats,
@@ -121,11 +122,11 @@ void event_manager_t::shutdown()
     m_stats_manager.reset();
     m_rule_checker.reset();
 
-    // Don't uninitialize until we've shutdown the thread pool.
-    m_is_initialized = false;
-
     // Ensure we can re-initialize by dropping our subscription state.
     unsubscribe_rules();
+
+    // Don't uninitialize until we've shutdown the thread pool.
+    m_is_initialized = false;
 }
 
 void event_manager_t::process_last_operation_events(
@@ -409,6 +410,10 @@ void event_manager_t::unsubscribe_rules()
     }
 
     // Now it is safe to clear out the subscriptions and rule bindings.
+    if (m_stats_manager)
+    {
+        m_stats_manager->clear_rule_stats();
+    }
     m_subscriptions.clear();
     m_rules.clear();
 
@@ -515,6 +520,8 @@ bool event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
         const string& key = _rule_binding_t::make_key(binding.ruleset_name, binding.rule_name);
         auto rule_binding = new _rule_binding_t(binding);
         m_rules.insert(make_pair(key, unique_ptr<_rule_binding_t>(rule_binding)));
+        // Add an entry to our individual rule
+        m_stats_manager->insert_rule_stats(rule_binding->log_rule_name);
         rules.emplace_back(rule_binding);
     }
     else
@@ -535,6 +542,10 @@ bool event_manager_t::remove_rule(rule_list_t& rules, const rule_binding_t& bind
         auto size = rules.size();
         rules.remove_if([&](const _rule_binding_t* ptr) { return (ptr == rule_ptr); });
         is_rule_removed = (size != rules.size());
+        if (is_rule_removed)
+        {
+            m_stats_manager->remove_rule_stats(rule_ptr->log_rule_name);
+        }
     }
 
     return is_rule_removed;

@@ -123,7 +123,10 @@ TEST_F(auto_connect_test, child_update_reconnect)
 
 TEST_F(auto_connect_test, parent_insert_connect)
 {
-    const int32_t flight_number = 1701;
+    // Ensure that auto-connect works with the default value for the type (0). This
+    // test will ensure that the underlying FlatBufferBuilder is configured to
+    // serialize default values instead of omitting them.
+    const int32_t flight_number = 0;
     auto_transaction_t txn;
     gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
     gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", flight_number);
@@ -245,4 +248,26 @@ TEST_F(auto_connect_test, delete_parent)
     // object(s) if the linked field values match.
     ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
+}
+
+TEST_F(auto_connect_test, disconnect_delete_test)
+{
+    // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2138
+    gaia::db::begin_transaction();
+    flight_t flight = flight_t::get(flight_t::insert_row(1, {}));
+    passenger_t passenger_1 = passenger_t::get(passenger_t::insert_row("Nicola", "Franco", 1));
+    passenger_t passenger_2 = passenger_t::get(passenger_t::insert_row("Vania", "Smith", 1));
+    gaia::db::commit_transaction();
+
+    gaia::db::begin_transaction();
+    passenger_1.delete_row(true);
+    int count = flight.return_passengers().size();
+    ASSERT_EQ(count, 1);
+    gaia::db::commit_transaction();
+
+    gaia::db::begin_transaction();
+    passenger_2.delete_row(true);
+    count = flight.return_passengers().size();
+    ASSERT_EQ(count, 0);
+    gaia::db::commit_transaction();
 }

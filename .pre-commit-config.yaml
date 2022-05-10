@@ -31,6 +31,12 @@ repos:
       args:
         - --base-workflow
         - main.yml
+        - --ignore
+        - remove-old-artifacts.yml
+        - --ignore
+        - documentation.yml
+        - --ignore
+        - build-tool-cache.yml
         - "*.yml"
       pass_filenames: false
       additional_dependencies: [pyyaml]
@@ -41,7 +47,7 @@ repos:
       name: Eliminate multiple empty lines
       entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
       language: python
-      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/|production/tools/gaia_translate/tests/test_translation.ruleset)
+      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses)
 
 - repo: local
   hooks:
@@ -52,7 +58,7 @@ repos:
       args:
         - --prefix
         - "#!/usr/bin/env python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))
+      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))|(^.+\_\_init\_\_\.py)
 
     - id: python_non_executable_license_check
       name: Check Python Non-Executable files for License Prefix
@@ -71,7 +77,7 @@ repos:
       args:
         - --prefix
         - "#!/usr/bin/env bash\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples))
+      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|dev_tools/docker_dev|production/examples))
 
     - id: cmake_license_check
       name: Check CMake files for License Prefix
@@ -81,7 +87,7 @@ repos:
         - --prefix
         - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
       files: ^.*(\.cmake$|\/CMakeLists.txt$)
-      exclude: ^(production/examples|production/tools)
+      exclude: ^(production/examples)
 
     - id: db_license_check
       name: Check SQL and DDL files for License Prefix
@@ -160,12 +166,11 @@ repos:
 
 #     - id: oclint
 
-- repo: https://github.com/jumanjihouse/pre-commit-hooks
-  rev: master
+- repo: https://github.com/koalaman/shellcheck-precommit
+  rev: v0.7.2
   hooks:
     - id: shellcheck
-    - id: script-must-have-extension
-      types: [shell, executable]
+#       args: ["--severity=warning"]  # Optionally only show errors and warnings
 
 - repo: https://github.com/psf/black
   rev: 21.7b0
@@ -186,4 +191,6 @@ repos:
   hooks:
     - id: pylint
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/tests/python/ps_mem.py)
-      args: [--disable=R0801]
+      args:
+      - --disable=R0801
+      - --disable=import-error

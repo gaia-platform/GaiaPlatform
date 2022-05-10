@@ -14,7 +14,8 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 #include "gaia_parser.hpp"
@@ -23,7 +24,8 @@ namespace gaia
 {
 namespace catalog
 {
-
+namespace
+{
 /**
  * For a given create statement list starting from the given index, move all
  * statements of the given type to the front (starting from the index). Return
@@ -278,11 +280,22 @@ void convert_references_to_relationships(
         std::make_move_iterator(relationships.end()));
 }
 
+std::string select_active_database(std::string& stmt_database, std::string& current_database)
+{
+    if (stmt_database != c_empty_db_name)
+    {
+        return stmt_database;
+    }
+    return current_database;
+}
+
 void execute_create_statement_no_txn(
     ddl_executor_t& executor,
+    std::string& current_database,
     ddl::create_statement_t* create_stmt)
 {
     bool throw_on_exist = true;
+    std::string active_database;
     if (create_stmt->has_if_not_exists)
     {
         throw_on_exist = false;
@@ -291,9 +304,10 @@ void execute_create_statement_no_txn(
     if (create_stmt->type == ddl::create_type_t::create_table)
     {
         auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(create_stmt);
-        check_not_system_db(create_table_stmt->database);
+        active_database = select_active_database(create_table_stmt->database, current_database);
+        check_not_system_db(active_database);
         executor.create_table(
-            create_table_stmt->database,
+            active_database,
             create_table_stmt->name,
             create_table_stmt->fields,
             throw_on_exist,
@@ -303,10 +317,29 @@ void execute_create_statement_no_txn(
     {
         check_not_system_db(create_stmt->name);
         executor.create_database(create_stmt->name, throw_on_exist, create_stmt->auto_drop);
+        current_database = create_stmt->name;
     }
     else if (create_stmt->type == ddl::create_type_t::create_relationship)
     {
         auto create_relationship_stmt = dynamic_cast<ddl::create_relationship_t*>(create_stmt);
+
+        // Update this section if DDL compilation ever allows the naming of another database
+        // in the "create relationship" statement.
+        create_relationship_stmt->relationship.first.from_database
+            = select_active_database(create_relationship_stmt->relationship.first.from_database, current_database);
+        create_relationship_stmt->relationship.first.to_database
+            = select_active_database(create_relationship_stmt->relationship.first.to_database, current_database);
+        create_relationship_stmt->relationship.second.from_database
+            = select_active_database(create_relationship_stmt->relationship.second.from_database, current_database);
+        create_relationship_stmt->relationship.second.to_database
+            = select_active_database(create_relationship_stmt->relationship.second.to_database, current_database);
+        if (create_relationship_stmt->field_map)
+        {
+            create_relationship_stmt->field_map->first.database
+                = select_active_database(create_relationship_stmt->field_map->first.database, current_database);
+            create_relationship_stmt->field_map->second.database
+                = select_active_database(create_relationship_stmt->field_map->second.database, current_database);
+        }
         executor.create_relationship(
             create_relationship_stmt->name,
             create_relationship_stmt->relationship.first,
@@ -322,7 +355,7 @@ void execute_create_statement_no_txn(
             create_index_stmt->name,
             create_index_stmt->unique_index,
             create_index_stmt->index_type,
-            create_index_stmt->database,
+            current_database,
             create_index_stmt->index_table,
             create_index_stmt->index_fields,
             throw_on_exist,
@@ -386,6 +419,7 @@ void sanity_check_create_list_statements(
 }
 
 void execute_create_list_statements(
+    std::string& current_database,
     std::vector<std::unique_ptr<ddl::create_statement_t>>& statements)
 {
     ASSERT_PRECONDITION(statements.size() > 1, "The list must contain more than one statement.");
@@ -399,13 +433,19 @@ void execute_create_list_statements(
     for (auto& stmt : statements)
     {
         auto create_stmt = dynamic_cast<ddl::create_statement_t*>(stmt.get());
-        execute_create_statement_no_txn(executor, create_stmt);
+        execute_create_statement_no_txn(executor, current_database, create_stmt);
     }
+    add_hash();
     txn.commit();
 }
 
+} // namespace
+
 void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
 {
+    std::string current_database{c_empty_db_name};
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     for (auto& stmt : statements)
     {
         if (stmt->is_type(ddl::statement_type_t::create_list))
@@ -428,12 +468,17 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             {
                 ddl_executor_t& executor = ddl_executor_t::get();
                 direct_access::auto_transaction_t txn(false);
-                execute_create_statement_no_txn(executor, create_list->statements.front().get());
+                execute_create_statement_no_txn(executor, current_database, create_list->statements.front().get());
+
+                // Scan through the catalog and construct hashes for each non-system
+                // catalog gaia_{database,table,index,field,relationship}.
+                add_hash();
+
                 txn.commit();
             }
             else
             {
-                execute_create_list_statements(create_list->statements);
+                execute_create_list_statements(current_database, create_list->statements);
             }
         }
         else if (stmt->is_type(ddl::statement_type_t::drop))
@@ -441,7 +486,7 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
             auto drop_stmt = dynamic_cast<ddl::drop_statement_t*>(stmt.get());
             if (drop_stmt->type == ddl::drop_type_t::drop_table)
             {
-                drop_table(drop_stmt->database, drop_stmt->name, !drop_stmt->if_exists);
+                drop_table(select_active_database(drop_stmt->database, current_database), drop_stmt->name, !drop_stmt->if_exists);
             }
             else if (drop_stmt->type == ddl::drop_type_t::drop_database)
             {
@@ -459,7 +504,8 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
         else if (stmt->is_type(ddl::statement_type_t::use))
         {
             auto use_stmt = dynamic_cast<ddl::use_statement_t*>(stmt.get());
-            use_database(use_stmt->name);
+            check_not_system_db(use_stmt->name);
+            current_database = use_stmt->name;
         }
     }
 }

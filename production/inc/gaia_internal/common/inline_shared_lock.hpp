@@ -7,7 +7,7 @@
 
 #include <atomic>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 namespace gaia
 {
@@ -95,12 +95,12 @@ public:
 private:
     static constexpr uint64_t c_free_lock{0};
     static constexpr uint64_t c_exclusive_bit_index{63};
-    static constexpr uint64_t c_exclusive_mask{1ULL << c_exclusive_bit_index};
+    static constexpr uint64_t c_exclusive_mask{1UL << c_exclusive_bit_index};
     static constexpr uint64_t c_exclusive_intent_bit_index{62};
-    static constexpr uint64_t c_exclusive_intent_mask{1ULL << c_exclusive_intent_bit_index};
+    static constexpr uint64_t c_exclusive_intent_mask{1UL << c_exclusive_intent_bit_index};
     static constexpr uint64_t c_reader_count_bits{62};
-    static constexpr uint64_t c_reader_count_mask{(1ULL << c_reader_count_bits) - 1};
-    static constexpr size_t c_reader_count_max{(1ULL << c_reader_count_bits) - 1};
+    static constexpr uint64_t c_reader_count_mask{(1UL << c_reader_count_bits) - 1};
+    static constexpr size_t c_reader_count_max{(1UL << c_reader_count_bits) - 1};
 
 private:
     std::atomic<uint64_t> m_lock_word{c_free_lock};

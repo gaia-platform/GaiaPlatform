@@ -13,11 +13,12 @@ add_library(gaia_qp STATIC
   src/predicate.cpp
   src/scan_generators.cpp)
 
+configure_gaia_target(gaia_qp)
+
 set(GAIA_QP_PRIVATE_INCLUDES
-  "${GAIA_REPO}/production/db/core/inc"
   "${GAIA_INC}"
   "${GAIA_INTERNAL_INC}/index"
-  "${GAIA_REPO}/production/db/inc/memory_manager"
+  "${GAIA_REPO}/production/db/inc/core"
   "${GAIA_REPO}/production/db/inc/payload_types"
   "${GAIA_REPO}/production/db/inc/index"
   "${GAIA_REPO}/production/db/inc/query_processor"

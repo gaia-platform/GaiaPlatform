@@ -41,7 +41,8 @@ local_iterator_helper(T_index* index, index_predicate_t& predicate)
 template <typename T_index, typename T_index_iterator>
 void index_scan_physical_t<T_index, T_index_iterator>::init()
 {
-    auto rec_generator = scan_generator_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
+    auto rec_generator = scan_generator_t::get_record_generator_for_index(
+        m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
 
     // Only return visible records from remote.
     m_remote_it = remote_scan_iterator_t(
@@ -56,7 +57,8 @@ void index_scan_physical_t<T_index, T_index_iterator>::init()
 
     if (m_predicate)
     {
-        auto range = local_iterator_helper<T_index, T_index_iterator>(static_cast<T_index*>(m_index.get()), *m_predicate);
+        auto range = local_iterator_helper<T_index, T_index_iterator>(
+            static_cast<T_index*>(m_index.get()), *m_predicate);
         m_local_it = range.first;
         m_local_it_end = range.second;
     }
@@ -68,7 +70,9 @@ void index_scan_physical_t<T_index, T_index_iterator>::init()
 
     // Advance local iterator to first visible record.
     if (!local_end() && !is_visible(m_local_it->second))
+    {
         advance_local();
+    }
 
     // Assign the first visible locator.
     next_visible_locator();
@@ -142,7 +146,8 @@ bool index_scan_physical_t<T_index, T_index_iterator>::has_more()
 }
 
 template <typename T_index, typename T_index_iterator>
-db::index::index_key_t index_scan_physical_t<T_index, T_index_iterator>::record_to_key(const db::index::index_record_t& record) const
+db::index::index_key_t index_scan_physical_t<T_index, T_index_iterator>::record_to_key(
+    const db::index::index_record_t& record) const
 {
     auto obj = db::locator_to_ptr(record.locator);
     return db::index::index_builder_t::make_key(m_index, reinterpret_cast<const uint8_t*>(obj->data()));

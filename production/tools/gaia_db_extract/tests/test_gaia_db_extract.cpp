@@ -22,9 +22,16 @@ using namespace std;
 using json_t = nlohmann::json;
 
 constexpr char c_table_name[] = "test_table";
+constexpr char c_db_name[] = "extract_test";
 
 class gaia_db_extract_test : public db_test_base_t
 {
+public:
+    gaia_db_extract_test()
+        : db_test_base_t(true, true)
+    {
+    }
+
 protected:
     static void SetUpTestSuite()
     {
@@ -47,12 +54,10 @@ field_def_list_t gaia_db_extract_test::test_table_fields;
 // comparison method that is white-space and ordering independent.
 TEST_F(gaia_db_extract_test, extract_catalog)
 {
-    create_database("extract_test", false);
-    create_table(c_table_name, test_table_fields);
+    create_database(c_db_name, false);
+    create_table(c_db_name, c_table_name, test_table_fields);
 
-    // The gaia_db_extract_initialize() is actually only needed if rows must be found
-    // through reflection. So this should work.
-    auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited);
+    auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited, "", c_start_at_first);
     size_t field_count = 0;
 
     json_t json_object = json_t::parse(extracted_catalog);
@@ -111,14 +116,11 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
         {"", c_table_name, "parent", "", c_table_name, relationship_cardinality_t::one},
         false);
 
-    // Initialization is needed when using reflection.
-    ASSERT_TRUE(gaia_db_extract_initialize());
-
     // Fetch one row at a time, from the beginning.
     uint64_t row_id = c_start_at_first;
     for (;;)
     {
-        auto extracted_rows = gaia_db_extract("catalog", "gaia_field", row_id, 3);
+        auto extracted_rows = gaia_db_extract("catalog", "gaia_field", row_id, 3, "", c_start_at_first);
         if (!extracted_rows.compare(c_empty_object))
         {
             break;

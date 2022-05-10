@@ -19,6 +19,11 @@ using namespace gaia::db;
 
 class catalog_core_test : public db_test_base_t
 {
+public:
+    catalog_core_test()
+        : db_test_base_t(true, true)
+    {
+    }
 };
 
 TEST_F(catalog_core_test, get_table)

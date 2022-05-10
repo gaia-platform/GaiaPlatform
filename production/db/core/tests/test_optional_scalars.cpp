@@ -20,6 +20,11 @@ using namespace gaia::db::payload_types;
 
 class test_optional_scalars : public db_test_base_t
 {
+public:
+    test_optional_scalars()
+        : db_test_base_t(true, true)
+    {
+    }
 };
 
 TEST_F(test_optional_scalars, binary_schema_has_optional_values)

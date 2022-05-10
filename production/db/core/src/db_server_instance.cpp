@@ -18,13 +18,14 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/random.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "gaia_spdlog/fmt/fmt.h"
 
@@ -250,7 +251,7 @@ void server_instance_t::wait_for_init()
 
             gaia::db::begin_session();
         }
-        catch (gaia::common::system_error& e)
+        catch (gaia::db::server_connection_failed_internal& e)
         {
             if (e.get_errno() == ECONNREFUSED)
             {

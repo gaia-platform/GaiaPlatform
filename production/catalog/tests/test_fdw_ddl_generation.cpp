@@ -21,6 +21,12 @@ constexpr char c_server_name[] = "test_server";
 
 class fdw_ddl_generation_test : public db_test_base_t
 {
+public:
+    fdw_ddl_generation_test()
+        : db_test_base_t(true, true)
+    {
+    }
+
 protected:
     static void SetUpTestSuite()
     {

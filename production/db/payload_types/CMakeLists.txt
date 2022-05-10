@@ -9,8 +9,7 @@ set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(GAIA_PAYLOAD_TYPES_INCLUDES
   "${GAIA_INC}"
   "${GAIA_DB_INC}/payload_types"
-  "${GAIA_REPO}/production/db/core/inc"
-  "${GAIA_REPO}/production/db/inc/memory_manager"
+  "${GAIA_REPO}/production/db/inc/core"
   "${GAIA_REPO}/production/catalog/inc"
   "${GEN_DIR}")
 
@@ -19,7 +18,6 @@ message(VERBOSE "GAIA_PAYLOAD_TYPES_INCLUDES=${GAIA_PAYLOAD_TYPES_INCLUDES}")
 # Our main target.
 add_library(gaia_payload_types STATIC
   src/data_holder.cpp
-  src/type_cache.cpp
   src/field_access.cpp
   src/data_buffer.cpp)
 configure_gaia_target(gaia_payload_types)

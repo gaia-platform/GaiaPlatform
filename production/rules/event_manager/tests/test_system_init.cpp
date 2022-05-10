@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include "gaia/common.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
@@ -15,6 +16,8 @@
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
+
+#include "gaia_addr_book.h"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -31,27 +34,13 @@ void rule(const rule_context_t*)
 class system_init_test : public db_catalog_test_base_t
 {
 public:
-    static constexpr char c_test_table[] = "system_init_test";
-    gaia_id_t add_table()
-    {
-        // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.
-        ddl::field_def_list_t fields;
-        fields.emplace_back(make_unique<ddl::data_field_def_t>("id", data_type_t::e_string, 1));
-        return create_table("", c_test_table, fields, false);
-    }
-
     void verify_initialized()
     {
         rule_binding_t binding("ruleset", "rulename", rule);
         subscription_list_t subscriptions;
 
-        // Just run some code that won't work if things aren't setup properly.
-        gaia_id_t table_id = add_table();
-        begin_transaction();
-        gaia_type_t type_id = gaia_table_t::get(table_id).type();
-        commit_transaction();
-        subscribe_rule(type_id, event_type_t::row_update, empty_fields, binding);
-        EXPECT_EQ(true, unsubscribe_rule(type_id, event_type_t::row_update, empty_fields, binding));
+        subscribe_rule(gaia::addr_book::employee_t::s_gaia_type, event_type_t::row_update, empty_fields, binding);
+        EXPECT_EQ(true, unsubscribe_rule(gaia::addr_book::employee_t::s_gaia_type, event_type_t::row_update, empty_fields, binding));
         unsubscribe_rules();
         list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
     }
@@ -60,7 +49,7 @@ protected:
     // Manage the session ourselves in this test as the
     // gaia::system::initialize() will call begin_session.
     system_init_test()
-        : db_catalog_test_base_t("", true)
+        : db_catalog_test_base_t("addr_book.ddl", false)
     {
     }
 
@@ -91,8 +80,8 @@ TEST_F(system_init_test, system_not_initialized_error)
     subscription_list_t still_dont_care;
     field_position_list_t ignore;
 
-    EXPECT_THROW(subscribe_rule(0, event_type_t::row_update, ignore, dont_care), initialization_error);
-    EXPECT_THROW(unsubscribe_rule(0, event_type_t::row_update, ignore, dont_care), initialization_error);
+    EXPECT_THROW(subscribe_rule(c_invalid_gaia_type, event_type_t::row_update, ignore, dont_care), initialization_error);
+    EXPECT_THROW(unsubscribe_rule(c_invalid_gaia_type, event_type_t::row_update, ignore, dont_care), initialization_error);
     EXPECT_THROW(unsubscribe_rules(), initialization_error);
     EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, still_dont_care), initialization_error);
 }

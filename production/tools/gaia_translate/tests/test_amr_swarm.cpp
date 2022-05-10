@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <unordered_set>
+
 #include "gtest/gtest.h"
 
 #include "gaia/rules/rules.hpp"
@@ -24,7 +26,9 @@ class test_amr_swarm : public db_catalog_test_base_t
 {
 public:
     test_amr_swarm()
-        : db_catalog_test_base_t("amr_swarm.ddl"){};
+        : db_catalog_test_base_t("amr_swarm.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override
@@ -82,6 +86,7 @@ TEST_F(test_amr_swarm, setup_complete_event)
     // Obtain the configuration row.
     configuration_t configuration;
     int counter = 0;
+
     for (const configuration_t& c : configuration_t::list())
     {
         ++counter;
@@ -98,13 +103,21 @@ TEST_F(test_amr_swarm, setup_complete_event)
     }
     EXPECT_EQ(counter, 3) << "Wrong number of robots";
 
-    // Expect one robot connected to each of the next 3 relationships.
+    // Expect one robot connected to each of the next 3 relationships. (The
+    // assignment of robots to relationships is non-deterministic because it
+    // depends on iteration order.)
+    std::unordered_set<uint16_t> robot_ids({c_robot1_id, c_robot2_id, c_robot3_id});
+
     auto robot = configuration.main_pallet_bot();
-    EXPECT_EQ(robot.id(), c_robot1_id);
+    EXPECT_EQ(robot_ids.count(robot.id()), 1);
+    robot_ids.extract(robot.id());
     robot = configuration.left_widget_bot();
-    EXPECT_EQ(robot.id(), c_robot2_id);
+    EXPECT_EQ(robot_ids.count(robot.id()), 1);
+    robot_ids.extract(robot.id());
     robot = configuration.right_widget_bot();
-    EXPECT_EQ(robot.id(), c_robot3_id);
+    EXPECT_EQ(robot_ids.count(robot.id()), 1);
+    robot_ids.extract(robot.id());
+    EXPECT_EQ(robot_ids.size(), 0);
 
     commit_transaction();
 }

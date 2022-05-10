@@ -14,12 +14,14 @@
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
+
+#include "gaia_relationships.hpp"
 
 namespace gaia
 {
@@ -59,6 +61,7 @@ struct field_view_t : catalog_db_object_view_t
     [[nodiscard]] const char* name() const;
     [[nodiscard]] common::data_type_t data_type() const;
     [[nodiscard]] common::field_position_t position() const;
+    [[nodiscard]] bool optional() const;
 };
 
 using buffer = const flatbuffers::Vector<uint8_t>;
@@ -90,6 +93,7 @@ struct relationship_view_t : catalog_db_object_view_t
     [[nodiscard]] const flatbuffers::Vector<uint16_t>* parent_field_positions() const;
     [[nodiscard]] const flatbuffers::Vector<uint16_t>* child_field_positions() const;
     [[nodiscard]] bool is_value_linked() const;
+    [[nodiscard]] cardinality_t cardinality() const;
 };
 
 struct index_view_t : catalog_db_object_view_t

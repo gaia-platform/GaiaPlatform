@@ -10,6 +10,21 @@ namespace gaia
 namespace db
 {
 
+server_connection_failed_internal::server_connection_failed_internal(const char* error_message, int error_number)
+    : m_error_number(error_number)
+{
+    std::stringstream message;
+    message
+        << "Client failed to connect to server! System error: '"
+        << error_message << "'.";
+    m_message = message.str();
+}
+
+int server_connection_failed_internal::get_errno()
+{
+    return m_error_number;
+}
+
 session_exists_internal::session_exists_internal()
 {
     m_message = "Close the current session before opening a new one.";
@@ -38,6 +53,11 @@ transaction_update_conflict_internal::transaction_update_conflict_internal()
 transaction_object_limit_exceeded_internal::transaction_object_limit_exceeded_internal()
 {
     m_message = "Transaction attempted to update too many objects.";
+}
+
+transaction_log_allocation_failure_internal::transaction_log_allocation_failure_internal()
+{
+    m_message = "Unable to allocate a log for this transaction.";
 }
 
 duplicate_object_id_internal::duplicate_object_id_internal(common::gaia_id_t id)
@@ -111,6 +131,11 @@ invalid_object_type_internal::invalid_object_type_internal(
         << "Requesting Gaia type '" << expected_typename << "'('" << expected_type
         << "'), but object identified by '" << id << "' is of type '" << actual_type << "'.";
     m_message = message.str();
+}
+
+type_limit_exceeded_internal::type_limit_exceeded_internal()
+{
+    m_message = "Registered type limit exceeded.";
 }
 
 session_limit_exceeded_internal::session_limit_exceeded_internal()
@@ -189,9 +214,9 @@ unique_constraint_violation_internal::unique_constraint_violation_internal(const
     std::stringstream message;
     message
         << c_error_description
-        << " Cannot insert a duplicate key in table: '"
-        << error_table_name << "', because of the unique constraint of "
-        << " index: '" << error_index_name << "'.";
+        << " Cannot insert a duplicate key in table '"
+        << error_table_name << "', because of the unique constraint of"
+        << " index '" << error_index_name << "'.";
     m_message = message.str();
 }
 

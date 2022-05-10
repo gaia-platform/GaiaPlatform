@@ -897,7 +897,7 @@ struct gaia_index FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyField<uint8_t>(verifier, VT_UNIQUE) &&
            VerifyField<uint8_t>(verifier, VT_TYPE) &&
-           VerifyOffset(verifier, VT_FIELDS) &&
+           VerifyOffsetRequired(verifier, VT_FIELDS) &&
            verifier.VerifyVector(fields()) &&
            VerifyOffset(verifier, VT_HASH) &&
            verifier.VerifyString(hash()) &&
@@ -934,6 +934,7 @@ struct gaia_indexBuilder {
   flatbuffers::Offset<gaia_index> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<gaia_index>(end);
+    fbb_.Required(o, gaia_index::VT_FIELDS);
     return o;
   }
 };
@@ -1064,9 +1065,9 @@ struct gaia_relationship FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint16_t>(verifier, VT_NEXT_CHILD_OFFSET) &&
            VerifyField<uint16_t>(verifier, VT_PREV_CHILD_OFFSET) &&
            VerifyField<uint16_t>(verifier, VT_PARENT_OFFSET) &&
-           VerifyOffset(verifier, VT_PARENT_FIELD_POSITIONS) &&
+           VerifyOffsetRequired(verifier, VT_PARENT_FIELD_POSITIONS) &&
            verifier.VerifyVector(parent_field_positions()) &&
-           VerifyOffset(verifier, VT_CHILD_FIELD_POSITIONS) &&
+           VerifyOffsetRequired(verifier, VT_CHILD_FIELD_POSITIONS) &&
            verifier.VerifyVector(child_field_positions()) &&
            VerifyOffset(verifier, VT_HASH) &&
            verifier.VerifyString(hash()) &&
@@ -1127,6 +1128,8 @@ struct gaia_relationshipBuilder {
   flatbuffers::Offset<gaia_relationship> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<gaia_relationship>(end);
+    fbb_.Required(o, gaia_relationship::VT_PARENT_FIELD_POSITIONS);
+    fbb_.Required(o, gaia_relationship::VT_CHILD_FIELD_POSITIONS);
     return o;
   }
 };
@@ -1416,9 +1419,9 @@ struct gaia_table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyField<uint32_t>(verifier, VT_TYPE) &&
            VerifyField<uint8_t>(verifier, VT_IS_SYSTEM) &&
-           VerifyOffset(verifier, VT_BINARY_SCHEMA) &&
+           VerifyOffsetRequired(verifier, VT_BINARY_SCHEMA) &&
            verifier.VerifyVector(binary_schema()) &&
-           VerifyOffset(verifier, VT_SERIALIZATION_TEMPLATE) &&
+           VerifyOffsetRequired(verifier, VT_SERIALIZATION_TEMPLATE) &&
            verifier.VerifyVector(serialization_template()) &&
            VerifyOffset(verifier, VT_HASH) &&
            verifier.VerifyString(hash()) &&
@@ -1458,6 +1461,8 @@ struct gaia_tableBuilder {
   flatbuffers::Offset<gaia_table> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<gaia_table>(end);
+    fbb_.Required(o, gaia_table::VT_BINARY_SCHEMA);
+    fbb_.Required(o, gaia_table::VT_SERIALIZATION_TEMPLATE);
     return o;
   }
 };
@@ -1907,7 +1912,7 @@ inline flatbuffers::Offset<gaia_index> Creategaia_index(flatbuffers::FlatBufferB
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _unique = _o->unique;
   auto _type = _o->type;
-  auto _fields = _o->fields.size() ? _fbb.CreateVector(_o->fields) : 0;
+  auto _fields = _fbb.CreateVector(_o->fields);
   auto _hash = _o->hash.empty() ? 0 : _fbb.CreateString(_o->hash);
   return gaia::catalog::internal::Creategaia_index(
       _fbb,
@@ -1960,8 +1965,8 @@ inline flatbuffers::Offset<gaia_relationship> Creategaia_relationship(flatbuffer
   auto _next_child_offset = _o->next_child_offset;
   auto _prev_child_offset = _o->prev_child_offset;
   auto _parent_offset = _o->parent_offset;
-  auto _parent_field_positions = _o->parent_field_positions.size() ? _fbb.CreateVector(_o->parent_field_positions) : 0;
-  auto _child_field_positions = _o->child_field_positions.size() ? _fbb.CreateVector(_o->child_field_positions) : 0;
+  auto _parent_field_positions = _fbb.CreateVector(_o->parent_field_positions);
+  auto _child_field_positions = _fbb.CreateVector(_o->child_field_positions);
   auto _hash = _o->hash.empty() ? 0 : _fbb.CreateString(_o->hash);
   return gaia::catalog::internal::Creategaia_relationship(
       _fbb,
@@ -2058,8 +2063,8 @@ inline flatbuffers::Offset<gaia_table> Creategaia_table(flatbuffers::FlatBufferB
   auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
   auto _type = _o->type;
   auto _is_system = _o->is_system;
-  auto _binary_schema = _o->binary_schema.size() ? _fbb.CreateVector(_o->binary_schema) : 0;
-  auto _serialization_template = _o->serialization_template.size() ? _fbb.CreateVector(_o->serialization_template) : 0;
+  auto _binary_schema = _fbb.CreateVector(_o->binary_schema);
+  auto _serialization_template = _fbb.CreateVector(_o->serialization_template);
   auto _hash = _o->hash.empty() ? 0 : _fbb.CreateString(_o->hash);
   return gaia::catalog::internal::Creategaia_table(
       _fbb,

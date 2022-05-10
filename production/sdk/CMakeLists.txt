@@ -75,7 +75,7 @@ set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPAC
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # We only link libc++ in Debug builds.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc++-10-dev,libc++abi-10-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "debconf, libc++-10-dev, libc++abi-10-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
@@ -92,7 +92,7 @@ else()
   # built with libstdc++ (which is the default stdlib in both gcc and clang).
   # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
   # package, so we try to be compatible with that.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++-9-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "debconf, libstdc++-9-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
@@ -117,12 +117,14 @@ set(CPACK_DEBHELPER_INPUT
   service.in
   links.in
   dirs.in
+  templates.in
+  postinst.in
 )
 # List of debhelpers to run.
 # If left unset the default list of debhelpers is executed.
 set(CPACK_DEBHELPER_RUN
   dh_install dh_installdirs dh_installchangelogs
-  dh_installdocs dh_installsystemd
+  dh_installdocs dh_installdebconf dh_installsystemd
   dh_usrlocal dh_link dh_dwz dh_compress dh_fixperms)
 # Let the debhelpers generate the debian/control file (instead of CPack).
 set(CPACK_DEBHELPER_GENCONTROL ON)
@@ -172,10 +174,10 @@ install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 
-# Place cmake functions
+# Place cmake functions.
 install(FILES ${GAIA_REPO}/production/cmake/gaia.cmake DESTINATION cmake/)
 
-# Place Examples README and License
+# Place examples README and license.
 install(FILES ${GAIA_REPO}/production/examples/LICENSE.txt DESTINATION examples)
 install(FILES ${GAIA_REPO}/production/examples/README.md DESTINATION examples)
 
@@ -202,17 +204,40 @@ else()
   install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists.txt DESTINATION examples/incubator)
 endif()
 
-# Place direct_access example
+# Place direct_access example.
 install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.ddl DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.cpp DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/CMakeLists.txt DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/README.md DESTINATION examples/direct_access)
 
-# Place direct_access example
+# Place direct_access_multithread example.
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.ddl DESTINATION examples/direct_access_multithread)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.cpp DESTINATION examples/direct_access_multithread)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/CMakeLists.txt DESTINATION examples/direct_access_multithread)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/README.md DESTINATION examples/direct_access_multithread)
+
+# Place direct_access_vlr example.
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/direct_access_vlr.ddl DESTINATION examples/direct_access_vlr)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/direct_access_vlr.cpp DESTINATION examples/direct_access_vlr)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/CMakeLists.txt DESTINATION examples/direct_access_vlr)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/README.md DESTINATION examples/direct_access_vlr)
+
+# Place rules_vlr example.
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/rules_vlr.ddl DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/rules_vlr.ruleset DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/rules_vlr.cpp DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/CMakeLists.txt DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/README.md DESTINATION examples/rules_vlr)
+
+# Place rules example.
+install(FILES ${GAIA_REPO}/production/examples/rules/gaia.conf DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/lesson_manager.hpp DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/lesson_manager.cpp DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.ddl DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.ruleset DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.cpp DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/CMakeLists.txt DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/README.md DESTINATION examples/rules)
 
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)

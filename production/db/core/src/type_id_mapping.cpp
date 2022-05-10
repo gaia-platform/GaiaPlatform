@@ -7,12 +7,12 @@
 
 #include "gaia/common.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
 using namespace gaia::db;
 
-gaia::common::gaia_id_t type_id_mapping_t::get_record_id(gaia::common::gaia_type_t type_id)
+gaia::common::gaia_id_t type_id_mapping_t::get_table_id(gaia::common::gaia_type_t type_id)
 {
     std::shared_lock lock(m_lock);
 

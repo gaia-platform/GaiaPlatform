@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "gaia_internal/catalog/catalog_facade.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 
 /*
@@ -26,6 +25,8 @@ namespace catalog
 {
 namespace generate
 {
+
+constexpr char c_class_name_suffix[] = "_t";
 
 class table_facade_t;
 class field_facade_t;
@@ -50,8 +51,9 @@ public:
     explicit table_facade_t(gaia_table_t table);
 
     std::string table_name() const;
-    std::string table_type() const;
     std::string class_name() const;
+    std::string table_type() const;
+    std::string hash() const;
     std::vector<field_facade_t> fields() const;
     bool has_string_or_vector() const;
     bool needs_reference_class() const;
@@ -71,7 +73,9 @@ public:
 
     std::string field_name() const;
     std::string field_type(bool is_function_parameter = false) const;
+    std::string element_type() const;
     std::string table_name() const;
+    std::string class_name() const;
     std::pair<std::string, std::string> generate_expr_variable() const;
     bool is_string() const;
     bool is_vector() const;
@@ -93,7 +97,9 @@ public:
 
     std::string field_name() const;
     std::string from_table() const;
+    std::string from_class_name() const;
     std::string to_table() const;
+    std::string to_class_name() const;
 
     std::string target_type() const;
     std::string expression_accessor() const;

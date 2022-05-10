@@ -23,8 +23,7 @@ set(GAIA_CATALOG_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_CATALOG_PUBLIC_INCLUDES=${GAIA_CATALOG_PUBLIC_INCLUDES}")
 
 set(GAIA_CATALOG_PRIVATE_INCLUDES
-  ${GAIA_REPO}/production/db/core/inc
-  ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/core
   ${GAIA_REPO}/production/db/inc/index
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${PROJECT_SOURCE_DIR}/inc
@@ -47,8 +46,10 @@ add_library(gaia_catalog STATIC
   src/catalog.cpp
   src/catalog_facade.cpp
   src/gaiac_catalog_facade.cpp
+  src/gaiat_catalog_facade.cpp
   src/dac_generator.cpp
   src/gaia_generate.cpp
+  src/hash_generator.cpp
   ${FLATBUFFERS_SRC}/src/code_generators.cpp)
 
 configure_gaia_target(gaia_catalog)
