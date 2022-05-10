@@ -88,7 +88,9 @@ class test_insert_delete_ruleset : public db_catalog_test_base_t
 {
 public:
     test_insert_delete_ruleset()
-        : db_catalog_test_base_t("prerequisites.ddl", true, true, true){};
+        : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override
