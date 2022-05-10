@@ -64,8 +64,8 @@ public:
     void create_txn_record(
         gaia_txn_id_t commit_ts,
         record_type_t type,
-        std::vector<contiguous_offsets_t>& object_offsets,
-        std::vector<gaia::common::gaia_id_t>& deleted_ids);
+        const std::vector<iovec>& data_iovecs,
+        const std::vector<gaia::common::gaia_id_t>& deleted_ids);
 
     /**
      * Process the in memory txn_log and submit the processed writes (generated log records) to the async_disk_writer.
@@ -91,10 +91,10 @@ private:
     static constexpr char c_gaia_wal_dir_name[] = "/wal_dir";
     static constexpr int c_gaia_wal_dir_permissions = S_IRWXU | (S_IRGRP | S_IROTH | S_IXGRP | S_IXOTH);
     static inline std::string s_wal_dir_path{};
-    static inline int s_dir_fd = -1;
+    static inline int s_dir_fd{-1};
 
     // Log file sequence starts from 1.
-    static inline std::atomic<file_sequence_t::value_type> s_file_num = 1;
+    static inline std::atomic<file_sequence_t::value_type> s_file_num{1};
 
     // Keep track of the current log file.
     std::unique_ptr<log_file_t> m_current_file;

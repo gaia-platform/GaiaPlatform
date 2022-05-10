@@ -54,14 +54,14 @@ public:
     file_sequence_t get_file_sequence() const;
 
 private:
-    size_t m_file_size;
-    file_sequence_t m_file_seq;
-    size_t m_current_offset;
-    std::string m_dir_name;
-    int m_dir_fd;
-    int m_file_fd;
-    std::string m_file_name;
-    inline static constexpr int c_file_permissions = 0666;
+    size_t m_file_size{0};
+    file_sequence_t m_file_seq{0};
+    size_t m_current_offset{0};
+    std::string m_dir_name{};
+    int m_dir_fd{-1};
+    int m_file_fd{-1};
+    std::string m_file_name{};
+    inline static constexpr int c_file_permissions{0666};
 };
 
 } // namespace persistence

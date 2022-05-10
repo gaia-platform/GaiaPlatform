@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <string>
 
@@ -102,7 +103,7 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
     {
         auto file_size = (payload_size > c_max_log_file_size_in_bytes) ? payload_size : c_max_log_file_size_in_bytes;
         m_current_file.reset();
-        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, s_file_num, file_size);
+        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, file_sequence_t(s_file_num), file_size);
     }
     else if (m_current_file->get_bytes_remaining_after_append(payload_size) <= 0)
     {
@@ -116,7 +117,7 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
         // Open new file.
         s_file_num++;
         auto file_size = (payload_size > c_max_log_file_size_in_bytes) ? payload_size : c_max_log_file_size_in_bytes;
-        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, s_file_num, file_size);
+        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, file_sequence_t(s_file_num), file_size);
     }
 
     auto current_offset = m_current_file->get_current_offset();
@@ -172,59 +173,93 @@ void log_handler_t::process_txn_log_and_write(log_offset_t log_offset, gaia_txn_
 
     std::vector<common::gaia_id_t> deleted_ids;
 
-    // Create chunk_to_offsets_map; this is done to ensure offsets are processed in the correct order.
-    // The txn_log is sorted on the client for the correct validation impl, thus this map is used to track order of writes.
-    // Note that writes beloning to a txn can be assigned in arbitrary chunk order (due to chunk reuse) which is another reason to
-    // track chunk ids in the log.
-    std::map<chunk_offset_t, std::set<gaia_offset_t>> chunk_to_offsets_map;
-    for (size_t i = 0; i < txn_log->chunk_count; i++)
-    {
-        auto chunk = txn_log->chunks[i];
-        auto chunk_offset = chunk_from_offset(chunk);
-        chunk_to_offsets_map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
-    }
+    // Extract the original sequence of chunks used for this txn from txn log
+    // offsets and sequences. (This is necessary because the txn log has been
+    // sorted in-place by locator at this point, and chunks may be allocated out
+    // of chunk offset order.)
 
-    // Obtain deleted_ids & obtain sorted offsets per chunk.
+    // Find the lowest- and highest-allocated offset for each chunk, to
+    // determine the ranges of shared memory that need to be copied into the
+    // WAL. As long as the checkpointer applies versions in the same order that
+    // they appear in the WAL, the final state of the checkpoint will be
+    // consistent with the committed state of this txn.
+
+    // Use a sorted vector and binary search for simplicity and cache efficiency
+    // (we only sort the vector when we add a new chunk). Linear search would
+    // nearly always have acceptable performance (most txns will use only one
+    // chunk), but would have poor worst-case performance (a txn may use up to
+    // 2^10 chunks).
+    struct chunk_data_t
+    {
+        chunk_offset_t chunk_id;
+        uint16_t min_sequence;
+        gaia_offset_t min_offset;
+        gaia_offset_t max_offset;
+    };
+    std::vector<chunk_data_t> chunk_data;
+
+    // Obtain deleted IDs and min/max offsets per chunk.
     for (size_t i = 0; i < txn_log->record_count; i++)
     {
         auto lr = txn_log->log_records[i];
+
+        // Extract deleted ID and go to next record.
         if (lr.operation() == gaia_operation_t::remove)
         {
             deleted_ids.push_back(offset_to_ptr(lr.old_offset)->id);
-        }
-        else
-        {
-            auto chunk = chunk_from_offset(lr.new_offset);
-            ASSERT_INVARIANT(chunk_to_offsets_map.count(chunk) > 0, "Can't find chunk.");
-            ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
-            chunk_to_offsets_map.find(chunk)->second.insert(lr.new_offset);
-        }
-    }
-
-    // Group contiguous objects and also find total object size.
-    // Each odd entry in the contiguous_offsets vector is the begin offset of a contiguous memory
-    // segment and each even entry is the ending offset of said memory chunk.
-    std::vector<contiguous_offsets_t> contiguous_offsets;
-
-    for (const auto& pair : chunk_to_offsets_map)
-    {
-        auto object_address_offsets = pair.second;
-        if (object_address_offsets.size() == 0)
-        {
             continue;
         }
-        contiguous_offsets_t offset_pair{};
-        offset_pair.offset1 = (*object_address_offsets.begin());
-        auto end_offset = *(--object_address_offsets.end());
-        auto payload_size = offset_to_ptr(end_offset)->payload_size + c_db_object_header_size;
-        size_t allocation_size = calculate_allocation_size_in_slots(payload_size) * c_slot_size_in_bytes;
-        offset_pair.offset2 = (end_offset + allocation_size);
-        contiguous_offsets.push_back(offset_pair);
+
+        // Extract chunk ID from current offset.
+        auto offset = lr.new_offset;
+        auto sequence = lr.sequence;
+        auto chunk_id = chunk_from_offset(offset);
+
+        // Because this vector is sorted by chunk ID, we can use binary
+        // search to find the index of this chunk.
+        chunk_data_t target{};
+        target.chunk_id = chunk_id;
+        auto it = std::lower_bound(
+            chunk_data.begin(), chunk_data.end(), target,
+            [](const chunk_data_t& lhs, const chunk_data_t& rhs) { return lhs.chunk_id < rhs.chunk_id; });
+
+        // If chunk isn't present, add an entry for it in sorted order.
+        if (it == chunk_data.end() || it->chunk_id != chunk_id)
+        {
+            chunk_data.insert(it, {chunk_id, lr.sequence, offset, offset});
+        }
+
+        // Update entry for this chunk.
+        auto& entry = *it;
+        ASSERT_INVARIANT(entry.chunk_id == chunk_id, "Current chunk entry must store current chunk ID!");
+        entry.min_offset = std::min(entry.min_offset, offset);
+        entry.max_offset = std::max(entry.max_offset, offset);
+        entry.min_sequence = std::min(entry.min_sequence, sequence);
     }
 
-    if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
+    // Sort chunk data by sequence rather than chunk ID, to ensure that the WAL
+    // is applied in txn order.
+    std::sort(
+        chunk_data.begin(), chunk_data.end(),
+        [](const chunk_data_t& lhs, const chunk_data_t& rhs) { return lhs.min_sequence < rhs.min_sequence; });
+
+    // Construct an iovec for the data in each chunk to be copied to the WAL.
+    std::vector<iovec> chunk_data_iovecs;
+
+    for (const auto& entry : chunk_data)
     {
-        create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
+        auto first_obj_ptr = offset_to_ptr(entry.min_offset);
+        auto last_obj_ptr = offset_to_ptr(entry.max_offset);
+        auto last_payload_size = last_obj_ptr->payload_size + c_db_object_header_size;
+        size_t last_allocation_size = calculate_allocation_size_in_slots(last_payload_size) * c_slot_size_in_bytes;
+        auto last_allocation_end_ptr = reinterpret_cast<std::byte*>(last_obj_ptr) + last_allocation_size;
+        auto chunk_allocation_size = static_cast<size_t>(last_allocation_end_ptr - reinterpret_cast<std::byte*>(first_obj_ptr));
+        chunk_data_iovecs.push_back({first_obj_ptr, chunk_allocation_size});
+    }
+
+    if (!deleted_ids.empty() || !chunk_data_iovecs.empty())
+    {
+        create_txn_record(commit_ts, record_type_t::txn, chunk_data_iovecs, deleted_ids);
     }
 }
 
@@ -241,26 +276,27 @@ void log_handler_t::submit_writes(bool should_wait_for_completion)
 void log_handler_t::create_txn_record(
     gaia_txn_id_t commit_ts,
     record_type_t type,
-    std::vector<contiguous_offsets_t>& contiguous_offsets,
-    std::vector<gaia_id_t>& deleted_ids)
+    const std::vector<iovec>& data_iovecs,
+    const std::vector<gaia_id_t>& deleted_ids)
 {
-    ASSERT_PRECONDITION(!deleted_ids.empty() || !contiguous_offsets.empty(), "Txn record cannot have empty payload.");
+    ASSERT_PRECONDITION(
+        !deleted_ids.empty() || !data_iovecs.empty(),
+        "Txn record cannot have empty payload.");
 
     std::vector<iovec> writes_to_submit;
+
+    // Sum all iovec sizes to get initial payload size.
+    size_t payload_size = std::accumulate(
+        data_iovecs.begin(), data_iovecs.end(), 0,
+        [](int sum, const iovec& iov) { return sum + iov.iov_len; });
 
     // Reserve iovec to store header for the log record.
     struct iovec header_entry = {nullptr, 0};
     writes_to_submit.push_back(header_entry);
 
-    // Create iovec entries.
-    size_t payload_size = 0;
-    for (auto offset_pair : contiguous_offsets)
-    {
-        auto ptr = offset_to_ptr(offset_pair.offset1);
-        auto chunk_size = offset_pair.offset2 - offset_pair.offset1;
-        payload_size += chunk_size;
-        writes_to_submit.push_back({ptr, chunk_size});
-    }
+    // Append data iovecs to submitted writes.
+    writes_to_submit.insert(
+        writes_to_submit.end(), data_iovecs.begin(), data_iovecs.end());
 
     // Augment payload size with the size of deleted ids.
     auto deleted_size = deleted_ids.size() * sizeof(gaia_id_t);
