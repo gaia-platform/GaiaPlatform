@@ -182,17 +182,17 @@ invalid_create_list_internal::invalid_create_list_internal(const std::string& me
     m_message += message;
 }
 
-ruleset_not_consistent_with_catalog_internal::ruleset_not_consistent_with_catalog_internal(const std::string& db_name)
+ruleset_is_not_consistent_with_catalog_internal::ruleset_is_not_consistent_with_catalog_internal(const std::string& db_name)
 {
     std::stringstream message;
-    message << "Ruleset is not consistent with schema for DB '" << db_name << "'.";
+    message << "Ruleset is not consistent with schema for DB '" << db_name << "'. Please rebuild the system with DDL matching the database.";
     m_message = message.str();
 }
 
 dac_not_consistent_with_catalog::dac_not_consistent_with_catalog(const std::string& class_name)
 {
     std::stringstream message;
-    message << "Class '" << class_name << "' is not consistent with schema in the DB.";
+    message << "Class '" << class_name << "' is not consistent with schema in the DB. Please rebuild the system with DDL matching the database.";
     m_message = message.str();
 }
 

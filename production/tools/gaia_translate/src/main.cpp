@@ -554,6 +554,13 @@ llvm::SmallString<c_size_256> generate_general_subscription_code()
                 break;
             }
         }
+
+        // We have three hashes laying around:
+        // The hash stored in the database [current version of the schema that we are checking against at runtime in initialize_rules].
+        // The hash stored in the generated DAC headers [the hash of the database at the time the DAC header is generated].
+        // The hash stored in the generated ruleset file [the hash of the database at the time the translated code is generated].
+        // The following generated code will make sure that all 3 abovementioned hashes are the same to ensure correct execution.
+
         return_value.append("::gaia::system::validate_db_schema(\"");
         return_value.append(used_db.first());
         return_value.append("\",");

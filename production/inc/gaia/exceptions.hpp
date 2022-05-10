@@ -185,7 +185,7 @@ class invalid_create_list : public common::gaia_exception
 /**
  * @brief The specified ruleset is built against different schema.
  */
-class ruleset_not_consistent_with_catalog : public common::gaia_exception
+class ruleset_is_not_consistent_with_catalog : public common::gaia_exception
 {
 };
 
