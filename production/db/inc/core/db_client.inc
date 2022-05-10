@@ -8,9 +8,14 @@ inline bool client_t::is_session_open()
     return (s_session_socket != -1);
 }
 
+inline bool client_t::is_ping_session_open()
+{
+    return is_session_open() && s_session_options.session_type == session_type_t::ping;
+}
+
 inline bool client_t::is_ddl_session_open()
 {
-    return is_session_open() && s_session_options.is_ddl_session;
+    return is_session_open() && s_session_options.session_type == session_type_t::ddl;
 }
 
 inline bool client_t::is_transaction_open()
