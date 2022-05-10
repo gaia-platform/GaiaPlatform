@@ -10,16 +10,19 @@
 #include "gaia_perf_basic.h"
 #include "test_perf.hpp"
 
-using namespace gaia::perf_basic;
+using namespace gaia::benchmark;
 using namespace gaia::common;
 using namespace gaia::direct_access;
+using namespace gaia::perf_basic;
 using namespace std;
 
 class test_read_perf_basic : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_read_perf_basic()
-        : db_catalog_test_base_t("perf_basic.ddl"){};
+        : db_catalog_test_base_t("perf_basic.ddl", true, true, true)
+    {
+    }
 
     void TearDown() override
     {

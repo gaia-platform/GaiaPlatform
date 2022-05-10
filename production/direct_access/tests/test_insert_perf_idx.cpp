@@ -10,16 +10,19 @@
 #include "gaia_perf_idx.h"
 #include "test_perf.hpp"
 
-using namespace gaia::perf_idx;
+using namespace gaia::benchmark;
 using namespace gaia::common;
 using namespace gaia::direct_access;
+using namespace gaia::perf_idx;
 using namespace std;
 
 class test_insert_perf_idx : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_insert_perf_idx()
-        : db_catalog_test_base_t("perf_idx.ddl"){};
+        : db_catalog_test_base_t("perf_idx.ddl", true, true, true)
+    {
+    }
 
     void TearDown() override
     {

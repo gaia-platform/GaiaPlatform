@@ -203,6 +203,11 @@ public:
 class rule_integration_test : public db_test_base_t
 {
 public:
+    rule_integration_test()
+        : db_test_base_t(false)
+    {
+    }
+
     void subscribe_insert()
     {
         rule_binding_t rule1{"ruleset", "rule_insert", rule_insert};
@@ -285,11 +290,11 @@ protected:
         // Do this before resetting the server to initialize the logger.
         gaia_log::initialize("./gaia_log.conf");
 
-        begin_ddl_session();
-
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         // Otherwise, the event log activities will cause out of order test table IDs.
+        begin_ddl_session();
         schema_loader_t::instance().load_schema("addr_book.ddl");
+        end_session();
 
         event_manager_settings_t settings;
 
@@ -297,14 +302,13 @@ protected:
         // settings.enable_rule_stats = true;
         gaia::rules::test::initialize_rules_engine(settings);
 
-        end_session();
         begin_session();
     }
 
     static void TearDownTestSuite()
     {
-        gaia::rules::shutdown_rules_engine();
         end_session();
+        gaia::rules::shutdown_rules_engine();
         gaia_log::shutdown();
     }
 

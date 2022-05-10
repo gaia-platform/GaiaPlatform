@@ -481,7 +481,7 @@ bool handle_meta_command(const string& cmd)
     case c_exit_command:
         return false;
     default:
-        throw gaia_exception("Invalid command '" + string(cmd) + "'.");
+        throw invalid_command(cmd);
     }
     return true;
 }

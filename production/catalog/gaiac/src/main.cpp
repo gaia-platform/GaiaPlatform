@@ -106,17 +106,7 @@ void start_repl(parser_t& parser)
                 }
             }
 
-            if (rtrim(line).back() == ';')
-            {
-                parser.parse_string(ddl_buffer + line);
-                execute(parser.statements);
-                ddl_buffer = "";
-            }
-            else
-            {
-                ddl_buffer += line;
-                ddl_buffer += '\n';
-            }
+            throw invalid_command(line);
         }
         catch (gaia::common::gaia_exception& e)
         {
@@ -456,6 +446,11 @@ int main(int argc, char* argv[])
 
         if (mode == operate_mode_t::interactive)
         {
+            // We don't execute any DDL in interactive mode,
+            // so we can just use a regular session.
+            gaia::db::end_session();
+            gaia::db::begin_session();
+
             start_repl(parser);
         }
         else

@@ -12,16 +12,19 @@
 #include "gaia_perf_rel.h"
 #include "test_perf.hpp"
 
-using namespace gaia::perf_rel;
+using namespace gaia::benchmark;
 using namespace gaia::common;
 using namespace gaia::direct_access;
+using namespace gaia::perf_rel;
 using namespace std;
 
 class test_insert_perf_rel : public gaia::db::db_catalog_test_base_t
 {
 public:
     test_insert_perf_rel()
-        : db_catalog_test_base_t("perf_rel.ddl"){};
+        : db_catalog_test_base_t("perf_rel.ddl", true, true, true)
+    {
+    }
 
     void TearDown() override
     {
