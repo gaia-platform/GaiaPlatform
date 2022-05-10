@@ -38,7 +38,9 @@ public:
 
 protected:
     gaia_references_test()
-        : db_catalog_test_base_t(string("addr_book.ddl")){};
+        : db_catalog_test_base_t("addr_book.ddl", true, true, true)
+    {
+    }
 
     static gaia_id_t find_invalid_id()
     {
