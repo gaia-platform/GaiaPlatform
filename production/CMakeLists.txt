@@ -38,13 +38,21 @@ option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
 option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally" OFF)
 
 # LTO settings are set inside the configure_gaia_target() function to prevent it from being applied to tests.
-option(ENABLE_LTO "Enable Link Time Optimization" ON)
+option(ENABLE_CLANG_TIDY "Enable Link Time Optimization")
 
 if (NOT ENABLE_CLANG_TIDY)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
   else()
     option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+  endif()
+endif()
+
+if (NOT DEFINED ENABLE_LTO)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(ENABLE_CLANG_TIDY ON)
+  else()
+    set(ENABLE_CLANG_TIDY OFF)
   endif()
 endif()
 
