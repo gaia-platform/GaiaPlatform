@@ -75,7 +75,6 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     }
 
     // Start a DDL session for the catalog initialization.
-    // We'll use this session for all other initializations as well.
     gaia::db::begin_ddl_session();
 
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
