@@ -13,10 +13,35 @@ namespace gaia
 namespace db
 {
 
+// Session types.
+enum class session_type_t : uint8_t
+{
+    not_set = 0,
+
+    // These are sessions used by Gaia applications.
+    regular = 1,
+
+    // These are sessions used for setting up the database schema.
+    ddl = 2,
+
+    // These are sessions use to check if the server started successfully.
+    ping = 3,
+};
+
+/**
+ * @brief Checks whether a ping session is open.
+ */
+bool is_ping_session_open();
+
 /**
  * @brief Checks whether a DDL session is open.
  */
 bool is_ddl_session_open();
+
+/**
+ * @brief Special version of begin_session() used for DDL operations.
+ */
+void begin_ping_session();
 
 /**
  * @brief Special version of begin_session() used for DDL operations.
