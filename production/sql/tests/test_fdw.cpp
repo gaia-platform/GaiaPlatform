@@ -19,16 +19,8 @@ class fdw_test : public db_catalog_test_base_t
 {
 protected:
     fdw_test()
-        : db_catalog_test_base_t(){};
-
-    void SetUp() override
+        : db_catalog_test_base_t()
     {
-        db_catalog_test_base_t::SetUp();
-
-        // These tests require a DDL session,
-        // so we'll be closing the session opened in db_catalog_test_base_t::SetUp().
-        end_session();
-        begin_ddl_session();
     }
 
     static void SetUpTestSuite()
@@ -66,11 +58,23 @@ void verify_command_output(string command_filename)
 TEST_F(fdw_test, array)
 {
     load_schema("array_schema.ddl");
+
+    // End the DDL session needed for the schema loading
+    // and start a regular session for the remainder of the test.
+    gaia::db::end_session();
+    gaia::db::begin_session();
+
     verify_command_output("fdw_test_array_command.txt");
 }
 
 TEST_F(fdw_test, airport)
 {
     load_schema("airport_schema.ddl");
+
+    // End the DDL session needed for the schema loading
+    // and start a regular session for the remainder of the test.
+    gaia::db::end_session();
+    gaia::db::begin_session();
+
     verify_command_output("fdw_test_airport_command.txt");
 }
