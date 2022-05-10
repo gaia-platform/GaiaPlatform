@@ -39,7 +39,7 @@ bool is_ping_session_open();
 bool is_ddl_session_open();
 
 /**
- * @brief Special version of begin_session() used for DDL operations.
+ * @brief Special version of begin_session() used for testing that the server is up and running.
  */
 void begin_ping_session();
 
