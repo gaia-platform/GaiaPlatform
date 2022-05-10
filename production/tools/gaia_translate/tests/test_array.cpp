@@ -27,7 +27,9 @@ class test_array : public db_catalog_test_base_t
 {
 public:
     test_array()
-        : db_catalog_test_base_t("addr_book.ddl"){};
+        : db_catalog_test_base_t("addr_book.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override

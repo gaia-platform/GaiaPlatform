@@ -364,6 +364,7 @@ TEST_F(rule_integration_test, test_insert)
 //         txn.commit();
 //     }
 // }
+
 TEST_F(rule_integration_test, test_update)
 {
     subscribe_update();
