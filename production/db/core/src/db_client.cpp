@@ -169,11 +169,20 @@ void client_t::begin_session(config::session_options_t session_options)
 
     auto cleanup_session_socket = make_scope_guard([&]() { close_fd(s_session_socket); });
 
+    // Determine the type of session event based on the session type specified in the session options.
+    session_event_t session_event = session_event_t::CONNECT;
+    if (s_session_options.session_type == session_type_t::ping)
+    {
+        session_event = session_event_t::CONNECT_PING;
+    }
+    else if (s_session_options.session_type == session_type_t::ddl)
+    {
+        session_event = session_event_t::CONNECT_DDL;
+    }
+
     // Send the server the connection request.
     FlatBufferBuilder builder;
-    build_client_request(
-        builder,
-        s_session_options.is_ddl_session ? session_event_t::CONNECT_DDL : session_event_t::CONNECT);
+    build_client_request(builder, session_event);
 
     client_messenger_t client_messenger;
 
@@ -263,6 +272,10 @@ void client_t::begin_transaction()
     verify_session_active();
     verify_no_txn();
 
+    ASSERT_PRECONDITION(
+        s_session_options.session_type != session_type_t::ping,
+        "Ping sessions should not be starting transactions");
+
     // Map a private COW view of the locator shared memory segment.
     ASSERT_PRECONDITION(!s_private_locators.is_set(), "Locators segment is already mapped!");
     bool manage_fd = false;
@@ -301,8 +314,8 @@ void client_t::begin_transaction()
 
     // We need to perform this initialization in the context of a transaction,
     // so we'll just piggyback on the first transaction started by the client
-    // that is not a DDL transaction.
-    if (!s_session_options.is_ddl_session)
+    // under a regular session.
+    if (s_session_options.session_type == session_type_t::regular)
     {
         std::call_once(s_are_db_caches_initialized, init_db_caches);
     }
