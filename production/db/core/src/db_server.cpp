@@ -108,34 +108,37 @@ void server_t::handle_connect(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
-    // or after a regular session has already been started.
-    if (s_session_type == session_type_t::ddl)
-    {
-        ASSERT_INVARIANT(
-            s_can_ddl_sessions_still_be_started,
-            "Attempting to start a DDL session after a regular session was started!");
+    // TODO: Restore these checks once test issues are addressed.
+    // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2159.
+    //
+    // // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
+    // // or after a regular session has already been started.
+    // if (s_session_type == session_type_t::ddl)
+    // {
+    //     ASSERT_INVARIANT(
+    //         s_can_ddl_sessions_still_be_started,
+    //         "Attempting to start a DDL session after a regular session was started!");
 
-        bool expected_value = false;
-        bool has_succeeded = s_is_ddl_session_active.compare_exchange_strong(expected_value, true);
-        ASSERT_INVARIANT(
-            has_succeeded,
-            "Attempting to start a DDL session while another one has already been started!");
+    //     bool expected_value = false;
+    //     bool has_succeeded = s_is_ddl_session_active.compare_exchange_strong(expected_value, true);
+    //     ASSERT_INVARIANT(
+    //         has_succeeded,
+    //         "Attempting to start a DDL session while another one has already been started!");
 
-        // Double-check, in case a concurrent regular session has set the flag after our initial check.
-        ASSERT_INVARIANT(
-            s_can_ddl_sessions_still_be_started,
-            "Attempting to start a DDL session after a regular session was started!");
-    }
-    else if (s_session_type == session_type_t::regular)
-    {
-        // Once a regular session was started, no more DDL sessions can be started.
-        s_can_ddl_sessions_still_be_started = false;
+    //     // Double-check, in case a concurrent regular session has set the flag after our initial check.
+    //     ASSERT_INVARIANT(
+    //         s_can_ddl_sessions_still_be_started,
+    //         "Attempting to start a DDL session after a regular session was started!");
+    // }
+    // else if (s_session_type == session_type_t::regular)
+    // {
+    //     // Once a regular session was started, no more DDL sessions can be started.
+    //     s_can_ddl_sessions_still_be_started = false;
 
-        ASSERT_INVARIANT(
-            !s_is_ddl_session_active,
-            "Attempting to start a regular session while a DDL session is still active!");
-    }
+    //     ASSERT_INVARIANT(
+    //         !s_is_ddl_session_active,
+    //         "Attempting to start a regular session while a DDL session is still active!");
+    // }
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
