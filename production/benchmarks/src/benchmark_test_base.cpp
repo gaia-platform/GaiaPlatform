@@ -7,7 +7,6 @@
 
 #include <utility>
 
-#include "gaia/db/db.hpp"
 #include "gaia/system.hpp"
 
 namespace gaia
