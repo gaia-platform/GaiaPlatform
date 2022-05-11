@@ -26,7 +26,9 @@ class test_amr_swarm : public db_catalog_test_base_t
 {
 public:
     test_amr_swarm()
-        : db_catalog_test_base_t("amr_swarm.ddl"){};
+        : db_catalog_test_base_t("amr_swarm.ddl", true, true, true)
+    {
+    }
 
 protected:
     void SetUp() override

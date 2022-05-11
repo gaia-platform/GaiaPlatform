@@ -51,10 +51,12 @@ public:
         //       Otherwise, the event log activities will cause out of order test table IDs.
         schema_loader_t::instance().load_schema("addr_book.ddl");
 
-        gaia::rules::initialize_rules_engine();
-
         end_session();
         begin_session();
+
+        // The rules engine worker threads will start their own sessions,
+        // so we need to perform this step within a regular database session.
+        gaia::rules::initialize_rules_engine();
 
         // Initialize rules after loading the catalog.
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};

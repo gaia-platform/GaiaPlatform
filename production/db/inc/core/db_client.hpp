@@ -72,16 +72,19 @@ public:
     static inline gaia_txn_id_t get_current_txn_id();
     static void clear_shared_memory();
     static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
-
-    // These functions are exported from and documented in db.hpp.
-    static inline bool is_session_open();
+    static inline bool is_ping_session_open();
     static inline bool is_ddl_session_open();
+
+    // These functions are exported from and documented in gaia/db/db.hpp.
+    static inline bool is_session_open();
     static inline bool is_transaction_open();
-    static void begin_session(config::session_options_t session_options);
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();
     static void commit_transaction();
+
+    // Internal version of begin_session(), called by public interface in db.hpp.
+    static void begin_session(config::session_options_t session_options);
 
     static inline int get_session_socket_for_txn();
 

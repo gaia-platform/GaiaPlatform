@@ -32,7 +32,9 @@ class test_iterator : public db_catalog_test_base_t
 {
 protected:
     test_iterator()
-        : db_catalog_test_base_t("addr_book.ddl"){};
+        : db_catalog_test_base_t("addr_book.ddl", true, true, true)
+    {
+    }
 };
 
 // A reader will keep attempting to read the single record

@@ -19,6 +19,7 @@
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/db/db.hpp"
 
 #include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
@@ -129,6 +130,10 @@ private:
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
 
+    // These are global server flags.
+    static inline std::atomic<bool> s_is_ddl_session_active{false};
+    static inline std::atomic<bool> s_can_ddl_sessions_still_be_started{true};
+
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};
 
@@ -184,7 +189,7 @@ private:
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
-    thread_local static inline bool s_is_ddl_session{false};
+    thread_local static inline gaia::db::session_type_t s_session_type{gaia::db::session_type_t::regular};
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
@@ -373,6 +378,7 @@ private:
         messages::session_state_t new_state);
 
     // Session state transition handler functions.
+    static void handle_connect_ping(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_connect_ddl(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_connect(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_begin_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
@@ -399,6 +405,7 @@ private:
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
     static inline constexpr valid_transition_t c_valid_transitions[] = {
+        {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT_PING, {messages::session_state_t::CONNECTED, handle_connect_ping}},
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT_DDL, {messages::session_state_t::CONNECTED, handle_connect_ddl}},
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
         {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},

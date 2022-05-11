@@ -52,7 +52,7 @@ add_gtest(test_auto_transaction "tests/test_auto_transaction.cpp"
 add_gtest(test_event_manager "tests/test_event_manager.cpp;tests/rules_test_helpers.cpp"
   "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system;gaia_db_catalog_test")
 add_gtest(test_system_init "tests/test_system_init.cpp"
-  "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system;gaia_db_catalog_test")
+  "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_system;gaia_db_catalog_test;dac_addr_book")
 add_gtest(test_component_init "tests/test_component_init.cpp;tests/rules_test_helpers.cpp"
   "${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES}" "rt;gaia_common;gaia_rules;gaia_catalog")
 add_gtest(test_rule_context "tests/test_rule_context.cpp"
