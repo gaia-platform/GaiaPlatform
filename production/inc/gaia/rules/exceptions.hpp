@@ -75,6 +75,24 @@ public:
     explicit ruleset_not_found(const char* ruleset_name);
 };
 
+/**
+ * @brief The specified class is built against different schema.
+ */
+class dac_schema_mismatch : public common::gaia_exception
+{
+public:
+    explicit dac_schema_mismatch(const char* dac_name);
+};
+
+/**
+ * @brief The specified ruleset is built against different schema.
+ */
+class ruleset_schema_mismatch : public common::gaia_exception
+{
+public:
+    explicit ruleset_schema_mismatch(const char* ruleset_name);
+};
+
 /**@}*/
 } // namespace rules
 /**@}*/

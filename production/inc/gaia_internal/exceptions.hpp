@@ -141,11 +141,6 @@ public:
     explicit invalid_create_list_internal(const std::string& message);
 };
 
-class ruleset_is_not_consistent_with_catalog_internal : public ruleset_is_not_consistent_with_catalog
-{
-public:
-    explicit ruleset_is_not_consistent_with_catalog_internal(const std::string& db_name);
-};
 
 } // namespace catalog
 

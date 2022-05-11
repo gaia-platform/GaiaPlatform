@@ -131,11 +131,11 @@ void gaia::system::validate_db_schema(const char* database_name, const char* has
         const char* db_hash = db_iterator->hash();
         if (strcmp(db_hash, hash) != 0)
         {
-            throw gaia::catalog::ruleset_is_not_consistent_with_catalog_internal(database_name);
+            throw gaia::rules::ruleset_schema_mismatch(database_name);
         }
     }
     else
     {
-        throw gaia::catalog::ruleset_is_not_consistent_with_catalog_internal(database_name);
+        throw gaia::rules::ruleset_schema_mismatch(database_name);
     }
 }

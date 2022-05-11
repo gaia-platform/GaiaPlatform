@@ -88,6 +88,22 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
     m_message = message.str();
 }
 
+ruleset_schema_mismatch::ruleset_schema_mismatch(const char* db_name)
+{
+    std::stringstream message;
+    message << "Ruleset is not consistent with schema for DB '" << db_name << "'. Please rebuild the ruleset to match the catalog definition.";
+    m_message = message.str();
+}
+
+dac_schema_mismatch::dac_schema_mismatch(const char* class_name)
+{
+    std::stringstream message;
+    message << "Class '" << class_name << "' is not consistent with schema in the DB. Please rebuild the Direct Access Classes to match the catalog definition.";
+    m_message = message.str();
+}
+
+
+
 //
 // Rule Checker implementation.
 //

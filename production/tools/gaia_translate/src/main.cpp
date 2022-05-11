@@ -582,7 +582,7 @@ llvm::SmallString<c_size_256> generate_general_subscription_code()
                 return_value.append("::gaia_hash()) != 0)\n");
                 return_value.append("{\n");
                 return_value.append(c_ident);
-                return_value.append("throw ::gaia::catalog::dac_not_consistent_with_catalog(\"");
+                return_value.append("throw ::gaia::rules::dac_schema_mismatch(\"");
                 return_value.append(table_facade_t::class_name(catalog_entry.first()));
                 return_value.append("\");\n");
                 return_value.append("}\n");
@@ -4547,7 +4547,6 @@ public:
                 output_file << "#include <cstring>\n";
                 output_file << "\n";
                 output_file << "#include \"gaia/rules/rules.hpp\"\n";
-                output_file << "#include \"gaia/exceptions.hpp\"\n";
                 output_file << "#include \"gaia/system.hpp\"\n";
                 output_file << "\n";
                 for (const auto& db_iterator : g_used_dbs)
