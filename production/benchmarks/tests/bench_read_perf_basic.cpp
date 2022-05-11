@@ -51,7 +51,7 @@ void insert_data()
     }
 }
 
-TEST_F(bench_read_perf_basic, DISABLED_table_scan)
+TEST_F(bench_read_perf_basic, table_scan)
 {
     insert_data();
 
@@ -75,7 +75,7 @@ TEST_F(bench_read_perf_basic, DISABLED_table_scan)
         work, clear_database, "simple_table_t::table_scan", clear_db_after_each_iteration);
 }
 
-TEST_F(bench_read_perf_basic, DISABLED_table_scan_data_access)
+TEST_F(bench_read_perf_basic, table_scan_data_access)
 {
     insert_data();
 
