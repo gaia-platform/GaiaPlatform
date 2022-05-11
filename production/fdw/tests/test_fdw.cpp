@@ -15,10 +15,10 @@ using namespace gaia::db;
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 
-class fdw_test : public db_catalog_test_base_t
+class fdw : public db_catalog_test_base_t
 {
 protected:
-    fdw_test()
+    fdw()
         : db_catalog_test_base_t()
     {
     }
@@ -55,7 +55,7 @@ void verify_command_output(string command_filename)
     ASSERT_EQ(0, return_value);
 }
 
-TEST_F(fdw_test, array)
+TEST_F(fdw, array)
 {
     load_schema("array_schema.ddl");
 
@@ -67,7 +67,7 @@ TEST_F(fdw_test, array)
     verify_command_output("fdw_test_array_command.txt");
 }
 
-TEST_F(fdw_test, airport)
+TEST_F(fdw, airport)
 {
     load_schema("airport_schema.ddl");
 
