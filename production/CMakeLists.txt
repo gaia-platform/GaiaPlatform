@@ -50,9 +50,9 @@ endif()
 
 if (NOT DEFINED ENABLE_LTO)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(ENABLE_LTO ON)
-  else()
     set(ENABLE_LTO OFF)
+  else()
+    set(ENABLE_LTO ON)
   endif()
 endif()
 
