@@ -28,10 +28,10 @@ const float c_g_incubator_max_temperature = 102.0;
 /**
  * Ensure that is possible to intermix cpp code with declarative code.
  */
-class test_mixed_ruleset : public db_catalog_test_base_t
+class tools__gaia_translate__mixed : public db_catalog_test_base_t
 {
 public:
-    test_mixed_ruleset()
+    tools__gaia_translate__mixed()
         : db_catalog_test_base_t("incubator.ddl", true, true, true)
     {
     }
@@ -52,7 +52,7 @@ protected:
     }
 };
 
-TEST_F(test_mixed_ruleset, subscribe_valid_ruleset)
+TEST_F(tools__gaia_translate__mixed, subscribe_valid_ruleset)
 {
     gaia::db::begin_transaction();
 
@@ -84,7 +84,7 @@ TEST_F(test_mixed_ruleset, subscribe_valid_ruleset)
 }
 
 // TESTCASE: create then delete a row so it doesn't exist as anchor in rule
-TEST_F(test_mixed_ruleset, insert_delete_row)
+TEST_F(tools__gaia_translate__mixed, insert_delete_row)
 {
     gaia::db::begin_transaction();
 

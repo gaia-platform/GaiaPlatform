@@ -18,10 +18,10 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace std;
 
-class gaia_dump_test : public db_test_base_t
+class tools__gaia_dump : public db_test_base_t
 {
 public:
-    gaia_dump_test()
+    tools__gaia_dump()
         : db_test_base_t(true, true)
     {
     }
@@ -30,7 +30,7 @@ public:
 constexpr gaia_id_t c_start = 1;
 constexpr gaia_id_t c_end = 2;
 
-TEST_F(gaia_dump_test, dump)
+TEST_F(tools__gaia_dump, basic)
 {
     create_database("airport_test");
     ddl::field_def_list_t fields;

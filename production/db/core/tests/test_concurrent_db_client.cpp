@@ -67,7 +67,7 @@ private:
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class concurrent_db_client_test : public ::testing::Test
+class db__core__concurrent_db_client : public ::testing::Test
 {
 public:
     static constexpr char c_even_value[] = "ping";
@@ -172,10 +172,10 @@ public:
     }
 };
 
-TEST_F(concurrent_db_client_test, DISABLED_test_concurrent_update_throughput)
+TEST_F(db__core__concurrent_db_client, DISABLED_concurrent_update_throughput)
 {
     // Handle termination gracefully.
-    concurrent_db_client_test::register_signal_handler();
+    db__core__concurrent_db_client::register_signal_handler();
 
     for (size_t num_workers = 1; num_workers <= std::thread::hardware_concurrency(); ++num_workers)
     {

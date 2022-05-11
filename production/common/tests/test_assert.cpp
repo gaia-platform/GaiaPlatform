@@ -16,7 +16,7 @@
 using namespace std;
 using namespace gaia::common;
 
-TEST(common, assert)
+TEST(common__assert, regular)
 {
     try
     {
@@ -40,7 +40,7 @@ TEST(common, assert)
     }
 }
 
-TEST(common, debug_assert)
+TEST(common__assert, debug)
 {
     try
     {
@@ -101,7 +101,7 @@ inline int32_t check_number_debug(int32_t number)
     return number + 1;
 }
 
-TEST(common, assert_perf)
+TEST(common__assert, perf)
 {
     // Increase these values when using the test as a performance test.
     // The number of iterations can be increased

@@ -24,10 +24,10 @@ using std::exception;
 using std::string;
 using std::thread;
 
-class direct_access_test : public db_catalog_test_base_t
+class direct_access__direct_access : public db_catalog_test_base_t
 {
 protected:
-    direct_access_test()
+    direct_access__direct_access()
         : db_catalog_test_base_t("addr_book.ddl", true, true, true)
     {
     }
@@ -58,7 +58,7 @@ employee_t create_employee(const char* name)
 // Test invalid object instances
 // =============================
 
-TEST_F(direct_access_test, invalid_instances)
+TEST_F(direct_access__direct_access, invalid_instances)
 {
     begin_transaction();
 
@@ -81,7 +81,7 @@ TEST_F(direct_access_test, invalid_instances)
 // ================================
 
 // Create, write & read, one row
-TEST_F(direct_access_test, create_employee)
+TEST_F(direct_access__direct_access, create_employee)
 {
     begin_transaction();
     create_employee("Harold");
@@ -89,7 +89,7 @@ TEST_F(direct_access_test, create_employee)
 }
 
 // Delete one row
-TEST_F(direct_access_test, create_employee_delete)
+TEST_F(direct_access__direct_access, create_employee_delete)
 {
     begin_transaction();
     auto e = create_employee("Jameson");
@@ -98,7 +98,7 @@ TEST_F(direct_access_test, create_employee_delete)
 }
 
 // Verify that insert/update/delete outside a transaction throw the expected exception.
-TEST_F(direct_access_test, no_open_transaction)
+TEST_F(direct_access__direct_access, no_open_transaction)
 {
     // An uninitialized writer can be created outside a transaction.
     auto writer = employee_writer();
@@ -120,7 +120,7 @@ TEST_F(direct_access_test, no_open_transaction)
 }
 
 // Scan multiple rows
-TEST_F(direct_access_test, new_set_ins)
+TEST_F(direct_access__direct_access, new_set_ins)
 {
     begin_transaction();
     create_employee("Harold");
@@ -130,7 +130,7 @@ TEST_F(direct_access_test, new_set_ins)
 }
 
 // Read back from new, unsaved object
-TEST_F(direct_access_test, net_set_get)
+TEST_F(direct_access__direct_access, net_set_get)
 {
     // Note no transaction needed to create & use writer.
     auto w = employee_writer();
@@ -145,7 +145,7 @@ TEST_F(direct_access_test, net_set_get)
 }
 
 // Read original value from an inserted object
-TEST_F(direct_access_test, read_original_from_copy)
+TEST_F(direct_access__direct_access, read_original_from_copy)
 {
     begin_transaction();
     auto e = create_employee("Zachary");
@@ -154,7 +154,7 @@ TEST_F(direct_access_test, read_original_from_copy)
 }
 
 // Insert a row with no field values
-TEST_F(direct_access_test, new_insert_get)
+TEST_F(direct_access__direct_access, new_insert_get)
 {
     begin_transaction();
 
@@ -169,7 +169,7 @@ TEST_F(direct_access_test, new_insert_get)
 }
 
 // Read values from a non-inserted writer
-TEST_F(direct_access_test, new_get)
+TEST_F(direct_access__direct_access, new_get)
 {
     begin_transaction();
     auto w = employee_writer();
@@ -182,7 +182,7 @@ TEST_F(direct_access_test, new_get)
 }
 
 // Attempt to insert with an update writer, this should work.
-TEST_F(direct_access_test, existing_insert_field)
+TEST_F(direct_access__direct_access, existing_insert_field)
 {
     begin_transaction();
     auto e = employee_t::get(employee_writer().insert_row());
@@ -198,7 +198,7 @@ TEST_F(direct_access_test, existing_insert_field)
 // ====================================
 
 // Create, write two rows, read back by scan and verify
-TEST_F(direct_access_test, read_back_scan)
+TEST_F(direct_access__direct_access, read_back_scan)
 {
     begin_transaction();
     auto eid1 = create_employee("Howard").gaia_id();
@@ -288,19 +288,19 @@ void update_read_back(bool update_flag)
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(direct_access_test, update_read_back)
+TEST_F(direct_access__direct_access, update_read_back)
 {
     update_read_back(true);
 }
 
 // Create, write two rows, set fields, update, read, verify
-TEST_F(direct_access_test, no_update_read_back)
+TEST_F(direct_access__direct_access, no_update_read_back)
 {
     update_read_back(false);
 }
 
 // Delete an inserted object then insert after; the new row is good.
-TEST_F(direct_access_test, new_delete_insert)
+TEST_F(direct_access__direct_access, new_delete_insert)
 {
     begin_transaction();
     auto e = create_employee("Hector");
@@ -314,14 +314,14 @@ TEST_F(direct_access_test, new_delete_insert)
 // ====================
 
 // Attempt to create a row outside of a transaction
-TEST_F(direct_access_test, no_txn)
+TEST_F(direct_access__direct_access, no_txn)
 {
     EXPECT_THROW(create_employee("Harold"), no_open_transaction);
     // NOTE: the employee_t object is leaked here
 }
 
 // Scan beyond the end of the iterator.
-TEST_F(direct_access_test, scan_past_end)
+TEST_F(direct_access__direct_access, scan_past_end)
 {
     auto_transaction_t txn;
     create_employee("Hvitserk");
@@ -340,7 +340,7 @@ TEST_F(direct_access_test, scan_past_end)
 }
 
 // Test pre/post increment of iterator.
-TEST_F(direct_access_test, pre_post_iterator)
+TEST_F(direct_access__direct_access, pre_post_iterator)
 {
     auto_transaction_t txn;
     create_employee("Hvitserk");
@@ -368,7 +368,7 @@ TEST_F(direct_access_test, pre_post_iterator)
 }
 
 // Create row, try getting row from wrong type
-TEST_F(direct_access_test, read_wrong_type)
+TEST_F(direct_access__direct_access, read_wrong_type)
 {
     begin_transaction();
     gaia_id_t eid = create_employee("Howard").gaia_id();
@@ -388,7 +388,7 @@ TEST_F(direct_access_test, read_wrong_type)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, delete_wrong_type)
+TEST_F(direct_access__direct_access, delete_wrong_type)
 {
     begin_transaction();
     gaia_id_t eid = create_employee("Howard").gaia_id();
@@ -400,7 +400,7 @@ TEST_F(direct_access_test, delete_wrong_type)
 }
 
 // Create, write two rows, read back by ID and verify
-TEST_F(direct_access_test, read_back_id)
+TEST_F(direct_access__direct_access, read_back_id)
 {
     auto_transaction_t txn;
     auto eid = create_employee("Howard").gaia_id();
@@ -430,7 +430,7 @@ TEST_F(direct_access_test, read_back_id)
     EXPECT_THROW(e.name_first(), invalid_object_state);
 }
 
-TEST_F(direct_access_test, new_del_field_ref)
+TEST_F(direct_access__direct_access, new_del_field_ref)
 {
     // create GAIA-64 scenario
     begin_transaction();
@@ -447,7 +447,7 @@ TEST_F(direct_access_test, new_del_field_ref)
 }
 
 // Delete a found object then update
-TEST_F(direct_access_test, new_del_update)
+TEST_F(direct_access__direct_access, new_del_update)
 {
     begin_transaction();
     auto e = create_employee("Hector");
@@ -457,7 +457,7 @@ TEST_F(direct_access_test, new_del_update)
 }
 
 // Delete a found object then insert after, it's good again.
-TEST_F(direct_access_test, found_del_ins)
+TEST_F(direct_access__direct_access, found_del_ins)
 {
     begin_transaction();
 
@@ -477,7 +477,7 @@ TEST_F(direct_access_test, found_del_ins)
 }
 
 // Delete a found object then update
-TEST_F(direct_access_test, found_del_update)
+TEST_F(direct_access__direct_access, found_del_update)
 {
     begin_transaction();
     gaia_id_t eid = create_employee("Hector").gaia_id();
@@ -508,7 +508,7 @@ TEST_F(direct_access_test, found_del_update)
 // only takes a writer object.
 
 // Delete a row twice
-TEST_F(direct_access_test, new_del_del)
+TEST_F(direct_access__direct_access, new_del_del)
 {
     begin_transaction();
     auto e = create_employee("Hugo");
@@ -519,7 +519,7 @@ TEST_F(direct_access_test, new_del_del)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, auto_txn_begin)
+TEST_F(direct_access__direct_access, auto_txn_begin)
 {
 
     // Default constructor enables auto_begin semantics
@@ -541,7 +541,7 @@ TEST_F(direct_access_test, auto_txn_begin)
     EXPECT_STREQ(e.name_last(), "Clinton");
 }
 
-TEST_F(direct_access_test, auto_txn)
+TEST_F(direct_access__direct_access, auto_txn)
 {
     auto_transaction_t txn(auto_transaction_t::no_auto_restart);
     auto writer = employee_writer();
@@ -561,7 +561,7 @@ TEST_F(direct_access_test, auto_txn)
     txn.commit();
 }
 
-TEST_F(direct_access_test, auto_txn_rollback)
+TEST_F(direct_access__direct_access, auto_txn_rollback)
 {
     gaia_id_t id;
     {
@@ -575,7 +575,7 @@ TEST_F(direct_access_test, auto_txn_rollback)
     EXPECT_THROW(employee_t::get(id), invalid_object_id);
 }
 
-TEST_F(direct_access_test, writer_value_ref)
+TEST_F(direct_access__direct_access, writer_value_ref)
 {
     begin_transaction();
     employee_writer w1 = employee_writer();
@@ -642,7 +642,7 @@ void delete_thread(gaia_id_t id)
     end_session();
 }
 
-TEST_F(direct_access_test, thread_insert)
+TEST_F(direct_access__direct_access, thread_insert)
 {
     // Insert a record in another thread and verify
     // we can see it here.
@@ -656,7 +656,7 @@ TEST_F(direct_access_test, thread_insert)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, thread_update)
+TEST_F(direct_access__direct_access, thread_update)
 {
     // Update a record in another thread and verify
     // we can see it here.
@@ -682,7 +682,7 @@ TEST_F(direct_access_test, thread_update)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, thread_update_conflict)
+TEST_F(direct_access__direct_access, thread_update_conflict)
 {
     insert_thread(false);
 
@@ -707,7 +707,7 @@ TEST_F(direct_access_test, thread_update_conflict)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, thread_update_other_row)
+TEST_F(direct_access__direct_access, thread_update_other_row)
 {
     gaia_id_t row1_id = 0;
     gaia_id_t row2_id = 0;
@@ -741,7 +741,7 @@ TEST_F(direct_access_test, thread_update_other_row)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, thread_delete)
+TEST_F(direct_access__direct_access, thread_delete)
 {
     // update a record in another thread and verify
     // we can see it
@@ -766,7 +766,7 @@ TEST_F(direct_access_test, thread_delete)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, thread_insert_update_delete)
+TEST_F(direct_access__direct_access, thread_insert_update_delete)
 {
     // Do three concurrent operations and make sure we see are isolated from them
     // and then do see them in a subsequent transaction.
@@ -806,7 +806,7 @@ TEST_F(direct_access_test, thread_insert_update_delete)
     commit_transaction();
 };
 
-TEST_F(direct_access_test, thread_delete_conflict)
+TEST_F(direct_access__direct_access, thread_delete_conflict)
 {
     // Have two threads delete the same row.
     insert_thread(false);
@@ -860,7 +860,7 @@ void employee_func_val(employee_t e, const char* first_name)
     commit_transaction();
 }
 
-TEST_F(direct_access_test, default_construction)
+TEST_F(direct_access__direct_access, default_construction)
 {
     // Valid use case to create an unbacked object that
     // you can't do anything with.  However, now you can
@@ -897,7 +897,7 @@ TEST_F(direct_access_test, default_construction)
 }
 
 // Testing the arrow dereference operator->() in dac_iterator_t.
-TEST_F(direct_access_test, iter_arrow_deref)
+TEST_F(direct_access__direct_access, iter_arrow_deref)
 {
     const char* emp_name = "Phillip";
     auto_transaction_t txn;
@@ -925,7 +925,7 @@ int count_names(size_t name_length)
     return count;
 }
 
-TEST_F(direct_access_test, list_filter)
+TEST_F(direct_access__direct_access, list_filter)
 {
     auto_transaction_t txn;
 
@@ -962,7 +962,7 @@ TEST_F(direct_access_test, list_filter)
 // TESTCASE: Delete rows accessed through a list() iterator.
 // GAIAPLAT-1049
 // The delete_row() interferes with iterator.
-TEST_F(direct_access_test, delete_row_in_loop)
+TEST_F(direct_access__direct_access, delete_row_in_loop)
 {
     auto_transaction_t txn;
     phone_t::insert_row("206", "Y", true);

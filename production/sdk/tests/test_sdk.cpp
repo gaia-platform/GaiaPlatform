@@ -33,7 +33,7 @@ constexpr size_t c_wait_server_millis = 100;
 
 // Smoke tests public APIs, to ensure they work as expected and the symbols
 // are exported (https://github.com/gaia-platform/GaiaPlatform/pull/397);
-class sdk_test : public ::testing::Test
+class sdk__sdk : public ::testing::Test
 {
 protected:
     static void SetUpTestSuite()
@@ -110,7 +110,7 @@ void test_exception(T_args... args)
     ASSERT_TRUE(thrown) << "An exception should have been thrown";
 }
 
-TEST_F(sdk_test, auto_txn)
+TEST_F(sdk__sdk, auto_txn)
 {
     auto_transaction_t tx;
     employee_writer w;
@@ -122,7 +122,7 @@ TEST_F(sdk_test, auto_txn)
     tx.commit();
 }
 
-TEST_F(sdk_test, rule_subscribe_unsubscribe)
+TEST_F(sdk__sdk, rule_subscribe_unsubscribe)
 {
     rule_binding_t binding("ruleset", "rulename", rule_1);
 
@@ -148,7 +148,7 @@ TEST_F(sdk_test, rule_subscribe_unsubscribe)
     EXPECT_EQ(true, unsubscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, binding));
 }
 
-TEST_F(sdk_test, rule_list)
+TEST_F(sdk__sdk, rule_list)
 {
     rule_binding_t binding("ruleset", "rulename", rule_1);
 
@@ -173,7 +173,7 @@ TEST_F(sdk_test, rule_list)
     ASSERT_EQ(event_type_t::row_insert, rule_subscription->event_type);
 }
 
-TEST_F(sdk_test, gaia_logger)
+TEST_F(sdk__sdk, gaia_logger)
 {
     static constexpr char c_const_char_msg[] = "const char star message";
     static const std::string c_string_msg = "string message";
@@ -193,7 +193,7 @@ TEST_F(sdk_test, gaia_logger)
     gaia_log::app().critical("critical const char*: '{}', std::string: '{}', number: '{}'", c_const_char_msg, c_string_msg, c_int_msg);
 }
 
-TEST_F(sdk_test, transactions)
+TEST_F(sdk__sdk, transactions)
 {
     EXPECT_FALSE(gaia::db::is_transaction_open());
 
@@ -212,7 +212,7 @@ TEST_F(sdk_test, transactions)
 // be referenced without compile or link errors.
 
 // Catalog exceptions.
-TEST_F(sdk_test, catalog_exceptions)
+TEST_F(sdk__sdk, catalog_exceptions)
 {
     test_exception<gaia::catalog::forbidden_system_db_operation>();
     test_exception<gaia::catalog::db_already_exists>();
@@ -237,14 +237,14 @@ TEST_F(sdk_test, catalog_exceptions)
 }
 
 // Common exceptions.
-TEST_F(sdk_test, common_exceptions)
+TEST_F(sdk__sdk, common_exceptions)
 {
     test_exception<gaia::common::configuration_error>();
     test_exception<gaia::common::logging::logger_exception>();
 }
 
 // Database exceptions.
-TEST_F(sdk_test, db_exceptions)
+TEST_F(sdk__sdk, db_exceptions)
 {
     test_exception<gaia::db::session_exists>();
     test_exception<gaia::db::no_open_session>();
@@ -271,13 +271,13 @@ TEST_F(sdk_test, db_exceptions)
 }
 
 // Direct access exceptions.
-TEST_F(sdk_test, direct_access_exceptions)
+TEST_F(sdk__sdk, direct_access_exceptions)
 {
     test_exception<gaia::direct_access::invalid_object_state>();
 }
 
 // Rule exceptions.
-TEST_F(sdk_test, rule_exceptions)
+TEST_F(sdk__sdk, rule_exceptions)
 {
     test_exception<invalid_rule_binding>();
     test_exception<duplicate_rule>();

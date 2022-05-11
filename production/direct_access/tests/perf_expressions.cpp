@@ -95,10 +95,10 @@ static const int64_t c_num_employee_addresses = 2;
  *  [plain]: avg:95348.92us min:87834.60us max:107550.61us
  *  ->expr is 21.95% slower
  *  */
-class test_expressions_perf : public gaia::db::db_catalog_test_base_t
+class direct_access__perf_expressions : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_expressions_perf()
+    direct_access__perf_expressions()
         : db_catalog_test_base_t("addr_book.ddl"){};
 
     void SetUp() override
@@ -190,7 +190,7 @@ void run_expr_performance_test(
     log_performance_difference(expr_accumulator, plain_accumulator, message);
 }
 
-TEST_F(test_expressions_perf, int_eq)
+TEST_F(direct_access__perf_expressions, int_eq)
 {
     auto_transaction_t txn;
 
@@ -221,7 +221,7 @@ TEST_F(test_expressions_perf, int_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, int_gteq)
+TEST_F(direct_access__perf_expressions, int_gteq)
 {
     auto_transaction_t txn;
 
@@ -252,7 +252,7 @@ TEST_F(test_expressions_perf, int_gteq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, int_lt)
+TEST_F(direct_access__perf_expressions, int_lt)
 {
     auto_transaction_t txn;
 
@@ -283,7 +283,7 @@ TEST_F(test_expressions_perf, int_lt)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, c_string_eq)
+TEST_F(direct_access__perf_expressions, c_string_eq)
 {
     auto_transaction_t txn;
 
@@ -313,7 +313,7 @@ TEST_F(test_expressions_perf, c_string_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, string_eq)
+TEST_F(direct_access__perf_expressions, string_eq)
 {
     auto_transaction_t txn;
 
@@ -343,7 +343,7 @@ TEST_F(test_expressions_perf, string_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, object_eq)
+TEST_F(direct_access__perf_expressions, object_eq)
 {
     auto_transaction_t txn;
 
@@ -379,7 +379,7 @@ TEST_F(test_expressions_perf, object_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, mixed_bool_op)
+TEST_F(direct_access__perf_expressions, mixed_bool_op)
 {
     auto_transaction_t txn;
 
@@ -412,7 +412,7 @@ TEST_F(test_expressions_perf, mixed_bool_op)
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, test_container_contains)
+TEST_F(direct_access__perf_expressions, container_contains)
 {
     auto_transaction_t txn;
 
@@ -445,7 +445,7 @@ TEST_F(test_expressions_perf, test_container_contains)
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, test_container_contains_lambda)
+TEST_F(direct_access__perf_expressions, container_contains_lambda)
 {
     auto_transaction_t txn;
 
@@ -477,7 +477,7 @@ TEST_F(test_expressions_perf, test_container_contains_lambda)
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, test_container_count)
+TEST_F(direct_access__perf_expressions, container_count)
 {
     auto_transaction_t txn;
 
@@ -508,7 +508,7 @@ TEST_F(test_expressions_perf, test_container_count)
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, test_container_empty)
+TEST_F(direct_access__perf_expressions, container_empty)
 {
     auto_transaction_t txn;
 

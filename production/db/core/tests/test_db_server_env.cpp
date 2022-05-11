@@ -27,7 +27,7 @@ using namespace gaia::db::config;
 namespace fs = std::filesystem;
 
 // Ensures both the server and the client use the environment variables.
-class db_server_env_test : public ::testing::Test
+class db__core__db_server_env : public ::testing::Test
 {
 protected:
     static void SetUpTestSuite()
@@ -93,7 +93,7 @@ private:
     pid_t m_server_pid;
 };
 
-TEST_F(db_server_env_test, instance_name_from_env)
+TEST_F(db__core__db_server_env, instance_name_from_env)
 {
 
     std::string instance_name = server_instance_config_t::generate_instance_name();

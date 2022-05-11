@@ -19,10 +19,10 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 
-class fbs_generation_test : public db_test_base_t
+class catalog__fbs_generation : public db_test_base_t
 {
 public:
-    fbs_generation_test()
+    catalog__fbs_generation()
         : db_test_base_t(true, true)
     {
     }
@@ -39,9 +39,9 @@ protected:
     static ddl::field_def_list_t test_table_fields;
 };
 
-ddl::field_def_list_t fbs_generation_test::test_table_fields;
+ddl::field_def_list_t catalog__fbs_generation::test_table_fields;
 
-TEST_F(fbs_generation_test, generate_fbs_from_catalog)
+TEST_F(catalog__fbs_generation, generate_fbs_from_catalog)
 {
     string test_table_name{"test_fbs_generation"};
 
@@ -56,7 +56,7 @@ TEST_F(fbs_generation_test, generate_fbs_from_catalog)
     ASSERT_TRUE(fbs_parser.Parse(fbs.c_str()));
 }
 
-TEST_F(fbs_generation_test, generate_bfbs)
+TEST_F(catalog__fbs_generation, generate_bfbs)
 {
     string test_table_name{"test_fbs_generation"};
 

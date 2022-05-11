@@ -29,7 +29,7 @@ void verify_uninitialized_loggers()
     EXPECT_THROW(gaia_log::app(), gaia_log::logger_exception);
 }
 
-TEST(logger_test, logger_api)
+TEST(common__logging, logger_api)
 {
     verify_uninitialized_loggers();
 
@@ -129,7 +129,7 @@ void verify_log_levels(gaia_spdlog::level::level_enum log_level)
     gaia_log::shutdown();
 }
 
-TEST(logger_test, is_log_level_enabled)
+TEST(common__logging, is_log_level_enabled)
 {
     verify_log_levels(gaia_spdlog::level::trace);
     verify_log_levels(gaia_spdlog::level::debug);
@@ -149,7 +149,7 @@ void verify_optional_logging(T value)
     gaia_log::app().info("Optional has value '{}', '{}'", optional, null_optional);
 }
 
-TEST(logger_test, optional)
+TEST(common__logging, optional)
 {
     gaia_log::initialize("./gaia_log.conf");
     verify_optional_logging<uint8_t>(1);

@@ -16,14 +16,14 @@ using namespace gaia::direct_access;
 
 using gaia::common::gaia_id_t;
 
-class default_db_test : public gaia::db::db_catalog_test_base_t
+class direct_access__default_db : public gaia::db::db_catalog_test_base_t
 {
 protected:
-    default_db_test()
+    direct_access__default_db()
         : db_catalog_test_base_t("no_db.ddl"){};
 };
 
-TEST_F(default_db_test, direct_access)
+TEST_F(direct_access__default_db, basic)
 {
     // Test direct access APIs working as expected when no database is specified
     // in the DDL. The direct access classes generated from the default database

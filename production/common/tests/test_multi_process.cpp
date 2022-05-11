@@ -8,7 +8,7 @@
 // The child must be "clean" in the sense that it cannot be started with
 // handles and threads from the parent process that require separate cleanup.
 // For this reason, the function pthread_atfork() is used in the definition
-// of the fixture 'gaia_multi_process_test'. It causes the logger to be shut
+// of the fixture 'common__multi_process'. It causes the logger to be shut
 // down before the fork, then restarts it in the separate processes.
 //
 // If this test starts hanging while it runs, it is probably another form of
@@ -64,10 +64,10 @@ constexpr const char c_go_parent[] = "go_parent";
 
 // The multi_process fixture overrides SetUp() and TeadDown() because
 // it needs to control when begin_session() and end_session() are called.
-class gaia_multi_process_test : public db_catalog_test_base_t
+class common__multi_process : public db_catalog_test_base_t
 {
 protected:
-    gaia_multi_process_test()
+    common__multi_process()
         : db_catalog_test_base_t("addr_book.ddl", false)
     {
     }
@@ -148,7 +148,7 @@ protected:
 };
 
 // Test parallel multi-process transactions.
-TEST_F(gaia_multi_process_test, multi_process_inserts)
+TEST_F(common__multi_process, inserts)
 {
     std::unordered_set<std::string> employee_names;
 
@@ -297,7 +297,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
 }
 
 // Test parallel multi-process transactions and aborts.
-TEST_F(gaia_multi_process_test, multi_process_aborts)
+TEST_F(common__multi_process, aborts)
 {
     std::unordered_set<std::string> employee_names;
 
@@ -449,7 +449,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
 }
 
 // Create objects in one process, connect them in another, verify in first process.
-TEST_F(gaia_multi_process_test, multi_process_conflict)
+TEST_F(common__multi_process, conflict)
 {
     semaphore_initialize();
 
@@ -548,7 +548,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict)
 }
 
 // Create objects in one process, connect them in another, verify in first process.
-TEST_F(gaia_multi_process_test, multi_process_commit)
+TEST_F(common__multi_process, commit)
 {
     semaphore_initialize();
 

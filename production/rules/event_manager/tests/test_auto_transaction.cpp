@@ -17,11 +17,11 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 
-class auto_transaction_test : public db_test_base_t
+class rules__auto_transaction : public db_test_base_t
 {
 };
 
-TEST_F(auto_transaction_test, throw_if_active)
+TEST_F(rules__auto_transaction, throw_if_active)
 {
     begin_transaction();
     EXPECT_EQ(true, is_transaction_open());
@@ -33,7 +33,7 @@ TEST_F(auto_transaction_test, throw_if_active)
     rollback_transaction();
 }
 
-TEST_F(auto_transaction_test, rollback_on_destruction)
+TEST_F(rules__auto_transaction, rollback_on_destruction)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
@@ -44,7 +44,7 @@ TEST_F(auto_transaction_test, rollback_on_destruction)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, commit_no_rollback)
+TEST_F(rules__auto_transaction, commit_no_rollback)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
@@ -57,7 +57,7 @@ TEST_F(auto_transaction_test, commit_no_rollback)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, invalid_nested)
+TEST_F(rules__auto_transaction, invalid_nested)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
@@ -72,7 +72,7 @@ TEST_F(auto_transaction_test, invalid_nested)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, invalid_commit_twice)
+TEST_F(rules__auto_transaction, invalid_commit_twice)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
@@ -83,7 +83,7 @@ TEST_F(auto_transaction_test, invalid_commit_twice)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, invalid_commit_mixed)
+TEST_F(rules__auto_transaction, invalid_commit_mixed)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
@@ -94,7 +94,7 @@ TEST_F(auto_transaction_test, invalid_commit_mixed)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, no_throw_on_destruction)
+TEST_F(rules__auto_transaction, no_throw_on_destruction)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
@@ -104,7 +104,7 @@ TEST_F(auto_transaction_test, no_throw_on_destruction)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, rollback_existing)
+TEST_F(rules__auto_transaction, rollback_existing)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
@@ -115,7 +115,7 @@ TEST_F(auto_transaction_test, rollback_existing)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, auto_begin_true)
+TEST_F(rules__auto_transaction, auto_begin_true)
 {
     static_assert(false == auto_transaction_t::no_auto_restart, "auto_transaction_t::no_auto_restart constant should be false");
     EXPECT_EQ(false, is_transaction_open());
@@ -129,7 +129,7 @@ TEST_F(auto_transaction_test, auto_begin_true)
     EXPECT_EQ(false, is_transaction_open());
 }
 
-TEST_F(auto_transaction_test, auto_begin_false)
+TEST_F(rules__auto_transaction, auto_begin_false)
 {
     EXPECT_EQ(false, is_transaction_open());
     {

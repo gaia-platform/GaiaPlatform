@@ -22,10 +22,10 @@ using namespace gaia::db;
 using namespace gaia::rules;
 using namespace gaia::amr_swarm;
 
-class test_amr_swarm : public db_catalog_test_base_t
+class tools__gaia_translate__amr_swarm : public db_catalog_test_base_t
 {
 public:
-    test_amr_swarm()
+    tools__gaia_translate__amr_swarm()
         : db_catalog_test_base_t("amr_swarm.ddl", true, true, true)
     {
     }
@@ -55,7 +55,7 @@ constexpr uint32_t c_widget_capacity = 10;
 constexpr float c_max_charge = 1.0;
 constexpr char c_sandbox[] = "sand01";
 
-TEST_F(test_amr_swarm, setup_complete_event)
+TEST_F(tools__gaia_translate__amr_swarm, setup_complete_event)
 {
     subscribe_ruleset("amr_swarm_ruleset");
 

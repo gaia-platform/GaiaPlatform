@@ -47,18 +47,18 @@ void check_all_event_types(gaia_type_t context_type, gaia_type_t test_type, last
 }
 
 const gaia_type_t c_gaia_type = 42;
-class rule_context_test : public db_test_base_t
+class rules__rule_context : public db_test_base_t
 {
 };
 
-TEST_F(rule_context_test, last_operation_type_match)
+TEST_F(rules__rule_context, last_operation_type_match)
 {
     // If the context type matches the passed-in type then we should get the
     // last_operation_t value mapped to a table event type.
     check_all_event_types(c_gaia_type, c_gaia_type, nullptr);
 }
 
-TEST_F(rule_context_test, last_operation_type_mismatch)
+TEST_F(rules__rule_context, last_operation_type_mismatch)
 {
     // If the context type does not match the passed-in type then the last operation
     // performed on this type should be 'none'.
@@ -67,7 +67,7 @@ TEST_F(rule_context_test, last_operation_type_mismatch)
 }
 
 // Sanity check on compilation for const rule_context_t
-TEST_F(rule_context_test, last_operation_type_const)
+TEST_F(rules__rule_context, last_operation_type_const)
 {
     gaia::direct_access::auto_transaction_t txn(false);
     const gaia_id_t record = 33;

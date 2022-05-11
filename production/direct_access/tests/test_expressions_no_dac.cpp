@@ -11,7 +11,7 @@
 using namespace gaia::expressions;
 using namespace gaia::common;
 
-class test_expressions_no_dac : public ::testing::Test
+class direct_access__expressions_no_dac : public ::testing::Test
 {
 };
 
@@ -20,7 +20,7 @@ struct context_t
 {
 } g_bind;
 
-TEST_F(test_expressions_no_dac, expr_add)
+TEST_F(direct_access__expressions_no_dac, add)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -39,7 +39,7 @@ TEST_F(test_expressions_no_dac, expr_add)
     ASSERT_EQ(add_expression3(g_bind), i64 + i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_sub)
+TEST_F(direct_access__expressions_no_dac, sub)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -57,7 +57,7 @@ TEST_F(test_expressions_no_dac, expr_sub)
     ASSERT_EQ(sub_expression3(g_bind), i64 - i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_mul)
+TEST_F(direct_access__expressions_no_dac, mul)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -75,7 +75,7 @@ TEST_F(test_expressions_no_dac, expr_mul)
     ASSERT_EQ(mul_expression3(g_bind), i64 * i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_div)
+TEST_F(direct_access__expressions_no_dac, div)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -93,7 +93,7 @@ TEST_F(test_expressions_no_dac, expr_div)
     ASSERT_EQ(mul_expression3(g_bind), i64 / i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_mod)
+TEST_F(direct_access__expressions_no_dac, mod)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -111,7 +111,7 @@ TEST_F(test_expressions_no_dac, expr_mod)
     ASSERT_EQ(mod_expression3(g_bind), i64 % i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_band)
+TEST_F(direct_access__expressions_no_dac, band)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -129,7 +129,7 @@ TEST_F(test_expressions_no_dac, expr_band)
     ASSERT_EQ(band_expression3(g_bind), i64 & i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_bor)
+TEST_F(direct_access__expressions_no_dac, bor)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -147,7 +147,7 @@ TEST_F(test_expressions_no_dac, expr_bor)
     ASSERT_EQ(bor_expression3(g_bind), i64 | i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_shl)
+TEST_F(direct_access__expressions_no_dac, shl)
 {
     int64_t i64 = 10;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -165,7 +165,7 @@ TEST_F(test_expressions_no_dac, expr_shl)
     ASSERT_EQ(shl_expression3(g_bind), i64 >> i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_shr)
+TEST_F(direct_access__expressions_no_dac, shr)
 {
     int64_t i64 = 10;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -183,7 +183,7 @@ TEST_F(test_expressions_no_dac, expr_shr)
     ASSERT_EQ(shr_expression3(g_bind), i64 << i64_2);
 }
 
-TEST_F(test_expressions_no_dac, expr_neg)
+TEST_F(direct_access__expressions_no_dac, neg)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -192,7 +192,7 @@ TEST_F(test_expressions_no_dac, expr_neg)
     ASSERT_EQ(neg_expression(g_bind), -i64);
 }
 
-TEST_F(test_expressions_no_dac, expr_pos)
+TEST_F(direct_access__expressions_no_dac, pos)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -201,7 +201,7 @@ TEST_F(test_expressions_no_dac, expr_pos)
     ASSERT_EQ(pos_expression(g_bind), +i64);
 }
 
-TEST_F(test_expressions_no_dac, expr_inv)
+TEST_F(direct_access__expressions_no_dac, inv)
 {
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
@@ -210,7 +210,7 @@ TEST_F(test_expressions_no_dac, expr_inv)
     ASSERT_EQ(inv_expression(g_bind), ~i64);
 }
 
-TEST_F(test_expressions_no_dac, expr_avg)
+TEST_F(direct_access__expressions_no_dac, avg)
 {
     int64_t i1 = 500;
     auto value1 = value_accessor_t<context_t, int64_t>(i1);
@@ -225,7 +225,7 @@ TEST_F(test_expressions_no_dac, expr_avg)
     ASSERT_EQ(avg_expression(g_bind), (i1 + i2 + i3) / 3.0);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_and)
+TEST_F(direct_access__expressions_no_dac, optional_and)
 {
     optional_t<bool> true_value = true;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<bool>>(true_value);
@@ -249,7 +249,7 @@ TEST_F(test_expressions_no_dac, expr_optional_and)
     ASSERT_EQ(and_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_or)
+TEST_F(direct_access__expressions_no_dac, optional_or)
 {
     optional_t<bool> true_value = true;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<bool>>(true_value);
@@ -273,7 +273,7 @@ TEST_F(test_expressions_no_dac, expr_optional_or)
     ASSERT_EQ(or_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_xor)
+TEST_F(direct_access__expressions_no_dac, optional_xor)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -297,7 +297,7 @@ TEST_F(test_expressions_no_dac, expr_optional_xor)
     ASSERT_EQ(xor_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_add)
+TEST_F(direct_access__expressions_no_dac, optional_add)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -321,7 +321,7 @@ TEST_F(test_expressions_no_dac, expr_optional_add)
     ASSERT_EQ(add_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_sub)
+TEST_F(direct_access__expressions_no_dac, optional_sub)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -345,7 +345,7 @@ TEST_F(test_expressions_no_dac, expr_optional_sub)
     ASSERT_EQ(sub_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_mul)
+TEST_F(direct_access__expressions_no_dac, optional_mul)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -369,7 +369,7 @@ TEST_F(test_expressions_no_dac, expr_optional_mul)
     ASSERT_EQ(mul_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_div)
+TEST_F(direct_access__expressions_no_dac, optional_div)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -393,7 +393,7 @@ TEST_F(test_expressions_no_dac, expr_optional_div)
     ASSERT_EQ(div_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_mod)
+TEST_F(direct_access__expressions_no_dac, optional_mod)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -417,7 +417,7 @@ TEST_F(test_expressions_no_dac, expr_optional_mod)
     ASSERT_EQ(mod_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_band)
+TEST_F(direct_access__expressions_no_dac, optional_band)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -441,7 +441,7 @@ TEST_F(test_expressions_no_dac, expr_optional_band)
     ASSERT_EQ(band_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_bor)
+TEST_F(direct_access__expressions_no_dac, optional_bor)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -465,7 +465,7 @@ TEST_F(test_expressions_no_dac, expr_optional_bor)
     ASSERT_EQ(bor_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_shl)
+TEST_F(direct_access__expressions_no_dac, optional_shl)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -489,7 +489,7 @@ TEST_F(test_expressions_no_dac, expr_optional_shl)
     ASSERT_EQ(shl_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_shr)
+TEST_F(direct_access__expressions_no_dac, optional_shr)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);
@@ -513,7 +513,7 @@ TEST_F(test_expressions_no_dac, expr_optional_shr)
     ASSERT_EQ(shr_expression4(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_not)
+TEST_F(direct_access__expressions_no_dac, optional_not)
 {
     optional_t<bool> true_value = true;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<bool>>(true_value);
@@ -527,7 +527,7 @@ TEST_F(test_expressions_no_dac, expr_optional_not)
     ASSERT_EQ(not_expression2(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_neg)
+TEST_F(direct_access__expressions_no_dac, optional_neg)
 {
     optional_t<int32_t> value = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value);
@@ -541,7 +541,7 @@ TEST_F(test_expressions_no_dac, expr_optional_neg)
     ASSERT_EQ(neg_expression2(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_pos)
+TEST_F(direct_access__expressions_no_dac, optional_pos)
 {
     optional_t<int32_t> value = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value);
@@ -555,7 +555,7 @@ TEST_F(test_expressions_no_dac, expr_optional_pos)
     ASSERT_EQ(pos_expression2(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_inv)
+TEST_F(direct_access__expressions_no_dac, optional_inv)
 {
     optional_t<int32_t> value = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value);
@@ -569,7 +569,7 @@ TEST_F(test_expressions_no_dac, expr_optional_inv)
     ASSERT_EQ(inv_expression2(g_bind), nullopt);
 }
 
-TEST_F(test_expressions_no_dac, expr_optional_avg)
+TEST_F(direct_access__expressions_no_dac, optional_avg)
 {
     optional_t<int32_t> value1 = 10;
     auto value_accessor1 = value_accessor_t<context_t, optional_t<int32_t>>(value1);

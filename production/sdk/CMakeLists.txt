@@ -47,7 +47,7 @@ add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_GENERATED_CODE}/direct_access/addr
 add_dependencies(test_sdk dac_addr_book)
 set_source_files_properties(${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
 
-add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
+add_gtest(test_no_init_rules "tests/test_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
 # Set CPack variables required for building a DEB package.
 #

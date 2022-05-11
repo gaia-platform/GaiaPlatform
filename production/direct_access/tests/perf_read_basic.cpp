@@ -16,10 +16,10 @@ using namespace gaia::direct_access;
 using namespace gaia::perf_basic;
 using namespace std;
 
-class test_read_perf_basic : public gaia::db::db_catalog_test_base_t
+class direct_access__perf_read_basic : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_read_perf_basic()
+    direct_access__perf_read_basic()
         : db_catalog_test_base_t("perf_basic.ddl", true, true, true)
     {
     }
@@ -63,7 +63,7 @@ void insert_data()
     }
 }
 
-TEST_F(test_read_perf_basic, table_scan)
+TEST_F(direct_access__perf_read_basic, table_scan)
 {
     insert_data();
 
@@ -87,7 +87,7 @@ TEST_F(test_read_perf_basic, table_scan)
         work, clear_database, "simple_table_t::table_scan", clear_db_after_each_iteration);
 }
 
-TEST_F(test_read_perf_basic, table_scan_data_access)
+TEST_F(direct_access__perf_read_basic, table_scan_data_access)
 {
     insert_data();
 
@@ -112,7 +112,7 @@ TEST_F(test_read_perf_basic, table_scan_data_access)
         work, clear_database, "simple_table_t::table_scan_data_access", clear_db_after_each_iteration);
 }
 
-TEST_F(test_read_perf_basic, filter_no_match)
+TEST_F(direct_access__perf_read_basic, filter_no_match)
 {
     insert_data();
 
@@ -136,7 +136,7 @@ TEST_F(test_read_perf_basic, filter_no_match)
         work, clear_database, "simple_table_t::filter_no_match", clear_db_after_each_iteration);
 }
 
-TEST_F(test_read_perf_basic, filter_match)
+TEST_F(direct_access__perf_read_basic, filter_match)
 {
     insert_data();
 
@@ -163,7 +163,7 @@ TEST_F(test_read_perf_basic, filter_match)
         clear_db_after_each_iteration);
 }
 
-TEST_F(test_read_perf_basic, table_scan_read_size)
+TEST_F(direct_access__perf_read_basic, table_scan_read_size)
 {
     for (size_t num_reads : {10UL, 100UL, 1000UL, /*100000UL, 1000000UL, c_num_records*/})
     {

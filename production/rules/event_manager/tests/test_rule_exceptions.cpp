@@ -133,7 +133,7 @@ void rule_conflict_exception(const rule_context_t* context)
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class rule_exceptions_test : public db_test_base_t
+class rules__rule_exceptions : public db_test_base_t
 {
 public:
     void subscribe_conflict()
@@ -235,7 +235,7 @@ protected:
 
 // Ensures std exceeptions are caught by the rules engine and
 // propogated to the exception handler.
-TEST_F(rule_exceptions_test, test_std_exception)
+TEST_F(rules__rule_exceptions, std_exception)
 {
     init_exception_counters();
 
@@ -249,7 +249,7 @@ TEST_F(rule_exceptions_test, test_std_exception)
 
 // Ensures exceptions that don't inherit from std::exception
 // are caught by the rules engine and propogated to the exception
-TEST_F(rule_exceptions_test, test_non_std_exception)
+TEST_F(rules__rule_exceptions, non_std_exception)
 {
     init_exception_counters();
 
@@ -264,7 +264,7 @@ TEST_F(rule_exceptions_test, test_non_std_exception)
 // This test ensures that we only throw a single transaction
 // update conflict exception even though the rule that causes
 // the conflict exception gets invoked multiple times.
-TEST_F(rule_exceptions_test, test_update_conflict_exception)
+TEST_F(rules__rule_exceptions, update_conflict_exception)
 {
     init_exception_counters();
 

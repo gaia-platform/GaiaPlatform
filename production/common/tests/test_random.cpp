@@ -9,7 +9,7 @@
 
 #include "gaia_internal/common/random.hpp"
 
-TEST(random_test, gen_random_num)
+TEST(common__random, gen_random_num)
 {
     constexpr int c_lower_range = 0;
     constexpr int c_high_range = 15;
@@ -24,7 +24,7 @@ TEST(random_test, gen_random_num)
     }
 }
 
-TEST(random_test, gen_random_str)
+TEST(common__random, gen_random_str)
 {
     constexpr int c_min_str_len = 5;
     constexpr int c_max_str_len = 30;

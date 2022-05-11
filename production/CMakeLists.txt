@@ -359,7 +359,7 @@ endif()
 # Query processors.
 # We want to export all global symbols from the FDW shared library.
 set(EXPORT_SYMBOLS ON)
-add_subdirectory(sql)
+add_subdirectory(fdw)
 set(EXPORT_SYMBOLS OFF)
 
 # SDK

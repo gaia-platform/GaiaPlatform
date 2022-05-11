@@ -115,10 +115,10 @@ void rule_monitor_t::set_group(bool value)
     }
 }
 
-class test_serial : public db_catalog_test_base_t
+class tools__gaia_translate__serial : public db_catalog_test_base_t
 {
 public:
-    test_serial()
+    tools__gaia_translate__serial()
         : db_catalog_test_base_t("incubator.ddl", true, true, true)
     {
     }
@@ -208,7 +208,7 @@ protected:
     }
 };
 
-TEST_F(test_serial, default_serial)
+TEST_F(tools__gaia_translate__serial, default_serial)
 {
     subscribe_ruleset("test_default_serial");
     init_storage();
@@ -218,7 +218,7 @@ TEST_F(test_serial, default_serial)
     verify_values(c_g_incubator_min_temperature * 4);
 }
 
-TEST_F(test_serial, default_parallel)
+TEST_F(tools__gaia_translate__serial, default_parallel)
 {
     subscribe_ruleset("test_default_parallel");
     init_storage();
@@ -228,7 +228,7 @@ TEST_F(test_serial, default_parallel)
     verify_values(c_g_incubator_min_temperature * 2, c_g_incubator_max_temperature, c_g_sensor_value * 2);
 }
 
-TEST_F(test_serial, multiple_serial_same_group)
+TEST_F(tools__gaia_translate__serial, multiple_serial_same_group)
 {
     subscribe_ruleset("test_serial_1A");
     subscribe_ruleset("test_serial_2A");
@@ -239,7 +239,7 @@ TEST_F(test_serial, multiple_serial_same_group)
     verify_values(c_g_incubator_min_temperature * 4, c_g_incubator_max_temperature * 4);
 }
 
-TEST_F(test_serial, multiple_serial_different_groups)
+TEST_F(tools__gaia_translate__serial, multiple_serial_different_groups)
 {
     subscribe_ruleset("test_serial_1A");
     subscribe_ruleset("test_serial_2A");
@@ -253,7 +253,7 @@ TEST_F(test_serial, multiple_serial_different_groups)
     verify_values(c_g_incubator_min_temperature * 4, c_g_incubator_max_temperature * 4, c_g_sensor_value * 4, c_g_sensor_timestamp * 4);
 }
 
-TEST_F(test_serial, mixed_serial_parallel)
+TEST_F(tools__gaia_translate__serial, mixed_serial_parallel)
 {
     subscribe_ruleset("test_serial_1A");
     subscribe_ruleset("test_serial_2A");

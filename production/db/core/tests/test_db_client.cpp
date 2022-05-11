@@ -78,7 +78,7 @@ void print_node(const gaia_ptr_t& node, bool indent = false)
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class db_client_test : public db_test_base_t
+class db__core__db_client : public db_test_base_t
 {
 private:
     void init_data()
@@ -122,7 +122,7 @@ protected:
     }
 };
 
-TEST_F(db_client_test, early_session_termination)
+TEST_F(db__core__db_client, early_session_termination)
 {
     // Test that closing the session after starting a transaction
     // does not generate any internal assertion failures
@@ -133,7 +133,7 @@ TEST_F(db_client_test, early_session_termination)
     rollback_transaction();
 }
 
-TEST_F(db_client_test, read_data)
+TEST_F(db__core__db_client, read_data)
 {
     begin_transaction();
     {
@@ -155,7 +155,7 @@ TEST_F(db_client_test, read_data)
     commit_transaction();
 }
 
-TEST_F(db_client_test, update_payload)
+TEST_F(db__core__db_client, update_payload)
 {
     auto payload = "payload str";
     begin_transaction();
@@ -181,7 +181,7 @@ TEST_F(db_client_test, update_payload)
     commit_transaction();
 }
 
-TEST_F(db_client_test, update_payload_rollback)
+TEST_F(db__core__db_client, update_payload_rollback)
 {
     auto payload = "payload str";
     begin_transaction();
@@ -207,7 +207,7 @@ TEST_F(db_client_test, update_payload_rollback)
     commit_transaction();
 }
 
-TEST_F(db_client_test, iterate_type)
+TEST_F(db__core__db_client, iterate_type)
 {
     begin_transaction();
     {
@@ -385,7 +385,7 @@ void iterate_test_validate_iterations()
     std::cerr << std::endl;
 }
 
-TEST_F(db_client_test, iterate_type_cursor_separate_txn)
+TEST_F(db__core__db_client, iterate_type_cursor_separate_txn)
 {
     // Test that we can see additions across transactions.
     begin_transaction();
@@ -401,7 +401,7 @@ TEST_F(db_client_test, iterate_type_cursor_separate_txn)
     commit_transaction();
 }
 
-TEST_F(db_client_test, iterate_type_cursor_same_txn)
+TEST_F(db__core__db_client, iterate_type_cursor_same_txn)
 {
     // Test that we can see additions in the transaction that made them.
     begin_transaction();
@@ -412,7 +412,7 @@ TEST_F(db_client_test, iterate_type_cursor_same_txn)
     commit_transaction();
 }
 
-TEST_F(db_client_test, iterate_type_delete)
+TEST_F(db__core__db_client, iterate_type_delete)
 {
     begin_transaction();
     {
@@ -442,7 +442,7 @@ TEST_F(db_client_test, iterate_type_delete)
     commit_transaction();
 }
 
-TEST_F(db_client_test, null_payload_check)
+TEST_F(db__core__db_client, null_payload_check)
 {
     begin_transaction();
     {
@@ -464,7 +464,7 @@ TEST_F(db_client_test, null_payload_check)
     commit_transaction();
 }
 
-TEST_F(db_client_test, create_large_object)
+TEST_F(db__core__db_client, create_large_object)
 {
     begin_transaction();
     {

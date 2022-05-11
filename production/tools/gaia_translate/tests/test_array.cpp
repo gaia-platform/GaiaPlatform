@@ -23,10 +23,10 @@ using namespace gaia::rules;
 
 extern int g_client_sales;
 
-class test_array : public db_catalog_test_base_t
+class tools__gaia_translate__array : public db_catalog_test_base_t
 {
 public:
-    test_array()
+    tools__gaia_translate__array()
         : db_catalog_test_base_t("addr_book.ddl", true, true, true)
     {
     }
@@ -59,7 +59,7 @@ protected:
     }
 };
 
-TEST_F(test_array, test_array_unqualified_fields)
+TEST_F(tools__gaia_translate__array, unqualified_fields)
 {
     const std::vector<int32_t> expected_sales{6, 2, 4, 5, 4};
     gaia::db::begin_transaction();
@@ -74,7 +74,7 @@ TEST_F(test_array, test_array_unqualified_fields)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_qualified_fields)
+TEST_F(tools__gaia_translate__array, qualified_fields)
 {
     const std::vector<int32_t> expected_sales{7, 3, 12, 7, 6};
     gaia::db::begin_transaction();
@@ -89,7 +89,7 @@ TEST_F(test_array, test_array_qualified_fields)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_unqualified_assignment_init)
+TEST_F(tools__gaia_translate__array, unqualified_assignment_init)
 {
     const std::vector<int32_t> expected_sales{3, 4, 5};
     gaia::db::begin_transaction();
@@ -103,7 +103,7 @@ TEST_F(test_array, test_array_unqualified_assignment_init)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_unqualified_constant_array)
+TEST_F(tools__gaia_translate__array, unqualified_constant_array)
 {
     const std::vector<int32_t> expected_sales{1, 2, 3};
     gaia::db::begin_transaction();
@@ -117,7 +117,7 @@ TEST_F(test_array, test_array_unqualified_constant_array)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_explicit_navigation)
+TEST_F(tools__gaia_translate__array, explicit_navigation)
 {
     const std::vector<int32_t> expected_sales{8, 3, 12, 7, 6};
     gaia::db::begin_transaction();
@@ -134,7 +134,7 @@ TEST_F(test_array, test_array_explicit_navigation)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_implicit_navigation)
+TEST_F(tools__gaia_translate__array, implicit_navigation)
 {
     const std::vector<int32_t> expected_sales{6, 3, 12, 7, 6};
     gaia::db::begin_transaction();
@@ -151,7 +151,7 @@ TEST_F(test_array, test_array_implicit_navigation)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_qualified_assignment_init)
+TEST_F(tools__gaia_translate__array, qualified_assignment_init)
 {
     const std::vector<int32_t> expected_sales{10, 11, 12};
     gaia::db::begin_transaction();
@@ -165,7 +165,7 @@ TEST_F(test_array, test_array_qualified_assignment_init)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_qualified_constant_array)
+TEST_F(tools__gaia_translate__array, qualified_constant_array)
 {
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
@@ -179,7 +179,7 @@ TEST_F(test_array, test_array_qualified_constant_array)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_unqualified_field_to_qualified_assignment)
+TEST_F(tools__gaia_translate__array, unqualified_field_to_qualified_assignment)
 {
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
@@ -193,7 +193,7 @@ TEST_F(test_array, test_array_unqualified_field_to_qualified_assignment)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_unqualified_field_to_unqualified_assignment)
+TEST_F(tools__gaia_translate__array, unqualified_field_to_unqualified_assignment)
 {
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
@@ -207,7 +207,7 @@ TEST_F(test_array, test_array_unqualified_field_to_unqualified_assignment)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_qualified_field_to_unqualified_assignment)
+TEST_F(tools__gaia_translate__array, qualified_field_to_unqualified_assignment)
 {
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
@@ -221,7 +221,7 @@ TEST_F(test_array, test_array_qualified_field_to_unqualified_assignment)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_qualified_field_to_qualified_assignment)
+TEST_F(tools__gaia_translate__array, qualified_field_to_qualified_assignment)
 {
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
@@ -235,7 +235,7 @@ TEST_F(test_array, test_array_qualified_field_to_qualified_assignment)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_qualified_field_to_empty)
+TEST_F(tools__gaia_translate__array, qualified_field_to_empty)
 {
     gaia::db::begin_transaction();
 
@@ -251,7 +251,7 @@ TEST_F(test_array, test_array_qualified_field_to_empty)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_array, test_array_unqualified_field_to_empty)
+TEST_F(tools__gaia_translate__array, unqualified_field_to_empty)
 {
     gaia::db::begin_transaction();
 
@@ -267,7 +267,7 @@ TEST_F(test_array, test_array_unqualified_field_to_empty)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_array, test_array_explicit_navigation_init_assignment)
+TEST_F(tools__gaia_translate__array, explicit_navigation_init_assignment)
 {
     const std::vector<int32_t> expected_sales{6, 9, 8};
     gaia::db::begin_transaction();
@@ -283,7 +283,7 @@ TEST_F(test_array, test_array_explicit_navigation_init_assignment)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_explicit_navigation_array_assignment)
+TEST_F(tools__gaia_translate__array, explicit_navigation_array_assignment)
 {
     const std::vector<int32_t> expected_sales{1, 5, 3};
     gaia::db::begin_transaction();
@@ -299,7 +299,7 @@ TEST_F(test_array, test_array_explicit_navigation_array_assignment)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_insert)
+TEST_F(tools__gaia_translate__array, insert)
 {
     gaia::db::begin_transaction();
     auto client_id = client_t::insert_row("dsf", 0, {9, 8, 5, 6, 1});
@@ -379,7 +379,7 @@ TEST_F(test_array, test_array_insert)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_array, test_array_unqualified_field_index)
+TEST_F(tools__gaia_translate__array, unqualified_field_index)
 {
     const std::vector<int32_t> expected_sales{0, 8, 2, 7, 5, 4, 3};
     gaia::db::begin_transaction();
@@ -402,7 +402,7 @@ TEST_F(test_array, test_array_unqualified_field_index)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_unqualified_field_array_assignment)
+TEST_F(tools__gaia_translate__array, unqualified_field_array_assignment)
 {
     const std::vector<int32_t> expected_sales{0, 1, 1, 3};
     gaia::db::begin_transaction();
@@ -419,7 +419,7 @@ TEST_F(test_array, test_array_unqualified_field_array_assignment)
     check_array(client_id, expected_sales);
 }
 
-TEST_F(test_array, test_array_unqualified_field_iteration)
+TEST_F(tools__gaia_translate__array, unqualified_field_iteration)
 {
     gaia::db::begin_transaction();
 
@@ -432,7 +432,7 @@ TEST_F(test_array, test_array_unqualified_field_iteration)
     ASSERT_EQ(g_client_sales, 17);
 }
 
-TEST_F(test_array, test_array_qualified_field_iteration)
+TEST_F(tools__gaia_translate__array, qualified_field_iteration)
 {
     gaia::db::begin_transaction();
 
@@ -445,7 +445,7 @@ TEST_F(test_array, test_array_qualified_field_iteration)
     ASSERT_EQ(g_client_sales, 16);
 }
 
-TEST_F(test_array, test_array_explicit_path_iteration)
+TEST_F(tools__gaia_translate__array, explicit_path_iteration)
 {
     gaia::db::begin_transaction();
 

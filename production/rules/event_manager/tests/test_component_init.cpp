@@ -20,7 +20,7 @@ using namespace gaia::db::triggers;
 using namespace gaia::rules;
 using namespace std;
 
-class component_init_test : public db_test_base_t
+class rules__component_init : public db_test_base_t
 {
 protected:
     // Build up the [Rules] section of a TOML configuration file with rule settings.
@@ -43,7 +43,7 @@ protected:
     }
 };
 
-TEST_F(component_init_test, component_not_initialized_error)
+TEST_F(rules__component_init, component_not_initialized_error)
 {
     rule_binding_t dont_care;
     subscription_list_t still_dont_care;
@@ -59,7 +59,7 @@ void rule(const rule_context_t*)
 {
 }
 
-TEST_F(component_init_test, component_initialized)
+TEST_F(rules__component_init, component_initialized)
 {
     rule_binding_t binding("ruleset", "rulename", rule);
     subscription_list_t subscriptions;
@@ -79,7 +79,7 @@ TEST_F(component_init_test, component_initialized)
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subscriptions);
 }
 
-TEST_F(component_init_test, component_valid_empty_config)
+TEST_F(rules__component_init, component_valid_empty_config)
 {
     event_manager_settings_t default_settings;
     event_manager_settings_t config_settings;
@@ -96,7 +96,7 @@ TEST_F(component_init_test, component_valid_empty_config)
 }
 
 // See gaia.conf file for valid settings.
-TEST_F(component_init_test, component_valid_config)
+TEST_F(rules__component_init, component_valid_config)
 {
     const int32_t c_thread_count = 10;
     const int32_t c_log_interval = 20;
@@ -116,7 +116,7 @@ TEST_F(component_init_test, component_valid_config)
 }
 
 // Ensure the special values of thread count behave correctly.
-TEST_F(component_init_test, component_valid_config_thread_count)
+TEST_F(rules__component_init, component_valid_config_thread_count)
 {
     const int32_t c_log_interval = 20;
     const int32_t c_retry_count = 42;

@@ -27,10 +27,10 @@ constexpr size_t c_num_initial_rows = 20;
 constexpr size_t c_query_limit_rows = 5;
 constexpr const char* c_no_match_str = "no match";
 
-class test_index_scan : public gaia::db::db_catalog_test_base_t
+class db__query_processor__index_scan : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_index_scan()
+    db__query_processor__index_scan()
         : db_catalog_test_base_t("index_sandbox.ddl"){};
 
     void SetUp() override
@@ -54,7 +54,7 @@ public:
 };
 
 // Check counts match for all indexes.
-TEST_F(test_index_scan, verify_cardinality)
+TEST_F(db__query_processor__index_scan, verify_cardinality)
 {
     auto_transaction_t txn;
 
@@ -86,7 +86,7 @@ TEST_F(test_index_scan, verify_cardinality)
 }
 
 // Check scans on empty indexes.
-TEST_F(test_index_scan, verify_cardinality_empty)
+TEST_F(db__query_processor__index_scan, verify_cardinality_empty)
 {
     auto_transaction_t txn;
 
@@ -107,7 +107,7 @@ TEST_F(test_index_scan, verify_cardinality_empty)
 }
 
 // Check counts match for all indexes.
-TEST_F(test_index_scan, test_limits)
+TEST_F(db__query_processor__index_scan, test_limits)
 {
     auto_transaction_t txn;
 
@@ -163,7 +163,7 @@ TEST_F(test_index_scan, test_limits)
     }
 }
 
-TEST_F(test_index_scan, query_single_match)
+TEST_F(db__query_processor__index_scan, query_single_match)
 {
     // Lookup index_id for integer field.
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -240,7 +240,7 @@ TEST_F(test_index_scan, query_single_match)
     EXPECT_EQ(num_results, 1);
 }
 
-TEST_F(test_index_scan, query_multi_match)
+TEST_F(db__query_processor__index_scan, query_multi_match)
 {
     // Lookup index_id for integer field.
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -314,7 +314,7 @@ TEST_F(test_index_scan, query_multi_match)
     EXPECT_EQ(num_results, 1);
 }
 
-TEST_F(test_index_scan, query_match_optional)
+TEST_F(db__query_processor__index_scan, query_match_optional)
 {
     // Lookup index_id for integer field.
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -390,7 +390,7 @@ TEST_F(test_index_scan, query_match_optional)
     EXPECT_EQ(num_results, 1);
 }
 
-TEST_F(test_index_scan, query_local_modify_no_match)
+TEST_F(db__query_processor__index_scan, query_local_modify_no_match)
 {
     // Lookup index_id for integer field.
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -472,7 +472,7 @@ TEST_F(test_index_scan, query_local_modify_no_match)
     gaia::db::rollback_transaction();
 }
 
-TEST_F(test_index_scan, query_local_modify_match)
+TEST_F(db__query_processor__index_scan, query_local_modify_match)
 {
     // Lookup index_id for integer field.
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -554,7 +554,7 @@ TEST_F(test_index_scan, query_local_modify_match)
     gaia::db::rollback_transaction();
 }
 
-TEST_F(test_index_scan, query_no_match)
+TEST_F(db__query_processor__index_scan, query_no_match)
 {
     // Lookup index_id for integer field.
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -628,7 +628,7 @@ TEST_F(test_index_scan, query_no_match)
     EXPECT_EQ(num_results, 0);
 }
 
-TEST_F(test_index_scan, rollback_txn)
+TEST_F(db__query_processor__index_scan, rollback_txn)
 {
     // Don't insert the row via the writer, rollback.
     gaia::db::begin_transaction();
@@ -657,7 +657,7 @@ TEST_F(test_index_scan, rollback_txn)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_index_scan, insert_followed_by_delete)
+TEST_F(db__query_processor__index_scan, insert_followed_by_delete)
 {
     gaia::common::gaia_id_t to_delete;
 
@@ -704,7 +704,7 @@ TEST_F(test_index_scan, insert_followed_by_delete)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_index_scan, multi_insert_followed_by_delete)
+TEST_F(db__query_processor__index_scan, multi_insert_followed_by_delete)
 {
     gaia::common::gaia_id_t to_delete, to_delete2, to_delete3;
 

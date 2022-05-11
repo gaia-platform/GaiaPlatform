@@ -17,10 +17,10 @@ using namespace gaia::db;
 using namespace gaia::one_to_one;
 using namespace gaia::direct_access;
 
-class gaia_one_to_one_test : public db_catalog_test_base_t
+class direct_access__one_to_one : public db_catalog_test_base_t
 {
 protected:
-    gaia_one_to_one_test()
+    direct_access__one_to_one()
         : db_catalog_test_base_t(std::string("one_to_one.ddl")){};
 
     template <class T_edc, typename... T_args>
@@ -30,7 +30,7 @@ protected:
     }
 };
 
-TEST_F(gaia_one_to_one_test, connect_with_id)
+TEST_F(direct_access__one_to_one, connect_with_id)
 {
     auto_transaction_t txn;
 
@@ -57,7 +57,7 @@ TEST_F(gaia_one_to_one_test, connect_with_id)
     ASSERT_FALSE(madeline_employee.person());
 }
 
-TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
+TEST_F(direct_access__one_to_one, connect_with_dac_obj)
 {
     auto_transaction_t txn(auto_transaction_t::no_auto_restart);
 
@@ -102,7 +102,7 @@ TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
     txn.commit();
 }
 
-TEST_F(gaia_one_to_one_test, multiple_disconnect_same_obj_succeed)
+TEST_F(direct_access__one_to_one, multiple_disconnect_same_obj_succeed)
 {
     auto_transaction_t txn;
 
@@ -126,7 +126,7 @@ TEST_F(gaia_one_to_one_test, multiple_disconnect_same_obj_succeed)
     ASSERT_FALSE(employee);
 }
 
-TEST_F(gaia_one_to_one_test, multiple_connect_same_objects_succeed)
+TEST_F(direct_access__one_to_one, multiple_connect_same_objects_succeed)
 {
     auto_transaction_t txn;
 
@@ -156,7 +156,7 @@ TEST_F(gaia_one_to_one_test, multiple_connect_same_objects_succeed)
     ASSERT_FALSE(employee);
 }
 
-TEST_F(gaia_one_to_one_test, multiple_connect_different_objects_fail)
+TEST_F(direct_access__one_to_one, multiple_connect_different_objects_fail)
 {
     auto_transaction_t txn;
 
@@ -172,7 +172,7 @@ TEST_F(gaia_one_to_one_test, multiple_connect_different_objects_fail)
         child_already_referenced);
 }
 
-TEST_F(gaia_one_to_one_test, test_out_of_sync_reference)
+TEST_F(direct_access__one_to_one, out_of_sync_reference)
 {
     auto_transaction_t txn;
 
@@ -187,7 +187,7 @@ TEST_F(gaia_one_to_one_test, test_out_of_sync_reference)
     ASSERT_FALSE(employee);
 }
 
-TEST_F(gaia_one_to_one_test, connect_wrong_type_fail)
+TEST_F(direct_access__one_to_one, connect_wrong_type_fail)
 {
     auto_transaction_t txn;
 
@@ -199,7 +199,7 @@ TEST_F(gaia_one_to_one_test, connect_wrong_type_fail)
         invalid_relationship_type);
 }
 
-TEST_F(gaia_one_to_one_test, connect_wrong_id_fail)
+TEST_F(direct_access__one_to_one, connect_wrong_id_fail)
 {
     auto_transaction_t txn;
 
@@ -212,7 +212,7 @@ TEST_F(gaia_one_to_one_test, connect_wrong_id_fail)
         invalid_object_id);
 }
 
-TEST_F(gaia_one_to_one_test, connect_self_relationship)
+TEST_F(direct_access__one_to_one, connect_self_relationship)
 {
     auto_transaction_t txn;
 
@@ -242,7 +242,7 @@ TEST_F(gaia_one_to_one_test, connect_self_relationship)
     ASSERT_FALSE(john_person.wife());
 }
 
-TEST_F(gaia_one_to_one_test, connect_multiple_relationship)
+TEST_F(direct_access__one_to_one, connect_multiple_relationship)
 {
     auto_transaction_t txn;
 
@@ -270,7 +270,7 @@ TEST_F(gaia_one_to_one_test, connect_multiple_relationship)
     ASSERT_EQ(john_person.employee(), john_employee);
 }
 
-TEST_F(gaia_one_to_one_test, deletion)
+TEST_F(direct_access__one_to_one, deletion)
 {
     auto_transaction_t txn;
 

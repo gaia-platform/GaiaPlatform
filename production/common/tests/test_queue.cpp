@@ -12,7 +12,7 @@
 using namespace std;
 using namespace gaia::common;
 
-TEST(common, queue)
+TEST(common__queue, regular)
 {
     queue_t<int> queue;
 
@@ -68,7 +68,7 @@ TEST(common, queue)
     ASSERT_EQ(0, queue.size());
 }
 
-TEST(common, mpsc_queue)
+TEST(common__queue, mpsc)
 {
     mpsc_queue_t<int> queue;
 

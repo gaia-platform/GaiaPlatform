@@ -13,7 +13,8 @@
 
 using namespace gaia::common;
 using namespace gaia::db;
-class type_index_test : public ::testing::Test
+
+class db__core__type_index : public ::testing::Test
 {
 protected:
     void SetUp() override
@@ -41,7 +42,7 @@ protected:
 };
 
 // Add one locator and verify that the cursor finds it.
-TEST_F(type_index_test, add_and_find_one_locator)
+TEST_F(db__core__type_index, add_and_find_one_locator)
 {
     m_type_index->add_locator(c_first_type, c_first_locator);
     type_index_cursor_t cursor(m_type_index, c_first_type);
@@ -51,7 +52,7 @@ TEST_F(type_index_test, add_and_find_one_locator)
 
 // Add and delete one locator and verify that the cursor finds it marked
 // deleted.
-TEST_F(type_index_test, add_and_delete_one_locator)
+TEST_F(db__core__type_index, add_and_delete_one_locator)
 {
     m_type_index->add_locator(c_first_type, c_first_locator);
     EXPECT_TRUE(m_type_index->delete_locator(c_first_locator));
@@ -63,7 +64,7 @@ TEST_F(type_index_test, add_and_delete_one_locator)
 
 // Add and delete one locator, unlink it, and verify that the cursor doesn't
 // find it on a new traversal.
-TEST_F(type_index_test, add_delete_unlink_one_locator)
+TEST_F(db__core__type_index, add_delete_unlink_one_locator)
 {
     m_type_index->add_locator(c_first_type, c_first_locator);
     EXPECT_TRUE(m_type_index->delete_locator(c_first_locator));
@@ -80,7 +81,7 @@ TEST_F(type_index_test, add_delete_unlink_one_locator)
 // Add multiple locators, delete and unlink the head (last locator added), and
 // verify that it is not found and all other locators are found on a new
 // traversal.
-TEST_F(type_index_test, add_multi_delete_unlink_head_locator)
+TEST_F(db__core__type_index, add_multi_delete_unlink_head_locator)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
@@ -106,7 +107,7 @@ TEST_F(type_index_test, add_multi_delete_unlink_head_locator)
 // Add multiple locators, delete and unlink the tail (first locator added), and
 // verify that it is not found and all other locators are found on a new
 // traversal.
-TEST_F(type_index_test, add_multi_delete_unlink_tail_locator)
+TEST_F(db__core__type_index, add_multi_delete_unlink_tail_locator)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
@@ -137,7 +138,7 @@ TEST_F(type_index_test, add_multi_delete_unlink_tail_locator)
 // Add and delete multiple locators, unlink first one found (head), verify that
 // no locators are found on a new traversal (since unlinking a deleted locator
 // unlinks all consecutive deleted locators).
-TEST_F(type_index_test, add_multi_delete_all_unlink_head)
+TEST_F(db__core__type_index, add_multi_delete_all_unlink_head)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
@@ -161,7 +162,7 @@ TEST_F(type_index_test, add_multi_delete_all_unlink_head)
 // first locator found (head), verify that only first locator added (tail) is
 // found on a new traversal (since unlinking a deleted locator unlinks all
 // consecutive deleted locators).
-TEST_F(type_index_test, add_multi_delete_all_except_head_unlink_all_deleted)
+TEST_F(db__core__type_index, add_multi_delete_all_except_head_unlink_all_deleted)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
@@ -186,7 +187,7 @@ TEST_F(type_index_test, add_multi_delete_all_except_head_unlink_all_deleted)
 // locator found (successor of head), verify that only last locator added (head)
 // is found on a new traversal (since unlinking a deleted locator unlinks all
 // consecutive deleted locators).
-TEST_F(type_index_test, add_multi_delete_all_except_tail_unlink_all_deleted)
+TEST_F(db__core__type_index, add_multi_delete_all_except_tail_unlink_all_deleted)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
@@ -213,7 +214,7 @@ TEST_F(type_index_test, add_multi_delete_all_except_tail_unlink_all_deleted)
 // tail), unlink second locator found (successor of head), verify that only
 // first and last locators added (head and tail) are found on a new traversal
 // (since unlinking a deleted locator unlinks all consecutive deleted locators).
-TEST_F(type_index_test, add_multi_delete_all_except_head_and_tail_unlink_all_deleted)
+TEST_F(db__core__type_index, add_multi_delete_all_except_head_and_tail_unlink_all_deleted)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
@@ -242,7 +243,7 @@ TEST_F(type_index_test, add_multi_delete_all_except_head_and_tail_unlink_all_del
 // tail), unlink first and last locators found (head and tail), verify that all
 // but first and last locators added (head and tail) are found on a new
 // traversal.
-TEST_F(type_index_test, add_multi_delete_only_head_and_tail_unlink_all_deleted)
+TEST_F(db__core__type_index, add_multi_delete_only_head_and_tail_unlink_all_deleted)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
@@ -276,7 +277,7 @@ TEST_F(type_index_test, add_multi_delete_only_head_and_tail_unlink_all_deleted)
 
 // Try to exceed the registered type limit and verify the expected exception is
 // thrown.
-TEST_F(type_index_test, exceed_registered_type_limit)
+TEST_F(db__core__type_index, exceed_registered_type_limit)
 {
     gaia_locator_t locator = c_first_locator;
     for (gaia_type_t type_id{c_first_type}; type_id.value() <= c_max_types; ++type_id, ++locator)
@@ -291,7 +292,7 @@ TEST_F(type_index_test, exceed_registered_type_limit)
 // and verify its presence, delete the locator from each list and verify its
 // logically deleted status, and finally unlink the locator from each list and
 // verify its absence.
-TEST_F(type_index_test, add_delete_unlink_locators_multiple_types)
+TEST_F(db__core__type_index, add_delete_unlink_locators_multiple_types)
 {
     // For each type, add a locator to the index for that type and verify its
     // presence.
