@@ -36,6 +36,7 @@ benchmark_test_base::benchmark_test_base(std::string ddl_path)
 void benchmark_test_base::SetUp()
 {
     m_server.start();
+
     gaia::system::initialize_db();
 
     m_gaiac.load_ddl(m_ddl_path);

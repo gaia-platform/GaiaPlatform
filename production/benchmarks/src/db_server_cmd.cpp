@@ -18,8 +18,6 @@
 #include "gaia/exceptions.hpp"
 #include "gaia/logger.hpp"
 
-#include "gaia_internal/db/db.hpp"
-
 #include "resource_manager.hpp"
 
 namespace fs = std::filesystem;
@@ -164,7 +162,7 @@ void server_instance_t::wait_for_init()
         {
             gaia_spdlog::trace("Waiting for Gaia instance:{}...", instance_name());
 
-            gaia::db::begin_ping_session();
+            gaia::db::begin_session();
         }
         catch (gaia::db::server_connection_failed& ex)
         {

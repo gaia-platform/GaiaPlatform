@@ -23,7 +23,7 @@ target_include_directories(gaia_tools PRIVATE
 )
 
 target_link_libraries(gaia_tools PRIVATE
-  gaia_db_client
+  gaia
 )
 
 # Base benchmarking infra
