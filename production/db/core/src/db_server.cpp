@@ -78,12 +78,22 @@ static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
+void server_t::handle_connect_ping(
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+{
+    ASSERT_PRECONDITION(event == session_event_t::CONNECT_PING, c_message_unexpected_event_received);
+
+    s_session_type = session_type_t::ping;
+
+    handle_connect(session_event_t::CONNECT, nullptr, old_state, new_state);
+}
+
 void server_t::handle_connect_ddl(
     session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::CONNECT_DDL, c_message_unexpected_event_received);
 
-    s_is_ddl_session = true;
+    s_session_type = session_type_t::ddl;
 
     handle_connect(session_event_t::CONNECT, nullptr, old_state, new_state);
 }
@@ -97,6 +107,38 @@ void server_t::handle_connect(
     ASSERT_PRECONDITION(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
+
+    // TODO: Restore these checks once test issues are addressed.
+    // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2159.
+    //
+    // // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
+    // // or after a regular session has already been started.
+    // if (s_session_type == session_type_t::ddl)
+    // {
+    //     ASSERT_INVARIANT(
+    //         s_can_ddl_sessions_still_be_started,
+    //         "Attempting to start a DDL session after a regular session was started!");
+
+    //     bool expected_value = false;
+    //     bool has_succeeded = s_is_ddl_session_active.compare_exchange_strong(expected_value, true);
+    //     ASSERT_INVARIANT(
+    //         has_succeeded,
+    //         "Attempting to start a DDL session while another one has already been started!");
+
+    //     // Double-check, in case a concurrent regular session has set the flag after our initial check.
+    //     ASSERT_INVARIANT(
+    //         s_can_ddl_sessions_still_be_started,
+    //         "Attempting to start a DDL session after a regular session was started!");
+    // }
+    // else if (s_session_type == session_type_t::regular)
+    // {
+    //     // Once a regular session was started, no more DDL sessions can be started.
+    //     s_can_ddl_sessions_still_be_started = false;
+
+    //     ASSERT_INVARIANT(
+    //         !s_is_ddl_session_active,
+    //         "Attempting to start a regular session while a DDL session is still active!");
+    // }
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
@@ -365,6 +407,12 @@ void server_t::handle_client_shutdown(
     // we closed our write end, then we would be calling shutdown(SHUT_WR) twice, which
     // is another reason to just close the socket.)
     s_session_shutdown = true;
+
+    // Mark the end of an active DDL session.
+    if (s_session_type == session_type_t::ddl)
+    {
+        s_is_ddl_session_active = false;
+    }
 
     // If the session had an active txn, clean up all its resources.
     if (s_txn_id.is_valid())
@@ -2614,14 +2662,14 @@ void server_t::perform_pre_commit_work_for_txn()
     // without initializing the catalog, so there will be no system indexes at all.
     // In all other cases, we should find at least the number of system indexes.
     ASSERT_INVARIANT(
-        s_is_ddl_session
+        (s_session_type == session_type_t::ddl)
             || get_indexes()->size() == 0
             || get_indexes()->size() >= gaia::catalog::c_system_index_count,
         "Fewer indexes than expected were found during perform_pre_commit_work_for_txn()!");
 
     // Only update indexes in DDL sessions (when new ones could be created)
     // or if we see that user indexes were created in addition to the catalog ones.
-    if (s_is_ddl_session || get_indexes()->size() > gaia::catalog::c_system_index_count)
+    if ((s_session_type == session_type_t::ddl) || get_indexes()->size() > gaia::catalog::c_system_index_count)
     {
         update_indexes_from_txn_log();
     }

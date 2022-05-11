@@ -249,7 +249,7 @@ void server_instance_t::wait_for_init()
 
             gaia::db::config::set_default_session_options(session_options);
 
-            gaia::db::begin_session();
+            gaia::db::begin_ping_session();
         }
         catch (gaia::db::server_connection_failed_internal& e)
         {

@@ -9,10 +9,13 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/db/db.hpp"
+
 namespace gaia
 {
 namespace db
 {
+
 namespace config
 {
 
@@ -20,10 +23,10 @@ struct session_options_t
 {
     std::string db_instance_name;
     bool skip_catalog_integrity_check;
-    bool is_ddl_session;
+    session_type_t session_type;
 
     session_options_t()
-        : skip_catalog_integrity_check{false}, is_ddl_session{false}
+        : skip_catalog_integrity_check{false}, session_type{session_type_t::regular}
     {
     }
 };
