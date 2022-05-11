@@ -7,6 +7,7 @@
 
 #include <utility>
 
+#include "gaia/db/db.hpp"
 #include "gaia/system.hpp"
 
 namespace gaia
@@ -40,11 +41,14 @@ void benchmark_test_base::SetUp()
     gaia::system::initialize_db();
 
     m_gaiac.load_ddl(m_ddl_path);
+
+    gaia::db::begin_session();
 }
 
 void benchmark_test_base::TearDown()
 {
     gaia::system::shutdown();
+
     // The server is killed in between runs to ensure starting with a clean state.
     m_server.stop();
 }

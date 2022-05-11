@@ -82,7 +82,10 @@ shared_ptr<cpptoml::table> initialize_db_internal(const char* gaia_config_file, 
 
     gaia::catalog::initialize_catalog();
 
+    // Dismiss cleanup and close DDL session.
+    // Unlike initialize(), this step won't leave a session opened.
     cleanup_init_state.dismiss();
+    gaia::db::end_session();
 
     return root_config;
 }
@@ -103,7 +106,6 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
 
     // The rules engine worker threads will start their own sessions,
     // so we need to perform this step within a regular database session.
-    gaia::db::end_session();
     gaia::db::begin_session();
     gaia::rules::initialize_rules_engine(root_config);
 
