@@ -141,7 +141,6 @@ public:
     explicit invalid_create_list_internal(const std::string& message);
 };
 
-
 } // namespace catalog
 
 namespace common

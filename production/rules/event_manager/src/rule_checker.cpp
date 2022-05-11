@@ -102,8 +102,6 @@ dac_schema_mismatch::dac_schema_mismatch(const char* class_name)
     m_message = message.str();
 }
 
-
-
 //
 // Rule Checker implementation.
 //
