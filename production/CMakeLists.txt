@@ -37,13 +37,22 @@ option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
 
 option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally" OFF)
 
-option(ENABLE_LTO "Enable Link Time Optimization" ON)
+# LTO settings are set inside the configure_gaia_target() function to prevent it from being applied to tests.
+option(ENABLE_LTO "Enable Link Time Optimization")
 
 if (NOT ENABLE_CLANG_TIDY)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
   else()
     option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+  endif()
+endif()
+
+if (NOT DEFINED ENABLE_LTO)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(ENABLE_LTO ON)
+  else()
+    set(ENABLE_LTO OFF)
   endif()
 endif()
 
@@ -103,11 +112,6 @@ target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>
 target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
 # Disabling asserts will produce bogus unused variable warnings.
 target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
-# Enable Thin LTO
-if(ENABLE_LTO)
-  target_compile_options(gaia_build_options INTERFACE -flto=thin)
-  target_link_options(gaia_build_options INTERFACE -flto=thin)
-endif()
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)

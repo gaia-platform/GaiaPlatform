@@ -31,6 +31,26 @@ function(configure_gaia_target TARGET)
   # Keep this dependency PRIVATE to avoid leaking Gaia build options into all dependent targets.
   target_link_libraries(${TARGET} PRIVATE gaia_build_options)
 
+  # Check whether the target is a test.
+  set(IS_TEST false)
+  get_target_property(TARGET_LIBS ${TARGET} LINK_LIBRARIES)
+  if(gtest IN_LIST TARGET_LIBS)
+    set(IS_TEST true)
+  endif()
+
+  # Enable Thin LTO only on non-test targets.
+  if(ENABLE_LTO)
+    if(IS_TEST)
+      # TODO: this is currently useless because LLD perform LTO on tests even with -fno-lto
+      # I have posted this question on SO: https://stackoverflow.com/questions/72190379/lld-runs-lto-even-if-fno-lto-is-passed
+      target_compile_options(${TARGET} PRIVATE -fno-lto)
+      target_link_options(${TARGET} PRIVATE -fno-lto)
+    else()
+      target_compile_options(${TARGET} PRIVATE -flto=thin)
+      target_link_options(${TARGET} PRIVATE -flto=thin -Wl,--thinlto-cache-dir=${GAIA_PROD_BUILD}/lto.cache)
+    endif()
+  endif()
+
   if(NOT EXPORT_SYMBOLS)
     # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
     cmake_policy(SET CMP0063 NEW)
@@ -373,7 +393,7 @@ function(translate_ruleset_internal)
     DEPENDS ${ARG_RULESET_FILE}
   )
 
-  if (NOT ARG_SKIP_LIB)
+  if(NOT ARG_SKIP_LIB)
     if(NOT DEFINED ARG_LIB_NAME)
       set(ARG_LIB_NAME "${RULESET_NAME}_ruleset")
       message(VERBOSE "Ruleset LIB_NAME not specified, using: ${ARG_LIB_NAME}.")
