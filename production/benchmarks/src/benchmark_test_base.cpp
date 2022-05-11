@@ -36,14 +36,16 @@ benchmark_test_base::benchmark_test_base(std::string ddl_path)
 void benchmark_test_base::SetUp()
 {
     m_server.start();
-    gaia::system::initialize("gaia.conf", "gaia_log.conf");
 
     m_gaiac.load_ddl(m_ddl_path);
+
+    gaia::system::initialize();
 }
 
 void benchmark_test_base::TearDown()
 {
     gaia::system::shutdown();
+
     // The server is killed in between runs to ensure starting with a clean state.
     m_server.stop();
 }
