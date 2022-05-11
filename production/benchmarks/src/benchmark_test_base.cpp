@@ -38,11 +38,9 @@ void benchmark_test_base::SetUp()
 {
     m_server.start();
 
-    gaia::system::initialize_db();
-
     m_gaiac.load_ddl(m_ddl_path);
 
-    gaia::db::begin_session();
+    gaia::system::initialize();
 }
 
 void benchmark_test_base::TearDown()
