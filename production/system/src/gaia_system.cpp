@@ -24,7 +24,7 @@ using namespace gaia::system;
 using namespace gaia::common;
 using namespace scope_guard;
 
-void gaia::system::initialize(const char* gaia_config_file, const char* logger_config_file)
+shared_ptr<cpptoml::table> initialize_db_internal(const char* gaia_config_file, const char* logger_config_file)
 {
     // Default locations for log files are placed under/opt/gaia/etc/
     bool db_initialized = false;
@@ -82,15 +82,21 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
 
     gaia::catalog::initialize_catalog();
 
-    // End the DDL session and start a regular session.
-    gaia::db::end_session();
-    gaia::db::begin_session();
+    return root_config;
+}
+
+void gaia::system::initialize_db(const char* gaia_config_file, const char* logger_config_file)
+{
+    initialize_db_internal(gaia_config_file, logger_config_file);
+}
+
+void gaia::system::initialize(const char* gaia_config_file, const char* logger_config_file)
+{
+    shared_ptr<cpptoml::table> root_config = initialize_db_internal(gaia_config_file, logger_config_file);
 
     // The rules engine worker threads will start their own sessions,
     // so we need to perform this step within a regular database session.
     gaia::rules::initialize_rules_engine(root_config);
-
-    cleanup_init_state.dismiss();
 }
 
 void gaia::system::shutdown()
