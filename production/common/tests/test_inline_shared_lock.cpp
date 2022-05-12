@@ -13,7 +13,7 @@ using namespace std;
 using namespace gaia::common;
 
 // TODO: add multithreaded tests!
-TEST(common, inline_shared_lock)
+TEST(common__inline_shared_lock__test, basic)
 {
     inline_shared_lock lock;
 

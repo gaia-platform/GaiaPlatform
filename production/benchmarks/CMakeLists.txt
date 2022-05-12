@@ -53,7 +53,7 @@ configure_file("${GAIA_CONFIG}" "${GAIA_PROD_BUILD}/gaia.conf")
 
 # Benchmarks
 add_benchmark(
-  NAME bench_read_perf_basic
-  SRC_FILES tests/bench_read_perf_basic.cpp
+  NAME benchmark_read_basic
+  SRC_FILES tests/benchmark_read_basic.cpp
   DAC_LIB dac_perf_basic
 )

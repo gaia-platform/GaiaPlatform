@@ -118,7 +118,7 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
     echo "Executing unit tests."
 
     # Enable FDW Tests
-    cd /build/production/sql || exit
+    cd /build/production/fdw || exit
     make install
     service postgresql restart
     cd /build/production || exit

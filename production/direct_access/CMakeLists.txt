@@ -53,42 +53,42 @@ add_gtest(test_array_fields
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 
-add_gtest(test_optional_dac
-  "tests/test_optional_dac.cpp"
+add_gtest(test_optional
+  "tests/test_optional.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
 
-add_gtest(test_expressions_perf
-  "tests/test_expressions_perf.cpp"
+add_gtest(perf_expressions_perf
+  "tests/perf_expressions.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 
-add_gtest(test_insert_perf_basic
-  "tests/test_insert_perf_basic.cpp"
+add_gtest(perf_insert_basic
+  "tests/perf_insert_basic.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_perf_basic")
 
-add_gtest(test_insert_perf_idx
-  "tests/test_insert_perf_idx.cpp"
+add_gtest(perf_insert_idx
+  "tests/perf_insert_idx.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_perf_idx")
 
-add_gtest(test_insert_perf_rel
-  "tests/test_insert_perf_rel.cpp"
+add_gtest(perf_insert_rel
+  "tests/perf_insert_rel.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_perf_rel")
 
-add_gtest(test_read_perf_basic
-  "tests/test_read_perf_basic.cpp"
+add_gtest(perf_read_basic
+  "tests/perf_read_basic.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_perf_basic")
 
-add_gtest(test_read_perf_rel
-  "tests/test_read_perf_rel.cpp"
+add_gtest(perf_read_rel
+  "tests/perf_read_rel.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_perf_rel")
 
-add_gtest(test_update_perf_basic
-  "tests/test_update_perf_basic.cpp"
+add_gtest(perf_update_basic
+  "tests/perf_update_basic.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_perf_basic")

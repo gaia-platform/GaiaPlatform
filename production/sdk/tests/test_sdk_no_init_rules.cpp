@@ -30,7 +30,7 @@ using namespace gaia::db::triggers;
 
 constexpr size_t c_wait_server_millis = 100;
 
-class sdk_test_no_init_rules : public ::testing::Test
+class sdk_no_init_rules__test : public ::testing::Test
 {
 protected:
     static void SetUpTestSuite()
@@ -47,7 +47,7 @@ protected:
     }
 };
 
-TEST_F(sdk_test_no_init_rules, app_check)
+TEST_F(sdk_no_init_rules__test, app_check)
 {
     gaia::system::initialize();
     {

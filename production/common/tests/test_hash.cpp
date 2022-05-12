@@ -20,7 +20,7 @@ const char* keys[c_test_case_num] = {
     "foo_bar123",
     "The quick brown fox jumps over the lazy dog"};
 
-TEST(hash_test, murmur3_32)
+TEST(common__hash__test, murmur3_32)
 {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
     uint32_t expected_hash_values[c_test_case_num] = {0, 1193954329, 2673600387, 2223942957, 2832703669};
@@ -34,7 +34,7 @@ TEST(hash_test, murmur3_32)
     }
 }
 
-TEST(hash_test, murmur3_128)
+TEST(common__hash__test, murmur3_128)
 {
     uint8_t expected_hash_values[c_test_case_num][multi_segment_hash::c_murmur3_128_hash_size_in_bytes] = {
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -53,7 +53,7 @@ TEST(hash_test, murmur3_128)
     }
 }
 
-TEST(hash_test, multi_segment_hash)
+TEST(common__hash__test, multi_segment_hash)
 {
     uint8_t expected_hash_values[multi_segment_hash::c_murmur3_128_hash_size_in_bytes]
         = {0x61, 0xd8, 0x35, 0x12, 0x6d, 0x38, 0x2e, 0x3a, 0x89, 0xd6, 0x70, 0xa9, 0xae, 0xb4, 0x4c, 0x7b};
@@ -92,7 +92,7 @@ TEST(hash_test, multi_segment_hash)
     EXPECT_EQ(std::memcmp(expected_hash_values, converted_hash_values, multi_segment_hash::c_murmur3_128_hash_size_in_bytes), 0);
 }
 
-TEST(hash_test, bad_keys)
+TEST(common__hash__test, bad_keys)
 {
     // This should not result in an exception.
     murmur3_32(nullptr, 0);

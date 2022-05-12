@@ -21,10 +21,10 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 
-class json_generation_test : public db_test_base_t
+class catalog__json_generation__test : public db_test_base_t
 {
 public:
-    json_generation_test()
+    catalog__json_generation__test()
         : db_test_base_t(true, true)
     {
     }
@@ -45,7 +45,7 @@ protected:
     static field_def_list_t test_table_fields;
 };
 
-field_def_list_t json_generation_test::test_table_fields;
+field_def_list_t catalog__json_generation__test::test_table_fields;
 
 constexpr char c_expected_json[]
     = "{\n"
@@ -67,7 +67,7 @@ void validate_through_flatbuffers_parser(string fbs, string json)
     ASSERT_TRUE(fbs_parser.Parse(json.c_str()));
 }
 
-TEST_F(json_generation_test, generate_json_from_catalog)
+TEST_F(catalog__json_generation__test, generate_json_from_catalog)
 {
     string test_table_name{"test_generate_json_from_catalog"};
 
@@ -80,7 +80,7 @@ TEST_F(json_generation_test, generate_json_from_catalog)
     validate_through_flatbuffers_parser(fbs, json);
 }
 
-TEST_F(json_generation_test, generate_bin)
+TEST_F(catalog__json_generation__test, generate_bin)
 {
     string test_table_name{"test_generate_bin"};
 
@@ -108,7 +108,7 @@ TEST_F(json_generation_test, generate_bin)
     ASSERT_TRUE(flatbuffers::Verify(*schema, *root_type, serialized_data, serialized_data_size));
 }
 
-TEST_F(json_generation_test, generate_bin_default)
+TEST_F(catalog__json_generation__test, generate_bin_default)
 {
     string schema{"namespace test_defaults; table test_record { prefix:uint64; data:int64 = 15; suffix:uint64; } root_type test_record;"};
 

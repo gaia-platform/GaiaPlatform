@@ -67,10 +67,10 @@ registration_t reg_1;
 /**
  * Ensure that is possible to intermix cpp code with declarative code.
  */
-class test_queries_ruleset : public db_catalog_test_base_t
+class tools__gaia_translate__queries__test : public db_catalog_test_base_t
 {
 public:
-    test_queries_ruleset()
+    tools__gaia_translate__queries__test()
         : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
     {
     }
@@ -192,7 +192,7 @@ protected:
     }
 };
 
-TEST_F(test_queries_ruleset, basic_implicit_navigation)
+TEST_F(tools__gaia_translate__queries__test, basic_implicit_navigation)
 {
     // GAIAPLAT-1211
     mini_pop();
@@ -215,7 +215,7 @@ TEST_F(test_queries_ruleset, basic_implicit_navigation)
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
-TEST_F(test_queries_ruleset, implicit_navigation_fork)
+TEST_F(tools__gaia_translate__queries__test, implicit_navigation_fork)
 {
     populate_db();
 
@@ -236,7 +236,7 @@ TEST_F(test_queries_ruleset, implicit_navigation_fork)
     EXPECT_EQ(g_onupdate_value, 7) << "Incorrect sum";
 }
 
-TEST_F(test_queries_ruleset, new_registration)
+TEST_F(tools__gaia_translate__queries__test, new_registration)
 {
     // This is the number of successful registrations, based on prerequisite
     // minimum grade requirements.
@@ -272,7 +272,7 @@ TEST_F(test_queries_ruleset, new_registration)
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert failure";
 }
 
-TEST_F(test_queries_ruleset, sum_of_ages)
+TEST_F(tools__gaia_translate__queries__test, sum_of_ages)
 {
     populate_db();
 
@@ -292,7 +292,7 @@ TEST_F(test_queries_ruleset, sum_of_ages)
     EXPECT_EQ(g_oninsert2_value, 281) << "Incorrect sum";
 }
 
-TEST_F(test_queries_ruleset, sum_of_hours)
+TEST_F(tools__gaia_translate__queries__test, sum_of_hours)
 {
     populate_db();
 
@@ -312,7 +312,7 @@ TEST_F(test_queries_ruleset, sum_of_hours)
     EXPECT_EQ(g_oninsert_value, 5) << "Incorrect sum";
 }
 
-TEST_F(test_queries_ruleset, sum_of_all_hours)
+TEST_F(tools__gaia_translate__queries__test, sum_of_all_hours)
 {
     populate_db();
 
@@ -332,7 +332,7 @@ TEST_F(test_queries_ruleset, sum_of_all_hours)
     EXPECT_EQ(g_oninsert_value, 12) << "Incorrect sum";
 }
 
-TEST_F(test_queries_ruleset, tag_define_use)
+TEST_F(tools__gaia_translate__queries__test, tag_define_use)
 {
     populate_db();
 
@@ -373,7 +373,7 @@ TEST_F(test_queries_ruleset, tag_define_use)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_queries_ruleset, if_stmt)
+TEST_F(tools__gaia_translate__queries__test, if_stmt)
 {
     populate_db();
 
@@ -393,7 +393,7 @@ TEST_F(test_queries_ruleset, if_stmt)
     EXPECT_EQ(g_oninsert_value, 0) << "Incorrect result";
 }
 
-TEST_F(test_queries_ruleset, if_stmt2)
+TEST_F(tools__gaia_translate__queries__test, if_stmt2)
 {
     const int num_updates = 5;
 
@@ -420,7 +420,7 @@ TEST_F(test_queries_ruleset, if_stmt2)
     EXPECT_EQ(g_onupdate_value, 5) << "Incorrect result";
 }
 
-TEST_F(test_queries_ruleset, if_stmt3)
+TEST_F(tools__gaia_translate__queries__test, if_stmt3)
 {
     populate_db();
 
@@ -443,7 +443,7 @@ TEST_F(test_queries_ruleset, if_stmt3)
     EXPECT_EQ(test_error_result_t::e_none, g_onupdate_result) << "on_update failure";
 }
 
-TEST_F(test_queries_ruleset, nomatch_stmt)
+TEST_F(tools__gaia_translate__queries__test, nomatch_stmt)
 {
     populate_db();
 
@@ -466,7 +466,7 @@ TEST_F(test_queries_ruleset, nomatch_stmt)
     EXPECT_EQ(g_string_value, "found Richard") << "Incorrect result";
 }
 
-TEST_F(test_queries_ruleset, nomatch_stmt2)
+TEST_F(tools__gaia_translate__queries__test, nomatch_stmt2)
 {
     populate_db();
 
@@ -487,7 +487,7 @@ TEST_F(test_queries_ruleset, nomatch_stmt2)
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
 }
 
-TEST_F(test_queries_ruleset, nomatch_stmt3)
+TEST_F(tools__gaia_translate__queries__test, nomatch_stmt3)
 {
     populate_db();
 
@@ -509,7 +509,7 @@ TEST_F(test_queries_ruleset, nomatch_stmt3)
     EXPECT_EQ(g_string_value, "correct nomatch") << "Incorrect result";
 }
 
-TEST_F(test_queries_ruleset, nomatch_stmt4)
+TEST_F(tools__gaia_translate__queries__test, nomatch_stmt4)
 {
     populate_db();
 
@@ -530,7 +530,7 @@ TEST_F(test_queries_ruleset, nomatch_stmt4)
     EXPECT_EQ(g_string_value, "nomatch success") << "Incorrect result";
 }
 
-TEST_F(test_queries_ruleset, nomatch_function_query)
+TEST_F(tools__gaia_translate__queries__test, nomatch_function_query)
 {
     populate_db();
 
@@ -552,7 +552,7 @@ TEST_F(test_queries_ruleset, nomatch_function_query)
     EXPECT_EQ(g_string_value, "4 2.0 3 ") << "Incorrect result";
 }
 
-TEST_F(test_queries_ruleset, one_to_one)
+TEST_F(tools__gaia_translate__queries__test, one_to_one)
 {
     gaia::db::begin_transaction();
     student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));

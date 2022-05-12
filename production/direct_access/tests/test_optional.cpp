@@ -15,10 +15,10 @@ using namespace gaia::direct_access;
 using namespace gaia::optional_sandbox;
 using namespace gaia::optional_sandbox::optional_values_expr;
 
-class optional_dac_test : public db_catalog_test_base_t
+class direct_access__optional__test : public db_catalog_test_base_t
 {
 protected:
-    optional_dac_test()
+    direct_access__optional__test()
         : db_catalog_test_base_t(std::string("optional.ddl")){};
 };
 
@@ -67,7 +67,7 @@ void test_optional_value(T_value val, T_value other_val, T_accessor accessor, T_
     ASSERT_THROW((values.*accessor)().value(), std::bad_optional_access);
 }
 
-TEST_F(optional_dac_test, test_optionals_values)
+TEST_F(direct_access__optional__test, optionals_values)
 {
     test_optional_value<uint8_t>(8, 10, &optional_values_t::optional_uint8, &optional_values_writer::optional_uint8);
     test_optional_value<uint16_t>(8, 10, &optional_values_t::optional_uint16, &optional_values_writer::optional_uint16);
@@ -82,7 +82,7 @@ TEST_F(optional_dac_test, test_optionals_values)
     test_optional_value<bool>(true, false, &optional_values_t::optional_bool, &optional_values_writer::optional_bool);
 }
 
-TEST_F(optional_dac_test, test_non_optionals_values)
+TEST_F(direct_access__optional__test, non_optionals_values)
 {
     auto_transaction_t txn;
 
@@ -107,7 +107,7 @@ TEST_F(optional_dac_test, test_non_optionals_values)
     ASSERT_EQ(values.non_optional_bool(), true);
 }
 
-TEST_F(optional_dac_test, test_insert)
+TEST_F(direct_access__optional__test, insert)
 {
     auto_transaction_t txn;
 
@@ -133,7 +133,7 @@ TEST_F(optional_dac_test, test_insert)
     ASSERT_EQ(values_3.non_optional_bool(), true);
 }
 
-TEST_F(optional_dac_test, test_vlr)
+TEST_F(direct_access__optional__test, vlr)
 {
     auto_transaction_t txn;
 
@@ -176,7 +176,7 @@ TEST_F(optional_dac_test, test_vlr)
     ASSERT_EQ(parent.child().size(), 0);
 }
 
-TEST_F(optional_dac_test, where_test)
+TEST_F(direct_access__optional__test, where)
 {
     auto_transaction_t txn;
     size_t initial_total_count = 0;

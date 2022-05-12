@@ -31,7 +31,7 @@ void rule(const rule_context_t*)
 {
 }
 
-class system_init_test : public db_catalog_test_base_t
+class rules__system_init__test : public db_catalog_test_base_t
 {
 public:
     void verify_initialized()
@@ -48,7 +48,7 @@ public:
 protected:
     // Manage the session ourselves in this test as the
     // gaia::system::initialize() will call begin_session.
-    system_init_test()
+    rules__system_init__test()
         : db_catalog_test_base_t("addr_book.ddl", false)
     {
     }
@@ -74,7 +74,7 @@ protected:
     }
 };
 
-TEST_F(system_init_test, system_not_initialized_error)
+TEST_F(rules__system_init__test, not_initialized_error)
 {
     rule_binding_t dont_care;
     subscription_list_t still_dont_care;
@@ -86,7 +86,7 @@ TEST_F(system_init_test, system_not_initialized_error)
     EXPECT_THROW(list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, still_dont_care), initialization_error);
 }
 
-TEST_F(system_init_test, system_initialized_valid_conf_both_args)
+TEST_F(rules__system_init__test, valid_conf_both_args)
 {
     // Should be a no-op if the system has not been initialized
     gaia::system::shutdown();
@@ -96,7 +96,7 @@ TEST_F(system_init_test, system_initialized_valid_conf_both_args)
     gaia::system::shutdown();
 }
 
-TEST_F(system_init_test, system_initialized_valid_conf)
+TEST_F(rules__system_init__test, valid_conf)
 {
     // Should be a no-op if the system has not been initialized
     gaia::system::shutdown();
@@ -106,9 +106,8 @@ TEST_F(system_init_test, system_initialized_valid_conf)
     gaia::system::shutdown();
 }
 
-TEST_F(system_init_test, system_initialized_valid_conf_gaia_arg)
+TEST_F(rules__system_init__test, valid_conf_gaia_arg)
 {
-
     // Should be a no-op if the system has not been initialized
     gaia::system::shutdown();
 
@@ -117,7 +116,7 @@ TEST_F(system_init_test, system_initialized_valid_conf_gaia_arg)
     gaia::system::shutdown();
 }
 
-TEST_F(system_init_test, system_initialized_valid_conf_logger_arg)
+TEST_F(rules__system_init__test, valid_conf_logger_arg)
 {
 
     // Should be a no-op if the system has not been initialized
@@ -128,28 +127,28 @@ TEST_F(system_init_test, system_initialized_valid_conf_logger_arg)
     gaia::system::shutdown();
 }
 
-TEST_F(system_init_test, system_invalid_gaia_conf_path)
+TEST_F(rules__system_init__test, invalid_gaia_conf_path)
 {
     EXPECT_THROW(gaia::system::initialize("./bogus_file.conf"), configuration_error);
 }
 
-TEST_F(system_init_test, system_invalid_gaia_log_conf_path)
+TEST_F(rules__system_init__test, invalid_gaia_log_conf_path)
 {
     EXPECT_THROW(gaia::system::initialize(nullptr, "./bogus_file.conf"), configuration_error);
 }
 
-TEST_F(system_init_test, system_invalid_conf_path)
+TEST_F(rules__system_init__test, invalid_conf_path)
 {
     EXPECT_THROW(gaia::system::initialize("./bogus_file.conf", "./bogus_file.conf"), configuration_error);
 }
 
-TEST_F(system_init_test, system_invalid_conf)
+TEST_F(rules__system_init__test, invalid_conf)
 {
     // Let through the more informative parse error
     EXPECT_THROW(gaia::system::initialize("./invalid_gaia.conf"), std::exception);
 }
 
-TEST_F(system_init_test, system_invalid_setting_conf)
+TEST_F(rules__system_init__test, invalid_setting_conf)
 {
     EXPECT_THROW(gaia::system::initialize("./invalid_gaia_setting.conf"), configuration_error);
 }

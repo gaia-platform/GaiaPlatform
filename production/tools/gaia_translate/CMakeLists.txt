@@ -114,10 +114,10 @@ if("$CACHE{ENABLE_SDK_TESTS}")
   target_include_directories(test_array_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
   translate_ruleset_internal(
-    RULESET_FILE ${RULESET_PREFIX}/test_rules_perf_basic.ruleset
+    RULESET_FILE ${RULESET_PREFIX}/perf_rules_basic.ruleset
     DAC_LIBRARY dac_perf_rules
   )
-  target_include_directories(test_rules_perf_basic_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+  target_include_directories(perf_rules_basic_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
   # Smoke test for basic ruleset translation functionality
   add_gtest(test_translation_engine
@@ -173,9 +173,9 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     "${TEST_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;test_array_ruleset")
 
-  add_gtest(test_rules_perf_basic
-    "tests/test_rules_perf_basic.cpp;${RULES_TEST_HELPERS};${GAIA_REPO}/production/common/src/debug_logger.cpp"
+  add_gtest(perf_rules_basic
+    "tests/perf_rules_basic.cpp;${RULES_TEST_HELPERS};${GAIA_REPO}/production/common/src/debug_logger.cpp"
     "${TEST_INCLUDES};${GAIA_REPO}/production/benchmarks/inc"
-    "rt;gaia_system;gaia_db_catalog_test;test_rules_perf_basic_ruleset")
+    "rt;gaia_system;gaia_db_catalog_test;perf_rules_basic_ruleset")
 
 endif()

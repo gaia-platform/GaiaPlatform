@@ -3,7 +3,7 @@
 # All rights reserved.
 #############################################
 
-project(sql)
+project(fdw)
 
 # Use existence of pg_config as a proxy for Postgres being installed.
 find_program(PG_CONFIG pg_config)

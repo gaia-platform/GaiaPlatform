@@ -24,10 +24,10 @@ constexpr char c_rule_name[] = "rule_name";
 constexpr uint8_t c_type_value = 33;
 constexpr bool c_bool_value = false;
 
-class gaia_rule_tables_test : public db_catalog_test_base_t
+class catalog__rules_tables__test : public db_catalog_test_base_t
 {
 protected:
-    gaia_rule_tables_test()
+    catalog__rules_tables__test()
         : db_catalog_test_base_t()
     {
     }
@@ -44,7 +44,7 @@ protected:
 };
 
 // Insert one row of each catalog table.
-TEST_F(gaia_rule_tables_test, create_each_type)
+TEST_F(catalog__rules_tables__test, create_each_type)
 {
     initialize_catalog();
 

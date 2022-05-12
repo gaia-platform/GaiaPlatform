@@ -46,10 +46,10 @@ const uint32_t c_multiple_rules_iterations = 1;
 const bool c_enable_individual_rule_stats = true;
 const bool c_timed = true;
 
-class test_rules_perf_basic : public gaia::db::db_catalog_test_base_t
+class tools__gaia_translate__perf_rules_basic__test : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_rules_perf_basic()
+    tools__gaia_translate__perf_rules_basic__test()
         : db_catalog_test_base_t("perf_rules.ddl", true, true, true)
     {
     }
@@ -260,92 +260,92 @@ private:
 };
 
 // Results will be placed in: ./logs/gaia_stats.log
-TEST_F(test_rules_perf_basic, insert_1_rule_1_thread)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, insert_1_rule_1_thread)
 {
     run_timed_insert_scenario("rules_insert", 1);
 }
 
-TEST_F(test_rules_perf_basic, insert_1_rule_max_thread)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, insert_1_rule_max_thread)
 {
     run_timed_insert_scenario("rules_insert");
 }
 
-TEST_F(test_rules_perf_basic, update_1_rule_1_thread)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_1_rule_1_thread)
 {
     run_timed_update_scenario("rules_update", 1);
 }
 
-TEST_F(test_rules_perf_basic, update_1_rule_max_thread)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_1_rule_max_thread)
 {
     run_timed_update_scenario("rules_update");
 }
 
-TEST_F(test_rules_perf_basic, insert_10)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, insert_10)
 {
     run_insert_scenario("rules_insert_10", 10);
 }
 
-TEST_F(test_rules_perf_basic, insert_10_serial_group)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, insert_10_serial_group)
 {
     run_insert_scenario("rules_insert_10_serial", 10);
 }
 
-TEST_F(test_rules_perf_basic, insert_10_rule_stats)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, insert_10_rule_stats)
 {
     run_insert_scenario("rules_insert_10", 10, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, update_10)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_10)
 {
     run_update_scenario("rules_update_10", 10);
 }
 
-TEST_F(test_rules_perf_basic, update_10_rule_stats)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_10_rule_stats)
 {
     run_update_scenario("rules_update_10", 10, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, update_10_serial_group)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_10_serial_group)
 {
     run_update_scenario("rules_update_10_serial", 10);
 }
 
-TEST_F(test_rules_perf_basic, update_50)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_50)
 {
     run_update_scenario("rules_update_50", 50);
 }
 
-TEST_F(test_rules_perf_basic, update_50_rule_stats)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_50_rule_stats)
 {
     run_update_scenario("rules_update_50", 50, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, update_100)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_100)
 {
     run_update_scenario("rules_update_100", 100);
 }
 
-TEST_F(test_rules_perf_basic, update_100_rule_stats)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_100_rule_stats)
 {
     run_update_scenario("rules_update_100", 100, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, update_500)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_500)
 {
     run_update_scenario("rules_update_500", 500);
 }
 
-TEST_F(test_rules_perf_basic, update_500_rule_stats)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_500_rule_stats)
 {
     run_update_scenario("rules_update_500", 500, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, update_1000)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_1000)
 {
     run_update_scenario("rules_update_1000", 1000);
 }
 
-TEST_F(test_rules_perf_basic, update_1000_rule_stats)
+TEST_F(tools__gaia_translate__perf_rules_basic__test, update_1000_rule_stats)
 {
     run_update_scenario("rules_update_1000", 1000, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
