@@ -48,10 +48,10 @@ extern std::atomic<int32_t> g_onupdate_value;
 /**
  * Ensure that is possible to intermix cpp code with declarative code.
  */
-class tools__gaia_translate__tags : public db_catalog_test_base_t
+class tools__gaia_translate__tags__test : public db_catalog_test_base_t
 {
 public:
-    tools__gaia_translate__tags()
+    tools__gaia_translate__tags__test()
         : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
     {
     }
@@ -91,7 +91,7 @@ protected:
     }
 };
 
-TEST_F(tools__gaia_translate__tags, oninsert)
+TEST_F(tools__gaia_translate__tags__test, oninsert)
 {
     gaia::rules::subscribe_ruleset("test_tags");
 
@@ -124,7 +124,7 @@ TEST_F(tools__gaia_translate__tags, oninsert)
     EXPECT_FALSE(g_onupdate4_called) << "on_update(student.age, student.surname) should not be called";
 }
 
-TEST_F(tools__gaia_translate__tags, onchange)
+TEST_F(tools__gaia_translate__tags__test, onchange)
 {
     gaia::db::begin_transaction();
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
@@ -167,7 +167,7 @@ TEST_F(tools__gaia_translate__tags, onchange)
     EXPECT_FALSE(g_onupdate3_called) << "on_update(student.age) should not be called";
 }
 
-TEST_F(tools__gaia_translate__tags, onupdate)
+TEST_F(tools__gaia_translate__tags__test, onupdate)
 {
     gaia::db::begin_transaction();
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
@@ -212,7 +212,7 @@ TEST_F(tools__gaia_translate__tags, onupdate)
     EXPECT_FALSE(g_oninsert2_called) << "Second on_insert(student) called after field write";
 }
 
-TEST_F(tools__gaia_translate__tags, multi_inserts)
+TEST_F(tools__gaia_translate__tags__test, multi_inserts)
 {
     const int num_inserts = 5;
 
@@ -234,7 +234,7 @@ TEST_F(tools__gaia_translate__tags, multi_inserts)
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert(student) failure";
 }
 
-TEST_F(tools__gaia_translate__tags, basic_tags)
+TEST_F(tools__gaia_translate__tags__test, basic_tags)
 {
     // Use the first set of rules.
     gaia::rules::subscribe_ruleset("test_tags");

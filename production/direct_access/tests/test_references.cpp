@@ -26,7 +26,7 @@ using std::string;
 using std::thread;
 using std::to_string;
 
-class direct_access__references : public db_catalog_test_base_t
+class direct_access__references__test : public db_catalog_test_base_t
 {
 public:
     inline static constexpr size_t hire_date = 20200530;
@@ -37,7 +37,7 @@ public:
     inline static constexpr size_t phone_size = 5;
 
 protected:
-    direct_access__references()
+    direct_access__references__test()
         : db_catalog_test_base_t("addr_book.ddl", true, true, true)
     {
     }
@@ -103,7 +103,7 @@ protected:
 
 // Test connecting, disconnecting, navigating records
 // ==================================================
-TEST_F(direct_access__references, insert_remove)
+TEST_F(direct_access__references__test, insert_remove)
 {
     begin_transaction();
 
@@ -125,7 +125,7 @@ TEST_F(direct_access__references, insert_remove)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, connect_disconnect)
+TEST_F(direct_access__references__test, connect_disconnect)
 {
     begin_transaction();
 
@@ -141,7 +141,7 @@ TEST_F(direct_access__references, connect_disconnect)
 }
 
 // Repeat above test, but with gaia_id_t members only.
-TEST_F(direct_access__references, insert_remove_id_member)
+TEST_F(direct_access__references__test, insert_remove_id_member)
 {
     begin_transaction();
 
@@ -174,7 +174,7 @@ TEST_F(direct_access__references, insert_remove_id_member)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, connect_disconnect_id_member)
+TEST_F(direct_access__references__test, connect_disconnect_id_member)
 {
     begin_transaction();
 
@@ -193,17 +193,17 @@ employee_t create_hierarchy()
 {
 
     auto employee
-        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", direct_access__references::hire_date, "heidi@gmail.com", ""));
-    for (size_t i = 0; i < direct_access__references::count_addresses; i++)
+        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", direct_access__references__test::hire_date, "heidi@gmail.com", ""));
+    for (size_t i = 0; i < direct_access__references__test::count_addresses; i++)
     {
-        char addr_string[direct_access__references::addr_size];
+        char addr_string[direct_access__references__test::addr_size];
         sprintf(addr_string, "%zu", i);
         auto address = address_t::get(
             address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
         employee.addresses().insert(address);
-        for (size_t j = 0; j < direct_access__references::count_phones; j++)
+        for (size_t j = 0; j < direct_access__references__test::count_phones; j++)
         {
-            char phone_string[direct_access__references::phone_size];
+            char phone_string[direct_access__references__test::phone_size];
             sprintf(phone_string, "%zu", j);
             auto phone = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
             address.phones().insert(phone);
@@ -319,10 +319,10 @@ int all_addressee()
 {
     // This is the sum from 0 to N-1, with N=count_addresses.
     auto count_addresses_sum
-        = ((direct_access__references::count_addresses
-            * (direct_access__references::count_addresses + 1))
+        = ((direct_access__references__test::count_addresses
+            * (direct_access__references__test::count_addresses + 1))
            / 2)
-        - direct_access__references::count_addresses;
+        - direct_access__references__test::count_addresses;
 
     // Decrement the sum of all addresses' numeric values by the current
     // address's numeric value.
@@ -338,7 +338,7 @@ int all_addressee()
 }
 
 // Create a hierachy of records, then scan and count them.
-TEST_F(direct_access__references, connect_scan)
+TEST_F(direct_access__references__test, connect_scan)
 {
     begin_transaction();
 
@@ -350,15 +350,15 @@ TEST_F(direct_access__references, connect_scan)
 
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
-    auto total_count_addresses = direct_access__references::count_employees * direct_access__references::count_addresses;
-    auto total_count_phones = total_count_addresses * direct_access__references::count_phones;
-    EXPECT_EQ(record_count, direct_access__references::count_employees + total_count_addresses + total_count_phones);
+    auto total_count_addresses = direct_access__references__test::count_employees * direct_access__references__test::count_addresses;
+    auto total_count_phones = total_count_addresses * direct_access__references__test::count_phones;
+    EXPECT_EQ(record_count, direct_access__references__test::count_employees + total_count_addresses + total_count_phones);
 
     // Travel down, then up the hierarchy
     EXPECT_EQ(bounce_hierarchy(eptr), true);
 
     // Count the rows.
-    EXPECT_EQ(count_type<employee_t>(), direct_access__references::count_employees);
+    EXPECT_EQ(count_type<employee_t>(), direct_access__references__test::count_employees);
     EXPECT_EQ(count_type<address_t>(), total_count_addresses);
     EXPECT_EQ(count_type<phone_t>(), total_count_phones);
 
@@ -383,7 +383,7 @@ void scan_manages(std::vector<string>& employee_vector, employee_t& e)
 }
 
 // Test recursive scanning, employee_t to employee_t through manages relationship.
-TEST_F(direct_access__references, recursive_scan)
+TEST_F(direct_access__references__test, recursive_scan)
 {
     begin_transaction();
 
@@ -428,7 +428,7 @@ TEST_F(direct_access__references, recursive_scan)
 }
 
 // Re-hydrate IDs created in prior transaction, then connect.
-TEST_F(direct_access__references, connect_to_ids)
+TEST_F(direct_access__references__test, connect_to_ids)
 {
     auto_transaction_t txn;
 
@@ -457,7 +457,7 @@ TEST_F(direct_access__references, connect_to_ids)
 }
 
 // Connect objects created in prior transaction.
-TEST_F(direct_access__references, connect_after_txn)
+TEST_F(direct_access__references__test, connect_after_txn)
 {
     auto_transaction_t txn;
 
@@ -478,7 +478,7 @@ TEST_F(direct_access__references, connect_after_txn)
 }
 
 // Remove list members inserted in prior transaction.
-TEST_F(direct_access__references, disconnect_after_txn)
+TEST_F(direct_access__references__test, disconnect_after_txn)
 {
     auto_transaction_t txn;
 
@@ -497,7 +497,7 @@ TEST_F(direct_access__references, disconnect_after_txn)
 }
 
 // Generate an exception by attempting to insert member twice.
-TEST_F(direct_access__references, connect_twice)
+TEST_F(direct_access__references__test, connect_twice)
 {
     auto_transaction_t txn;
 
@@ -516,7 +516,7 @@ TEST_F(direct_access__references, connect_twice)
 }
 
 // Generate an exception by attempting to remove un-inserted member.
-TEST_F(direct_access__references, remove_uninserted)
+TEST_F(direct_access__references__test, remove_uninserted)
 {
     auto_transaction_t txn;
 
@@ -535,7 +535,7 @@ TEST_F(direct_access__references, remove_uninserted)
 }
 
 // Make sure that erasing a member found in iterator doesn't crash.
-TEST_F(direct_access__references, remove_in_iterator)
+TEST_F(direct_access__references__test, remove_in_iterator)
 {
     auto_transaction_t txn;
 
@@ -578,7 +578,7 @@ TEST_F(direct_access__references, remove_in_iterator)
 }
 
 // Scan beyond the end of the iterator.
-TEST_F(direct_access__references, scan_past_end)
+TEST_F(direct_access__references__test, scan_past_end)
 {
     auto_transaction_t txn;
 
@@ -657,7 +657,7 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
 }
 
 // Connect and scan a many-to-many relationships through phone_t.
-TEST_F(direct_access__references, m_to_n_connections)
+TEST_F(direct_access__references__test, m_to_n_connections)
 {
     auto_transaction_t txn;
 
@@ -740,7 +740,7 @@ TEST_F(direct_access__references, m_to_n_connections)
 }
 
 // Create objects in one thread, connect them in another, verify in first thread.
-TEST_F(direct_access__references, thread_inserts)
+TEST_F(direct_access__references__test, thread_inserts)
 {
     auto_transaction_t txn;
 
@@ -780,7 +780,7 @@ TEST_F(direct_access__references, thread_inserts)
 }
 
 // Testing the arrow dereference operator->() in dac_set_iterator_t.
-TEST_F(direct_access__references, set_iter_arrow_deref)
+TEST_F(direct_access__references__test, set_iter_arrow_deref)
 {
     const char* emp_name = "Phillip";
     const char* addr_city = "Redmond";
@@ -809,7 +809,7 @@ bool filter_function(const employee_t& e)
 }
 
 // Use various forms of filters on a set of references.
-TEST_F(direct_access__references, set_filter)
+TEST_F(direct_access__references__test, set_filter)
 {
     auto_transaction_t txn;
 
@@ -857,7 +857,7 @@ TEST_F(direct_access__references, set_filter)
     EXPECT_EQ(count, 2);
 }
 
-TEST_F(direct_access__references, test_remove)
+TEST_F(direct_access__references__test, test_remove)
 {
     begin_transaction();
     const size_t c_num_addresses = 10;
@@ -884,7 +884,7 @@ TEST_F(direct_access__references, test_remove)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, test_erase)
+TEST_F(direct_access__references__test, test_erase)
 {
     begin_transaction();
     const size_t c_num_addresses = 10;
@@ -902,7 +902,7 @@ TEST_F(direct_access__references, test_erase)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, test_erase_invalid_child)
+TEST_F(direct_access__references__test, test_erase_invalid_child)
 {
     begin_transaction();
     const size_t c_num_addresses = 10;
@@ -917,7 +917,7 @@ TEST_F(direct_access__references, test_erase_invalid_child)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, test_clear)
+TEST_F(direct_access__references__test, test_clear)
 {
     begin_transaction();
     const size_t c_num_addresses = 10;
@@ -935,7 +935,7 @@ TEST_F(direct_access__references, test_clear)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, test_dac_container_size)
+TEST_F(direct_access__references__test, test_dac_container_size)
 {
     begin_transaction();
 
@@ -954,7 +954,7 @@ TEST_F(direct_access__references, test_dac_container_size)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, test_refernece_container_size)
+TEST_F(direct_access__references__test, test_refernece_container_size)
 {
     begin_transaction();
 
@@ -981,7 +981,7 @@ TEST_F(direct_access__references, test_refernece_container_size)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, test_temporary_object)
+TEST_F(direct_access__references__test, test_temporary_object)
 {
     begin_transaction();
 
@@ -997,7 +997,7 @@ TEST_F(direct_access__references, test_temporary_object)
     commit_transaction();
 }
 
-TEST_F(direct_access__references, test_delete_referenced_child)
+TEST_F(direct_access__references__test, test_delete_referenced_child)
 {
     auto_transaction_t txn;
 
@@ -1033,7 +1033,7 @@ TEST_F(direct_access__references, test_delete_referenced_child)
     ASSERT_NO_THROW(addr.delete_row());
 }
 
-TEST_F(direct_access__references, test_delete_referenced_parent)
+TEST_F(direct_access__references__test, test_delete_referenced_parent)
 {
     auto_transaction_t txn;
 

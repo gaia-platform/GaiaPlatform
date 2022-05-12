@@ -25,10 +25,10 @@ extern int g_total_hours;
 extern int g_high_grade_hours;
 extern int g_low_grade_hours;
 
-class tools__gaia_translate__metarule3 : public db_catalog_test_base_t
+class tools__gaia_translate__metarule3__test : public db_catalog_test_base_t
 {
 public:
-    tools__gaia_translate__metarule3()
+    tools__gaia_translate__metarule3__test()
         : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
     {
     }
@@ -48,7 +48,7 @@ protected:
     }
 };
 
-TEST_F(tools__gaia_translate__metarule3, basic)
+TEST_F(tools__gaia_translate__metarule3__test, basic)
 {
     gaia::db::begin_transaction();
 

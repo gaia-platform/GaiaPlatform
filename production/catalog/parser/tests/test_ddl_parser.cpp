@@ -14,7 +14,7 @@
 using namespace std;
 using namespace gaia::catalog::ddl;
 
-TEST(catalog__ddl_parser, create_table)
+TEST(catalog__ddl_parser__test, create_table)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (c INT32);"));
@@ -30,7 +30,7 @@ TEST(catalog__ddl_parser, create_table)
     EXPECT_FALSE(create_stmt->has_if_not_exists);
 }
 
-TEST(catalog__ddl_parser, create_table_if_not_exists)
+TEST(catalog__ddl_parser__test, create_table_if_not_exists)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE IF NOT EXISTS t (c INT32);"));
@@ -46,7 +46,7 @@ TEST(catalog__ddl_parser, create_table_if_not_exists)
     EXPECT_TRUE(create_stmt->has_if_not_exists);
 }
 
-TEST(catalog__ddl_parser, create_table_multiple_fields)
+TEST(catalog__ddl_parser__test, create_table_multiple_fields)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
@@ -81,7 +81,7 @@ TEST(catalog__ddl_parser, create_table_multiple_fields)
     EXPECT_EQ(field->active, false);
 }
 
-TEST(catalog__ddl_parser, drop_table)
+TEST(catalog__ddl_parser__test, drop_table)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("DROP TABLE t;"));
@@ -107,7 +107,7 @@ TEST(catalog__ddl_parser, drop_table)
     EXPECT_TRUE(drop_stmt->if_exists);
 }
 
-TEST(catalog__ddl_parser, case_sensitivity)
+TEST(catalog__ddl_parser__test, case_sensitivity)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (c INT32);"));
@@ -120,7 +120,7 @@ TEST(catalog__ddl_parser, case_sensitivity)
     ASSERT_NO_THROW(parser.parse_string("DrOp TaBle T;"));
 }
 
-TEST(catalog__ddl_parser, create_active_field)
+TEST(catalog__ddl_parser__test, create_active_field)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
@@ -155,7 +155,7 @@ TEST(catalog__ddl_parser, create_active_field)
     EXPECT_EQ(field->active, true);
 }
 
-TEST(catalog__ddl_parser, create_database)
+TEST(catalog__ddl_parser__test, create_database)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE DATABASE db;"));
@@ -171,7 +171,7 @@ TEST(catalog__ddl_parser, create_database)
     EXPECT_FALSE(create_stmt->has_if_not_exists);
 }
 
-TEST(catalog__ddl_parser, create_database_if_not_exists)
+TEST(catalog__ddl_parser__test, create_database_if_not_exists)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE DATABASE IF NOT EXISTS db;"));
@@ -187,7 +187,7 @@ TEST(catalog__ddl_parser, create_database_if_not_exists)
     EXPECT_TRUE(create_stmt->has_if_not_exists);
 }
 
-TEST(catalog__ddl_parser, create_table_in_database)
+TEST(catalog__ddl_parser__test, create_table_in_database)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE d.t (id INT32);"));
@@ -206,7 +206,7 @@ TEST(catalog__ddl_parser, create_table_in_database)
     EXPECT_EQ(create_table->database, "d");
 }
 
-TEST(catalog__ddl_parser, drop_database)
+TEST(catalog__ddl_parser__test, drop_database)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("DROP DATABASE d;"));
@@ -232,7 +232,7 @@ TEST(catalog__ddl_parser, drop_database)
     EXPECT_TRUE(drop_stmt->if_exists);
 }
 
-TEST(catalog__ddl_parser, illegal_characters)
+TEST(catalog__ddl_parser__test, illegal_characters)
 {
     parser_t parser;
     EXPECT_THROW(parser.parse_string("CREATE TABLE t(id : int8);"), parsing_error);
@@ -240,7 +240,7 @@ TEST(catalog__ddl_parser, illegal_characters)
     EXPECT_THROW(parser.parse_string("CREATE TABLE t(id - int8);"), parsing_error);
 }
 
-TEST(catalog__ddl_parser, fixed_size_array)
+TEST(catalog__ddl_parser__test, fixed_size_array)
 {
     parser_t parser;
     ASSERT_THROW(parser.parse_string("CREATE TABLE t (c INT32[2]);"), parsing_error);
@@ -248,13 +248,13 @@ TEST(catalog__ddl_parser, fixed_size_array)
     ASSERT_THROW(parser.parse_string("CREATE TABLE t (c INT32[0]);"), parsing_error);
 }
 
-TEST(catalog__ddl_parser, vector_of_strings)
+TEST(catalog__ddl_parser__test, vector_of_strings)
 {
     parser_t parser;
     ASSERT_THROW(parser.parse_string("CREATE TABLE t (c STRING[]);"), parsing_error);
 }
 
-TEST(catalog__ddl_parser, code_comments)
+TEST(catalog__ddl_parser__test, code_comments)
 {
     const string correct_ddl_text = R"(
 -------------------------------
@@ -280,7 +280,7 @@ CREATE TABLE t -- create table t
     ASSERT_THROW(parser.parse_string(incorrect_ddl_text), parsing_error);
 }
 
-TEST(catalog__ddl_parser, create_empty_table)
+TEST(catalog__ddl_parser__test, create_empty_table)
 {
     parser_t parser;
 
@@ -301,7 +301,7 @@ TEST(catalog__ddl_parser, create_empty_table)
     EXPECT_EQ(create_table->fields.size(), 0);
 }
 
-TEST(catalog__ddl_parser, create_relationship)
+TEST(catalog__ddl_parser__test, create_relationship)
 {
     parser_t parser;
 
@@ -360,7 +360,7 @@ CREATE RELATIONSHIP r (
     ASSERT_THROW(parser.parse_string(ddl_text_negative_case_single_link), parsing_error);
 }
 
-TEST(catalog__ddl_parser, create_index)
+TEST(catalog__ddl_parser__test, create_index)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE INDEX IF NOT EXISTS idx ON d.t (name);"));
@@ -382,7 +382,7 @@ TEST(catalog__ddl_parser, create_index)
     EXPECT_EQ(create_index->index_type, index_type_t::range);
 }
 
-TEST(catalog__ddl_parser, create_unique_index)
+TEST(catalog__ddl_parser__test, create_unique_index)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE UNIQUE INDEX idx ON d.t (name);"));
@@ -404,7 +404,7 @@ TEST(catalog__ddl_parser, create_unique_index)
     EXPECT_EQ(create_index->index_type, index_type_t::range);
 }
 
-TEST(catalog__ddl_parser, create_hash_index)
+TEST(catalog__ddl_parser__test, create_hash_index)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE UNIQUE HASH INDEX idx ON d.t (name);"));
@@ -426,7 +426,7 @@ TEST(catalog__ddl_parser, create_hash_index)
     EXPECT_EQ(create_index->index_type, index_type_t::hash);
 }
 
-TEST(catalog__ddl_parser, create_range_index)
+TEST(catalog__ddl_parser__test, create_range_index)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE RANGE INDEX IF NOT EXISTS idx ON d.t (name);"));
@@ -448,7 +448,7 @@ TEST(catalog__ddl_parser, create_range_index)
     EXPECT_EQ(create_index->index_type, index_type_t::range);
 }
 
-TEST(catalog__ddl_parser, create_one_to_one_relationship)
+TEST(catalog__ddl_parser__test, create_one_to_one_relationship)
 {
     parser_t parser;
 
@@ -484,7 +484,7 @@ CREATE RELATIONSHIP r (
     ASSERT_EQ(child.cardinality, cardinality_t::one);
 }
 
-TEST(catalog__ddl_parser, create_one_to_many_relationship)
+TEST(catalog__ddl_parser__test, create_one_to_many_relationship)
 {
     parser_t parser;
 
@@ -520,7 +520,7 @@ CREATE RELATIONSHIP r (
     ASSERT_EQ(child.cardinality, cardinality_t::one);
 }
 
-TEST(catalog__ddl_parser, create_unique_field)
+TEST(catalog__ddl_parser__test, create_unique_field)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (id UINT64 UNIQUE, name STRING UNIQUE ACTIVE, ssn STRING ACTIVE UNIQUE);"));
@@ -565,7 +565,7 @@ TEST(catalog__ddl_parser, create_unique_field)
     EXPECT_EQ(field->unique, true);
 }
 
-TEST(catalog__ddl_parser, create_relationship_using_fields)
+TEST(catalog__ddl_parser__test, create_relationship_using_fields)
 {
     parser_t parser;
 
@@ -638,7 +638,7 @@ CREATE RELATIONSHIP r (
     EXPECT_THROW(parser.parse_string(negative_3), parsing_error);
 }
 
-TEST(catalog__ddl_parser, create_statement_list)
+TEST(catalog__ddl_parser__test, create_statement_list)
 {
     parser_t parser;
 
@@ -725,7 +725,7 @@ CREATE table  t2(
     ASSERT_THROW(parser.parse_string(negative_3), parsing_error);
 }
 
-TEST(catalog__ddl_parser, in_table_relationship)
+TEST(catalog__ddl_parser__test, in_table_relationship)
 {
     parser_t parser;
 
@@ -765,7 +765,7 @@ create table patient (
     ASSERT_NO_THROW(parser.parse_string(hybrid_index_ddl));
 }
 
-TEST(catalog__ddl_parser, invalid_create_list)
+TEST(catalog__ddl_parser__test, invalid_create_list)
 {
     array ddls{
         R"(
@@ -788,7 +788,7 @@ create table t2(c2 int32);
     }
 }
 
-TEST(catalog__ddl_parser, empty_statements)
+TEST(catalog__ddl_parser__test, empty_statements)
 {
     array ddls{
         R"(
@@ -817,7 +817,7 @@ create table t2(c2 int32);
     }
 }
 
-TEST(catalog__ddl_parser, create_optional_field)
+TEST(catalog__ddl_parser__test, create_optional_field)
 {
     parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t ("

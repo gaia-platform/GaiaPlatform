@@ -431,10 +431,10 @@ extern "C" void initialize_rules()
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class rules__event_manager : public db_catalog_test_base_t
+class rules__event_manager__test : public db_catalog_test_base_t
 {
 public:
-    rules__event_manager()
+    rules__event_manager__test()
         : db_catalog_test_base_t("", true){};
 
     void validate_rule(event_type_t type, gaia_type_t gaia_type, gaia_id_t record)
@@ -603,7 +603,7 @@ protected:
     rule_binding_t m_rule10{c_ruleset3_name, c_rule10_name, rule10};
 };
 
-TEST_F(rules__event_manager, invalid_subscription)
+TEST_F(rules__event_manager__test, invalid_subscription)
 {
     field_position_list_t fields;
     fields.emplace_back(1);
@@ -635,7 +635,7 @@ TEST_F(rules__event_manager, invalid_subscription)
 }
 
 // TODO[GAIAPLAT-445] We don't expose deleted row events
-// TEST_F(rules__event_manager, log_event_no_rules)
+// TEST_F(rules__event_manager__test, log_event_no_rules)
 // {
 //     // An empty sequence will verify that the rule was not called.
 //     const gaia_id_t record = 123;
@@ -645,7 +645,7 @@ TEST_F(rules__event_manager, invalid_subscription)
 //     validate_rule_sequence(sequence);
 // }
 
-TEST_F(rules__event_manager, log_database_event_single_event_single_rule)
+TEST_F(rules__event_manager__test, log_database_event_single_event_single_rule)
 {
     subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
 
@@ -666,7 +666,7 @@ TEST_F(rules__event_manager, log_database_event_single_event_single_rule)
     validate_rule(event_type_t::row_update, test_gaia_t::s_gaia_type, record);
 }
 
-TEST_F(rules__event_manager, log_field_event_single_event_single_rule)
+TEST_F(rules__event_manager__test, log_field_event_single_event_single_rule)
 {
 
     // Ensure we have field level granularity.
@@ -689,7 +689,7 @@ TEST_F(rules__event_manager, log_field_event_single_event_single_rule)
     validate_rule(event_type_t::row_update, test_gaia_t::s_gaia_type, record);
 }
 
-TEST_F(rules__event_manager, log_field_event_multi_event_single_rule)
+TEST_F(rules__event_manager__test, log_field_event_multi_event_single_rule)
 {
     // Ensure we have field level granularity.
     field_position_list_t fields;
@@ -718,7 +718,7 @@ TEST_F(rules__event_manager, log_field_event_multi_event_single_rule)
     validate_rule(event_type_t::row_update, test_gaia_t::s_gaia_type, another_record);
 }
 
-TEST_F(rules__event_manager, log_field_event_multi_event_multi_rule)
+TEST_F(rules__event_manager__test, log_field_event_multi_event_multi_rule)
 {
     // Ensure we have field level granularity.
     field_position_list_t fields;
@@ -750,7 +750,7 @@ TEST_F(rules__event_manager, log_field_event_multi_event_multi_rule)
     validate_rule(event_type_t::row_update, test_gaia_t::s_gaia_type, record);
 }
 
-TEST_F(rules__event_manager, log_database_event_single_rule_multi_event)
+TEST_F(rules__event_manager__test, log_database_event_single_rule_multi_event)
 {
     // Bind same rule to update and insert
     subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, m_rule1);
@@ -772,7 +772,7 @@ TEST_F(rules__event_manager, log_database_event_single_rule_multi_event)
     validate_rule_sequence(sequence);
 }
 
-TEST_F(rules__event_manager, log_database_event_multi_rule_single_event)
+TEST_F(rules__event_manager__test, log_database_event_multi_rule_single_event)
 {
     // Bind two rules to the same event.
     subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
@@ -793,7 +793,7 @@ TEST_F(rules__event_manager, log_database_event_multi_rule_single_event)
     validate_rule_sequence(sequence);
 }
 
-TEST_F(rules__event_manager, log_event_multi_rule_multi_event)
+TEST_F(rules__event_manager__test, log_event_multi_rule_multi_event)
 {
     // See comment on definition of c_rule_decl for which
     // events are setup.
@@ -867,7 +867,7 @@ TEST_F(rules__event_manager, log_event_multi_rule_multi_event)
     // validate_rule(event_type_t::transaction_begin, 0, 0);
 }
 
-TEST_F(rules__event_manager, subscribe_rule_invalid_rule_binding)
+TEST_F(rules__event_manager__test, subscribe_rule_invalid_rule_binding)
 {
     rule_binding_t rb;
 
@@ -889,7 +889,7 @@ TEST_F(rules__event_manager, subscribe_rule_invalid_rule_binding)
         invalid_rule_binding);
 }
 
-TEST_F(rules__event_manager, unsubscribe_rule_invalid_rule_binding)
+TEST_F(rules__event_manager__test, unsubscribe_rule_invalid_rule_binding)
 {
     rule_binding_t rb;
 
@@ -911,7 +911,7 @@ TEST_F(rules__event_manager, unsubscribe_rule_invalid_rule_binding)
         invalid_rule_binding);
 }
 
-TEST_F(rules__event_manager, subscribe_rule_duplicate_rule)
+TEST_F(rules__event_manager__test, subscribe_rule_duplicate_rule)
 {
     rule_binding_t rb;
     rb.ruleset_name = c_ruleset1_name;
@@ -931,7 +931,7 @@ TEST_F(rules__event_manager, subscribe_rule_duplicate_rule)
     EXPECT_THROW(subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, rb), duplicate_rule);
 }
 
-TEST_F(rules__event_manager, unsubscribe_rule_not_found)
+TEST_F(rules__event_manager__test, unsubscribe_rule_not_found)
 {
     rule_binding_t rb;
     rb.ruleset_name = c_ruleset1_name;
@@ -964,7 +964,7 @@ TEST_F(rules__event_manager, unsubscribe_rule_not_found)
     EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, rb));
 }
 
-TEST_F(rules__event_manager, list_rules_none)
+TEST_F(rules__event_manager__test, list_rules_none)
 {
     subscription_list_t rules;
 
@@ -978,7 +978,7 @@ TEST_F(rules__event_manager, list_rules_none)
     EXPECT_EQ(0, rules.size());
 }
 
-TEST_F(rules__event_manager, list_rules_no_filters)
+TEST_F(rules__event_manager__test, list_rules_no_filters)
 {
     subscription_list_t rules;
     setup_all_rules();
@@ -987,7 +987,7 @@ TEST_F(rules__event_manager, list_rules_no_filters)
     validate_rule_list(rules, get_expected_subscriptions(nullptr, nullptr, nullptr));
 }
 
-TEST_F(rules__event_manager, list_rules_ruleset_filter)
+TEST_F(rules__event_manager__test, list_rules_ruleset_filter)
 {
     subscription_list_t rules;
     setup_all_rules();
@@ -1001,7 +1001,7 @@ TEST_F(rules__event_manager, list_rules_ruleset_filter)
     validate_rule_list(rules, get_expected_subscriptions(ruleset_filter, nullptr, nullptr));
 }
 
-TEST_F(rules__event_manager, list_rules_event_type_filter)
+TEST_F(rules__event_manager__test, list_rules_event_type_filter)
 {
     subscription_list_t rules;
     setup_all_rules();
@@ -1016,7 +1016,7 @@ TEST_F(rules__event_manager, list_rules_event_type_filter)
     validate_rule_list(rules, get_expected_subscriptions(nullptr, nullptr, &event_filter));
 }
 
-TEST_F(rules__event_manager, list_rules_gaia_type_filter)
+TEST_F(rules__event_manager__test, list_rules_gaia_type_filter)
 {
     subscription_list_t rules;
     setup_all_rules();
@@ -1030,7 +1030,7 @@ TEST_F(rules__event_manager, list_rules_gaia_type_filter)
     validate_rule_list(rules, get_expected_subscriptions(nullptr, &gaia_type_filter, nullptr));
 }
 
-TEST_F(rules__event_manager, list_rules_all_filters)
+TEST_F(rules__event_manager__test, list_rules_all_filters)
 {
     subscription_list_t rules;
     setup_all_rules();
@@ -1053,7 +1053,7 @@ TEST_F(rules__event_manager, list_rules_all_filters)
 // TODO[GAIAPLAT-194]: Transaction Events are out of scope for Q2
 
 /*
-TEST_F(rules__event_manager, forward_chain_not_subscribed)
+TEST_F(rules__event_manager__test, forward_chain_not_subscribed)
 {
     subscribe_rule(0, event_type_t::transaction_commit, empty_fields, m_rule8);
 
@@ -1064,7 +1064,7 @@ TEST_F(rules__event_manager, forward_chain_not_subscribed)
     validate_rule_sequence(expected);
 }
 
-TEST_F(rules__event_manager, forward_chain_transaction_table)
+TEST_F(rules__event_manager__test, forward_chain_transaction_table)
 {
     subscribe_rule(0, event_type_t::transaction_commit, empty_fields, m_rule8);
     subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, m_rule5);
@@ -1078,7 +1078,7 @@ TEST_F(rules__event_manager, forward_chain_transaction_table)
     validate_rule_sequence(expected);
 }
 
-TEST_F(rules__event_manager, forward_chain_table_transaction)
+TEST_F(rules__event_manager__test, forward_chain_table_transaction)
 {
     subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_update, empty_fields, m_rule6);
     subscribe_rule(0, event_type_t::transaction_commit, empty_fields, m_rule8);
@@ -1098,7 +1098,7 @@ TEST_F(rules__event_manager, forward_chain_table_transaction)
 */
 
 /*
-TEST_F(rules__event_manager, forward_chain_disallow_reentrant)
+TEST_F(rules__event_manager__test, forward_chain_disallow_reentrant)
 {
     // See section where rules are defined for the rule heirarchy.
     subscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_update, empty_fields, m_rule5);
@@ -1111,7 +1111,7 @@ TEST_F(rules__event_manager, forward_chain_disallow_reentrant)
     validate_rule_sequence(expected);
 }
 
-TEST_F(rules__event_manager, forward_chain_disallow_cycle)
+TEST_F(rules__event_manager__test, forward_chain_disallow_cycle)
 {
     // See section where rules are defined for the rule heirarchy.
     // This test creates a cycle where all the rules are subscribed:
@@ -1133,7 +1133,7 @@ TEST_F(rules__event_manager, forward_chain_disallow_cycle)
 }
 */
 
-TEST_F(rules__event_manager, forward_chain_field_not_subscribed)
+TEST_F(rules__event_manager__test, forward_chain_field_not_subscribed)
 {
     field_position_list_t fields;
     fields.emplace_back(c_value);
@@ -1150,7 +1150,7 @@ TEST_F(rules__event_manager, forward_chain_field_not_subscribed)
 }
 
 /*
-TEST_F(rules__event_manager, forward_chain_field_commit)
+TEST_F(rules__event_manager__test, forward_chain_field_commit)
 {
     field_position_list_t fields;
     fields.emplace_back(c_value);
@@ -1182,7 +1182,7 @@ TEST_F(rules__event_manager, forward_chain_field_commit)
     uninstall_transaction_hooks();
 }
 
-TEST_F(rules__event_manager, forward_chain_field_rollback)
+TEST_F(rules__event_manager__test, forward_chain_field_rollback)
 {
     field_position_list_t fields;
     fields.emplace_back(c_value);
@@ -1211,7 +1211,7 @@ TEST_F(rules__event_manager, forward_chain_field_rollback)
 // TODO[GAIAPLAT-308]: Event logging does not happen since we don't have trim.
 // The following two tests will only verify that there are no entries in the
 // event log.
-TEST_F(rules__event_manager, event_logging_no_subscriptions)
+TEST_F(rules__event_manager__test, event_logging_no_subscriptions)
 {
     const gaia_id_t record = 11;
     trigger_event_t events[] = {{event_type_t::row_update, test_gaia_t::s_gaia_type, record, g_last_name, dummy_txn_id}};
@@ -1220,7 +1220,7 @@ TEST_F(rules__event_manager, event_logging_no_subscriptions)
     verify_event_log_is_empty();
 }
 
-TEST_F(rules__event_manager, event_logging_subscriptions)
+TEST_F(rules__event_manager__test, event_logging_subscriptions)
 {
     setup_all_rules();
 

@@ -30,10 +30,10 @@ using std::string;
 using std::to_string;
 
 template <typename T_iterator>
-class direct_access__iterator_conformance : public db_catalog_test_base_t
+class direct_access__iterator_conformance__test : public db_catalog_test_base_t
 {
 public:
-    direct_access__iterator_conformance()
+    direct_access__iterator_conformance__test()
         : db_catalog_test_base_t("addr_book.ddl"){};
 
     void insert_records(size_t count)
@@ -82,7 +82,7 @@ private:
 // Set up the test suite to test the gaia_iterator and gaia_set_iterator types.
 using iterator_types
     = ::testing::Types<dac_iterator_t<address_t>, dac_set_iterator_t<address_t>>;
-TYPED_TEST_SUITE(direct_access__iterator_conformance, iterator_types);
+TYPED_TEST_SUITE(direct_access__iterator_conformance__test, iterator_types);
 
 // Tests for LegacyIterator conformance
 // ================================
@@ -90,32 +90,32 @@ TYPED_TEST_SUITE(direct_access__iterator_conformance, iterator_types);
 // Is the iterator CopyConstructible?
 // A test for MoveConstructible is not required because it is a prerequisite
 // to be CopyConstructible.
-TYPED_TEST(direct_access__iterator_conformance, copy_constructible)
+TYPED_TEST(direct_access__iterator_conformance__test, copy_constructible)
 {
     EXPECT_TRUE(std::is_copy_constructible<TypeParam>::value) << "The iterator is not CopyConstructible.";
 }
 
 // Is the iterator CopyAssignable?
-TYPED_TEST(direct_access__iterator_conformance, copy_assignable)
+TYPED_TEST(direct_access__iterator_conformance__test, copy_assignable)
 {
     EXPECT_TRUE(std::is_copy_assignable<TypeParam>::value) << "The iterator is not CopyAssignable.";
 }
 
 // Is the iterator Destructible?
-TYPED_TEST(direct_access__iterator_conformance, destructible)
+TYPED_TEST(direct_access__iterator_conformance__test, destructible)
 {
     EXPECT_TRUE(std::is_destructible<TypeParam>::value) << "The iterator is not Destructible.";
 }
 
 // Are iterator lvalues Swappable?
-TYPED_TEST(direct_access__iterator_conformance, swappable)
+TYPED_TEST(direct_access__iterator_conformance__test, swappable)
 {
     EXPECT_TRUE(std::is_swappable<TypeParam>::value) << "The iterator is not Swappable as an lvalue.";
 }
 
 // Does iterator_traits<dac_iterator_t<dac_*>> have member typedefs
 // value_type, difference_type, reference, pointer, and iterator_category?
-TYPED_TEST(direct_access__iterator_conformance, iterator_traits)
+TYPED_TEST(direct_access__iterator_conformance__test, iterator_traits)
 {
     // This test can only fail in compile time.
     typename iterator_traits<TypeParam>::value_type vt;
@@ -136,7 +136,7 @@ TYPED_TEST(direct_access__iterator_conformance, iterator_traits)
 }
 
 // Are iterators pre-incrementable?
-TYPED_TEST(direct_access__iterator_conformance, pre_incrementable)
+TYPED_TEST(direct_access__iterator_conformance__test, pre_incrementable)
 {
     const char* pre_inc_error = "The iterator is not pre-incrementable with the expected effects.";
     const size_t c_loops = 10;
@@ -171,7 +171,7 @@ TYPED_TEST(direct_access__iterator_conformance, pre_incrementable)
 // ================================
 
 // Is the iterator EqualityComparable?
-TYPED_TEST(direct_access__iterator_conformance, equality_comparable)
+TYPED_TEST(direct_access__iterator_conformance__test, equality_comparable)
 {
     auto_transaction_t tx;
     this->insert_records(3);
@@ -203,7 +203,7 @@ TYPED_TEST(direct_access__iterator_conformance, equality_comparable)
 }
 
 // Does the iterator support the not-equal (!=) operator?
-TYPED_TEST(direct_access__iterator_conformance, not_equal)
+TYPED_TEST(direct_access__iterator_conformance__test, not_equal)
 {
     auto_transaction_t tx;
     this->insert_records(3);
@@ -236,7 +236,7 @@ TYPED_TEST(direct_access__iterator_conformance, not_equal)
 
 // Is the reference iterator trait convertible into the value_type iterator
 // trait?
-TYPED_TEST(direct_access__iterator_conformance, reference_convertibility)
+TYPED_TEST(direct_access__iterator_conformance__test, reference_convertibility)
 {
     typedef typename iterator_traits<TypeParam>::reference from_t;
     typedef typename iterator_traits<TypeParam>::value_type to_t;
@@ -247,7 +247,7 @@ TYPED_TEST(direct_access__iterator_conformance, reference_convertibility)
 }
 
 // Are iterators dereferenceable as rvalues?
-TYPED_TEST(direct_access__iterator_conformance, dereferenceable_rvalue)
+TYPED_TEST(direct_access__iterator_conformance__test, dereferenceable_rvalue)
 {
     auto_transaction_t tx;
     this->insert_records(1);
@@ -258,7 +258,7 @@ TYPED_TEST(direct_access__iterator_conformance, dereferenceable_rvalue)
 }
 
 // If two rvalue iterators are equal then their dereferenced values are equal.
-TYPED_TEST(direct_access__iterator_conformance, dereferenceable_equality)
+TYPED_TEST(direct_access__iterator_conformance__test, dereferenceable_equality)
 {
     auto_transaction_t tx;
     this->insert_records(1);
@@ -271,7 +271,7 @@ TYPED_TEST(direct_access__iterator_conformance, dereferenceable_equality)
 
 // When an iterator is dereferenced, can the object members be accessed?
 // Test of the arrow operator (->).
-TYPED_TEST(direct_access__iterator_conformance, deref_arrow)
+TYPED_TEST(direct_access__iterator_conformance__test, deref_arrow)
 {
     auto_transaction_t tx;
     this->insert_records(1);
@@ -282,7 +282,7 @@ TYPED_TEST(direct_access__iterator_conformance, deref_arrow)
 }
 
 // Does (void)iter++ have the same effect as (void)++iter?
-TYPED_TEST(direct_access__iterator_conformance, pre_inc_and_post_inc)
+TYPED_TEST(direct_access__iterator_conformance__test, pre_inc_and_post_inc)
 {
     auto_transaction_t tx;
     this->insert_records(3);
@@ -306,7 +306,7 @@ TYPED_TEST(direct_access__iterator_conformance, pre_inc_and_post_inc)
 }
 
 // Does dereferencing and postincrementing *iter++ have the expected effects?
-TYPED_TEST(direct_access__iterator_conformance, deref_and_postinc)
+TYPED_TEST(direct_access__iterator_conformance__test, deref_and_postinc)
 {
     auto_transaction_t tx;
     this->insert_records(3);
@@ -333,14 +333,14 @@ TYPED_TEST(direct_access__iterator_conformance, deref_and_postinc)
 // ================================
 
 // Is the iterator DefaultConstructible?
-TYPED_TEST(direct_access__iterator_conformance, default_constructible)
+TYPED_TEST(direct_access__iterator_conformance__test, default_constructible)
 {
     EXPECT_TRUE(std::is_default_constructible<TypeParam>::value) << "The iterator is not DefaultConstructible.";
 }
 
 // Is equality and inequality defined over all iterators for the same
 // underlying sequence?
-TYPED_TEST(direct_access__iterator_conformance, equality_and_inequality_in_sequence)
+TYPED_TEST(direct_access__iterator_conformance__test, equality_and_inequality_in_sequence)
 {
     const int c_count = 10;
     auto_transaction_t tx;
@@ -378,7 +378,7 @@ TYPED_TEST(direct_access__iterator_conformance, equality_and_inequality_in_seque
 }
 
 // Does post-incrementing the iterator have the expected effects?
-TYPED_TEST(direct_access__iterator_conformance, post_increment)
+TYPED_TEST(direct_access__iterator_conformance__test, post_increment)
 {
     auto_transaction_t tx;
     this->insert_records(3);
@@ -396,7 +396,7 @@ TYPED_TEST(direct_access__iterator_conformance, post_increment)
 // Can an iterator iterate over a sequence multiple times to return the same
 // values at the same positions every time? This is known as the multipass
 // guarantee.
-TYPED_TEST(direct_access__iterator_conformance, multipass_guarantee)
+TYPED_TEST(direct_access__iterator_conformance__test, multipass_guarantee)
 {
     const int c_count = 10;
 
@@ -429,7 +429,7 @@ TYPED_TEST(direct_access__iterator_conformance, multipass_guarantee)
 
 // Sanity check that our iterators can work with a std::algorithms container
 // method.  Transforms list of characters into list of numbers.
-TYPED_TEST(direct_access__iterator_conformance, algorithm_test)
+TYPED_TEST(direct_access__iterator_conformance__test, algorithm_test)
 {
     const int c_count = 10;
     std::vector<int> transform_list;

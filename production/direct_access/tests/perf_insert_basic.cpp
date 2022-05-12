@@ -16,10 +16,10 @@ using namespace gaia::direct_access;
 using namespace gaia::perf_basic;
 using namespace std;
 
-class direct_access__perf_insert_basic : public gaia::db::db_catalog_test_base_t
+class direct_access__perf_insert_basic__test : public gaia::db::db_catalog_test_base_t
 {
 public:
-    direct_access__perf_insert_basic()
+    direct_access__perf_insert_basic__test()
         : db_catalog_test_base_t("perf_basic.ddl", true, true, true)
     {
     }
@@ -65,7 +65,7 @@ void insert_thread(size_t num_records, size_t txn_size = c_max_insertion_single_
     gaia::db::end_session();
 }
 
-TEST_F(direct_access__perf_insert_basic, simple_table_insert)
+TEST_F(direct_access__perf_insert_basic__test, simple_table_insert)
 {
     auto insert = []() {
         bulk_insert(&simple_table_t::insert_row);
@@ -75,7 +75,7 @@ TEST_F(direct_access__perf_insert_basic, simple_table_insert)
         insert, clear_database, "simple_table_t::insert_row");
 }
 
-TEST_F(direct_access__perf_insert_basic, simple_table_writer)
+TEST_F(direct_access__perf_insert_basic__test, simple_table_writer)
 {
     auto insert = []() {
         bulk_insert([](size_t i) {
@@ -89,7 +89,7 @@ TEST_F(direct_access__perf_insert_basic, simple_table_writer)
         insert, clear_database, "simple_table_writer");
 }
 
-TEST_F(direct_access__perf_insert_basic, simple_table_2)
+TEST_F(direct_access__perf_insert_basic__test, simple_table_2)
 {
     auto insert = []() {
         bulk_insert([](size_t i) {
@@ -101,7 +101,7 @@ TEST_F(direct_access__perf_insert_basic, simple_table_2)
         insert, clear_database, "simple_table_2_t::insert_row");
 }
 
-TEST_F(direct_access__perf_insert_basic, simple_table_3)
+TEST_F(direct_access__perf_insert_basic__test, simple_table_3)
 {
     auto insert = []() {
         bulk_insert([](size_t i) {
@@ -114,7 +114,7 @@ TEST_F(direct_access__perf_insert_basic, simple_table_3)
         insert, clear_database, "simple_table_3_t::insert_row");
 }
 
-TEST_F(direct_access__perf_insert_basic, simple_table_insert_txn_size)
+TEST_F(direct_access__perf_insert_basic__test, simple_table_insert_txn_size)
 {
     for (size_t txn_size : {1UL, 4UL, 8UL, 16UL, 256UL, 1024UL, 4096UL, 16384UL, c_max_insertion_single_txn})
     {
@@ -134,7 +134,7 @@ TEST_F(direct_access__perf_insert_basic, simple_table_insert_txn_size)
     }
 }
 
-TEST_F(direct_access__perf_insert_basic, simple_table_concurrent)
+TEST_F(direct_access__perf_insert_basic__test, simple_table_concurrent)
 {
     for (size_t num_workers : {2, 4, 8})
     {
@@ -159,7 +159,7 @@ TEST_F(direct_access__perf_insert_basic, simple_table_concurrent)
     }
 }
 
-TEST_F(direct_access__perf_insert_basic, simple_table_insert_txn_size_concurrent)
+TEST_F(direct_access__perf_insert_basic__test, simple_table_insert_txn_size_concurrent)
 {
     for (size_t txn_size : {1, 4, 8, 128})
     {

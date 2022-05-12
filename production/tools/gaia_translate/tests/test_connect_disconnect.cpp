@@ -20,10 +20,10 @@ using namespace gaia::rules;
 using namespace gaia::prerequisites;
 using namespace gaia::prerequisites::registration_expr;
 
-class tools__gaia_translate__connect_disconnect : public db_catalog_test_base_t
+class tools__gaia_translate__connect_disconnect__test : public db_catalog_test_base_t
 {
 public:
-    tools__gaia_translate__connect_disconnect()
+    tools__gaia_translate__connect_disconnect__test()
         : db_catalog_test_base_t("prerequisites.ddl", true, true, true)
     {
     }
@@ -44,7 +44,7 @@ protected:
     }
 };
 
-TEST_F(tools__gaia_translate__connect_disconnect, connect_1_n)
+TEST_F(tools__gaia_translate__connect_disconnect__test, connect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_n");
 
@@ -73,7 +73,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, connect_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, connect_1_1)
+TEST_F(tools__gaia_translate__connect_disconnect__test, connect_1_1)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_1");
 
@@ -97,7 +97,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, connect_1_1)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, disconnect_1_n)
+TEST_F(tools__gaia_translate__connect_disconnect__test, disconnect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_1_n");
 
@@ -141,7 +141,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, disconnect_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, disconnect_1_1)
+TEST_F(tools__gaia_translate__connect_disconnect__test, disconnect_1_1)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_1_1");
 
@@ -158,7 +158,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, disconnect_1_1)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, disconnect_delete)
+TEST_F(tools__gaia_translate__connect_disconnect__test, disconnect_delete)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_delete");
 
@@ -176,7 +176,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, disconnect_delete)
     ASSERT_EQ(count, 0);
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, connect_1_1_child_parent)
+TEST_F(tools__gaia_translate__connect_disconnect__test, connect_1_1_child_parent)
 {
     gaia::rules::subscribe_ruleset("test_connect_child_parent_1_1");
 
@@ -196,7 +196,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, connect_1_1_child_parent)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, disconnect_1_1_child_parent)
+TEST_F(tools__gaia_translate__connect_disconnect__test, disconnect_1_1_child_parent)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_child_parent_1_1");
 
@@ -213,7 +213,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, disconnect_1_1_child_parent)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, connect_child_parent_1_n)
+TEST_F(tools__gaia_translate__connect_disconnect__test, connect_child_parent_1_n)
 {
     gaia::rules::subscribe_ruleset("test_connect_child_parent_1_n");
 
@@ -233,7 +233,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, connect_child_parent_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, disconnect_child_parent_1_n)
+TEST_F(tools__gaia_translate__connect_disconnect__test, disconnect_child_parent_1_n)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_child_parent_1_n");
 
@@ -255,7 +255,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, disconnect_child_parent_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, clear_child_parent_1_n)
+TEST_F(tools__gaia_translate__connect_disconnect__test, clear_child_parent_1_n)
 {
     gaia::rules::subscribe_ruleset("test_clear_child_parent_1_n");
 
@@ -277,7 +277,7 @@ TEST_F(tools__gaia_translate__connect_disconnect, clear_child_parent_1_n)
     gaia::db::commit_transaction();
 }
 
-TEST_F(tools__gaia_translate__connect_disconnect, force_delete)
+TEST_F(tools__gaia_translate__connect_disconnect__test, force_delete)
 {
     gaia::rules::subscribe_ruleset("test_force_delete");
 

@@ -200,10 +200,10 @@ public:
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class rules__rule_integration : public db_test_base_t
+class rules__rule_integration__test : public db_test_base_t
 {
 public:
-    rules__rule_integration()
+    rules__rule_integration__test()
         : db_test_base_t(false)
     {
     }
@@ -324,7 +324,7 @@ protected:
     }
 };
 
-TEST_F(rules__rule_integration, insert)
+TEST_F(rules__rule_integration__test, insert)
 {
     bool commit_in_rule = true;
     subscribe_insert_chain(commit_in_rule);
@@ -349,7 +349,7 @@ TEST_F(rules__rule_integration, insert)
 }
 
 // TODO[GAIAPLAT-445] We don't expose deleted row events
-// TEST_F(rules__rule_integration, delete)
+// TEST_F(rules__rule_integration__test, delete)
 // {
 //     subscribe_delete();
 //     {
@@ -365,7 +365,7 @@ TEST_F(rules__rule_integration, insert)
 //     }
 // }
 
-TEST_F(rules__rule_integration, update)
+TEST_F(rules__rule_integration__test, update)
 {
     subscribe_update();
     {
@@ -384,7 +384,7 @@ TEST_F(rules__rule_integration, update)
 
 // This test verifies that a rule is not invoked if the anchor row
 // is deleted before the rule can be called.
-TEST_F(rules__rule_integration, update_and_delete)
+TEST_F(rules__rule_integration__test, update_and_delete)
 {
     subscribe_update();
     {
@@ -404,7 +404,7 @@ TEST_F(rules__rule_integration, update_and_delete)
 }
 
 // Test single rule, single active field binding.
-TEST_F(rules__rule_integration, update_field)
+TEST_F(rules__rule_integration__test, update_field)
 {
     subscribe_field(c_phone_number_position);
     {
@@ -422,7 +422,7 @@ TEST_F(rules__rule_integration, update_field)
 }
 
 // Test that a different rule gets fired for different fields.
-TEST_F(rules__rule_integration, update_field_multiple_rules)
+TEST_F(rules__rule_integration__test, update_field_multiple_rules)
 {
     subscribe_field(c_phone_number_position);
     subscribe_field(c_phone_type_position);
@@ -443,7 +443,7 @@ TEST_F(rules__rule_integration, update_field_multiple_rules)
 }
 
 // Test that the same rule gets fired for different active fields.
-TEST_F(rules__rule_integration, update_field_single_rule)
+TEST_F(rules__rule_integration__test, update_field_single_rule)
 {
     subscribe_field(c_phone_number_position);
     {
@@ -477,7 +477,7 @@ TEST_F(rules__rule_integration, update_field_single_rule)
 }
 
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1781
-TEST_F(rules__rule_integration, two_rules)
+TEST_F(rules__rule_integration__test, two_rules)
 {
     subscribe_update();
     subscribe_insert();
@@ -509,7 +509,7 @@ TEST_F(rules__rule_integration, two_rules)
 // be roughly 1s.  We'll be conservative and just verify its less than 2s. If we
 // are not running parallel then the time will be equal to the number of times
 // we invoke the sleep function.
-TEST_F(rules__rule_integration, parallel)
+TEST_F(rules__rule_integration__test, parallel)
 {
     const size_t num_inserts = thread::hardware_concurrency();
 
@@ -535,7 +535,7 @@ TEST_F(rules__rule_integration, parallel)
 
 // Invoke the sleep rule which sleeps for 1 second.  This time, however,
 // associate it with a serial stream.
-TEST_F(rules__rule_integration, serial)
+TEST_F(rules__rule_integration__test, serial)
 {
     const size_t num_inserts = 5;
 
@@ -557,7 +557,7 @@ TEST_F(rules__rule_integration, serial)
     EXPECT_TRUE(total_seconds >= num_inserts);
 }
 
-TEST_F(rules__rule_integration, shutdown_pending_rules)
+TEST_F(rules__rule_integration__test, shutdown_pending_rules)
 {
     // Verify that we execute all the rules we expect on shutdown.
     const size_t num_rule_invocations = 5;
@@ -589,7 +589,7 @@ TEST_F(rules__rule_integration, shutdown_pending_rules)
     gaia::rules::initialize_rules_engine();
 }
 
-TEST_F(rules__rule_integration, shutdown_rule_chaining)
+TEST_F(rules__rule_integration__test, shutdown_rule_chaining)
 {
     // Verify that we execute all the rules we expect on shutdown.
     // The insert rule we are firing causes an update which then
@@ -620,7 +620,7 @@ TEST_F(rules__rule_integration, shutdown_rule_chaining)
     gaia::rules::initialize_rules_engine();
 }
 
-TEST_F(rules__rule_integration, reinit)
+TEST_F(rules__rule_integration__test, reinit)
 {
     // Should be okay to call shutdown twice.
     gaia::rules::shutdown_rules_engine();
@@ -631,7 +631,7 @@ TEST_F(rules__rule_integration, reinit)
     gaia::rules::initialize_rules_engine();
 }
 
-TEST_F(rules__rule_integration, retry)
+TEST_F(rules__rule_integration__test, retry)
 {
     auto test_inner = [&](int num_conflicts, int max_retries, const char* expected_name) {
         event_manager_settings_t settings;

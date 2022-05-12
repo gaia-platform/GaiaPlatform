@@ -16,10 +16,10 @@ using namespace gaia::direct_access;
 using namespace gaia::perf_idx;
 using namespace std;
 
-class direct_access__perf_insert_idx : public gaia::db::db_catalog_test_base_t
+class direct_access__perf_insert_idx__test : public gaia::db::db_catalog_test_base_t
 {
 public:
-    direct_access__perf_insert_idx()
+    direct_access__perf_insert_idx__test()
         : db_catalog_test_base_t("perf_idx.ddl", true, true, true)
     {
     }
@@ -42,7 +42,7 @@ void clear_database()
     clear_table<range_index_table_t>();
 }
 
-TEST_F(direct_access__perf_insert_idx, unique_index_table)
+TEST_F(direct_access__perf_insert_idx__test, unique_index_table)
 {
     auto insert = []() {
         bulk_insert(&unique_index_table_t::insert_row);
@@ -52,7 +52,7 @@ TEST_F(direct_access__perf_insert_idx, unique_index_table)
         insert, clear_database, "unique_index_table_t::insert_row");
 }
 
-TEST_F(direct_access__perf_insert_idx, hash_index_table)
+TEST_F(direct_access__perf_insert_idx__test, hash_index_table)
 {
     auto insert = []() {
         bulk_insert(&hash_index_table_t::insert_row);
@@ -62,7 +62,7 @@ TEST_F(direct_access__perf_insert_idx, hash_index_table)
         insert, clear_database, "hash_index_table::insert_row");
 }
 
-TEST_F(direct_access__perf_insert_idx, range_index_table)
+TEST_F(direct_access__perf_insert_idx__test, range_index_table)
 {
     auto insert = []() {
         bulk_insert(&range_index_table_t::insert_row);

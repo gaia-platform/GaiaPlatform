@@ -76,7 +76,7 @@ void load_catalog()
     commit_transaction();
 }
 
-class rules__rule_checker : public db_test_base_t
+class rules__rule_checker__test : public db_test_base_t
 {
 public:
     void verify_exception(const char* expected_message, std::function<void()> fn)
@@ -126,7 +126,7 @@ protected:
     }
 };
 
-TEST_F(rules__rule_checker, table_not_found)
+TEST_F(rules__rule_checker__test, table_not_found)
 {
     const gaia_type_t gaia_type = 1000;
     rule_checker_t rule_checker;
@@ -134,13 +134,13 @@ TEST_F(rules__rule_checker, table_not_found)
     verify_exception(message, [&]() { rule_checker.check_catalog(gaia_type, empty_fields); });
 }
 
-TEST_F(rules__rule_checker, table_found)
+TEST_F(rules__rule_checker__test, table_found)
 {
     rule_checker_t rule_checker;
     rule_checker.check_catalog(g_table_type, empty_fields);
 }
 
-TEST_F(rules__rule_checker, field_not_found)
+TEST_F(rules__rule_checker__test, field_not_found)
 {
     const field_position_t field = 1000;
     rule_checker_t rule_checker;
@@ -155,7 +155,7 @@ TEST_F(rules__rule_checker, field_not_found)
     verify_exception(message.str().c_str(), [&]() { rule_checker.check_catalog(g_table_type, fields); });
 }
 
-TEST_F(rules__rule_checker, active_field)
+TEST_F(rules__rule_checker__test, active_field)
 {
     rule_checker_t rule_checker;
 
@@ -164,7 +164,7 @@ TEST_F(rules__rule_checker, active_field)
     rule_checker.check_catalog(g_table_type, fields);
 }
 
-TEST_F(rules__rule_checker, inactive_field)
+TEST_F(rules__rule_checker__test, inactive_field)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
@@ -176,7 +176,7 @@ TEST_F(rules__rule_checker, inactive_field)
     rule_checker.check_catalog(g_table_type, fields);
 }
 
-TEST_F(rules__rule_checker, deprecated_field)
+TEST_F(rules__rule_checker__test, deprecated_field)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
@@ -190,7 +190,7 @@ TEST_F(rules__rule_checker, deprecated_field)
     verify_exception(message.str().c_str(), [&]() { rule_checker.check_catalog(g_table_type, fields); });
 }
 
-TEST_F(rules__rule_checker, multiple_valid_fields)
+TEST_F(rules__rule_checker__test, multiple_valid_fields)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
@@ -199,7 +199,7 @@ TEST_F(rules__rule_checker, multiple_valid_fields)
     rule_checker.check_catalog(g_table_type, fields);
 }
 
-TEST_F(rules__rule_checker, multiple_invalid_fields)
+TEST_F(rules__rule_checker__test, multiple_invalid_fields)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
@@ -213,7 +213,7 @@ TEST_F(rules__rule_checker, multiple_invalid_fields)
     verify_exception(message, [&]() { rule_checker.check_catalog(g_table_type, fields); });
 }
 
-TEST_F(rules__rule_checker, multiple_fields)
+TEST_F(rules__rule_checker__test, multiple_fields)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;

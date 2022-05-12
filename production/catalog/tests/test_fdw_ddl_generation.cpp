@@ -19,10 +19,10 @@ using namespace gaia::db;
 constexpr char c_table_name[] = "test_table";
 constexpr char c_server_name[] = "test_server";
 
-class catalog__fdw_ddl_generation : public db_test_base_t
+class catalog__fdw_ddl_generation__test : public db_test_base_t
 {
 public:
-    catalog__fdw_ddl_generation()
+    catalog__fdw_ddl_generation__test()
         : db_test_base_t(true, true)
     {
     }
@@ -42,7 +42,7 @@ protected:
     static field_def_list_t test_table_fields;
 };
 
-field_def_list_t catalog__fdw_ddl_generation::test_table_fields;
+field_def_list_t catalog__fdw_ddl_generation__test::test_table_fields;
 
 constexpr char c_expected_fdw_ddl[]
     = "CREATE FOREIGN TABLE \"test_table\"(\n"
@@ -55,7 +55,7 @@ constexpr char c_expected_fdw_ddl[]
       "\"parent\" BIGINT\n"
       ") SERVER test_server;\n";
 
-TEST_F(catalog__fdw_ddl_generation, generate_fdw_ddl_from_catalog)
+TEST_F(catalog__fdw_ddl_generation__test, generate_fdw_ddl_from_catalog)
 {
     gaia_id_t table_id = create_table(c_table_name, test_table_fields);
     create_relationship(

@@ -16,14 +16,14 @@ using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace gaia::airport;
 
-class direct_access__auto_connect : public db_catalog_test_base_t
+class direct_access__auto_connect__test : public db_catalog_test_base_t
 {
 protected:
-    direct_access__auto_connect()
+    direct_access__auto_connect__test()
         : db_catalog_test_base_t("airport.ddl"){};
 };
 
-TEST_F(direct_access__auto_connect, child_insert_connect)
+TEST_F(direct_access__auto_connect__test, child_insert_connect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
@@ -49,7 +49,7 @@ TEST_F(direct_access__auto_connect, child_insert_connect)
     ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
 }
 
-TEST_F(direct_access__auto_connect, child_update_connect)
+TEST_F(direct_access__auto_connect__test, child_update_connect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
@@ -70,7 +70,7 @@ TEST_F(direct_access__auto_connect, child_update_connect)
     ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
 }
 
-TEST_F(direct_access__auto_connect, child_update_disconnect)
+TEST_F(direct_access__auto_connect__test, child_update_disconnect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
@@ -91,7 +91,7 @@ TEST_F(direct_access__auto_connect, child_update_disconnect)
     ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), c_invalid_gaia_id);
 }
 
-TEST_F(direct_access__auto_connect, child_update_reconnect)
+TEST_F(direct_access__auto_connect__test, child_update_reconnect)
 {
     const int32_t enterprise_flight_number = 1701;
     const int32_t voyager_flight_number = 74656;
@@ -121,7 +121,7 @@ TEST_F(direct_access__auto_connect, child_update_reconnect)
     ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), voyager_flight_id);
 }
 
-TEST_F(direct_access__auto_connect, parent_insert_connect)
+TEST_F(direct_access__auto_connect__test, parent_insert_connect)
 {
     // Ensure that auto-connect works with the default value for the type (0). This
     // test will ensure that the underlying FlatBufferBuilder is configured to
@@ -146,7 +146,7 @@ TEST_F(direct_access__auto_connect, parent_insert_connect)
     ASSERT_EQ(passenger_ids, return_passenger_ids);
 }
 
-TEST_F(direct_access__auto_connect, parent_update_disconnect)
+TEST_F(direct_access__auto_connect__test, parent_update_disconnect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
@@ -169,7 +169,7 @@ TEST_F(direct_access__auto_connect, parent_update_disconnect)
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight_number(), flight_number);
 }
 
-TEST_F(direct_access__auto_connect, parent_update_reconnect)
+TEST_F(direct_access__auto_connect__test, parent_update_reconnect)
 {
     const int32_t old_flight_number = 1;
     const int32_t new_flight_number = 1701;
@@ -203,7 +203,7 @@ TEST_F(direct_access__auto_connect, parent_update_reconnect)
     ASSERT_EQ(passenger_ids, return_passenger_ids);
 }
 
-TEST_F(direct_access__auto_connect, delete_parent)
+TEST_F(direct_access__auto_connect__test, delete_parent)
 {
     const int32_t old_flight_number = 1;
     const int32_t new_flight_number = 1701;
@@ -250,7 +250,7 @@ TEST_F(direct_access__auto_connect, delete_parent)
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 }
 
-TEST_F(direct_access__auto_connect, disconnect_delete)
+TEST_F(direct_access__auto_connect__test, disconnect_delete)
 {
     // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2138
     gaia::db::begin_transaction();

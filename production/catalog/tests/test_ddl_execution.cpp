@@ -20,10 +20,10 @@ using namespace gaia::catalog;
 using namespace gaia::common;
 using namespace gaia::db;
 
-class catalog__ddl_execution : public db_catalog_test_base_t
+class catalog__ddl_execution__test : public db_catalog_test_base_t
 {
 protected:
-    catalog__ddl_execution()
+    catalog__ddl_execution__test()
         : db_catalog_test_base_t(){};
 
     void SetUp() override
@@ -55,7 +55,7 @@ protected:
     }
 };
 
-TEST_F(catalog__ddl_execution, create_table_with_unique_constraints)
+TEST_F(catalog__ddl_execution__test, create_table_with_unique_constraints)
 {
     ddl::parser_t parser;
     ASSERT_NO_THROW(parser.parse_string("DROP TABLE IF EXISTS t; CREATE TABLE IF NOT EXISTS t(c INT32 UNIQUE);"));
@@ -73,7 +73,7 @@ TEST_F(catalog__ddl_execution, create_table_with_unique_constraints)
     ASSERT_EQ(gaia_index_t::list().where(gaia_index_expr::name == "t_c").size(), 1);
 }
 
-TEST_F(catalog__ddl_execution, create_relationship_using_fields)
+TEST_F(catalog__ddl_execution__test, create_relationship_using_fields)
 {
     const string ddl = R"(
 DROP TABLE IF EXISTS t1;
@@ -102,7 +102,7 @@ CREATE RELATIONSHIP r1 (
         gaia_field_t::list().where(gaia_field_expr::name == "c1").begin()->position());
 }
 
-TEST_F(catalog__ddl_execution, drop_relationship)
+TEST_F(catalog__ddl_execution__test, drop_relationship)
 {
     const string create_relationship_ddl = R"(
 DROP TABLE IF EXISTS t1;
@@ -162,7 +162,7 @@ DROP TABLE IF EXISTS t2;
     ASSERT_THROW(execute(parser.statements), relationship_does_not_exist);
 }
 
-TEST_F(catalog__ddl_execution, drop_index)
+TEST_F(catalog__ddl_execution__test, drop_index)
 {
     const string create_index_ddl = R"(
 DROP TABLE IF EXISTS t;
@@ -202,7 +202,7 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
     ASSERT_THROW(execute(parser.statements), index_does_not_exist);
 }
 
-TEST_F(catalog__ddl_execution, create_list)
+TEST_F(catalog__ddl_execution__test, create_list)
 {
     const string create_list_ddl = R"(
 CREATE RELATIONSHIP r (
@@ -218,7 +218,7 @@ CREATE TABLE t2(c2 INT32);
     ASSERT_NO_THROW(execute(parser.statements));
 }
 
-TEST_F(catalog__ddl_execution, in_table_relationship_definition)
+TEST_F(catalog__ddl_execution__test, in_table_relationship_definition)
 {
     // The following list of DDLs come in pairs. The first one is the test case.
     // The second one will delete the entities created in the first. Successful
@@ -347,7 +347,7 @@ drop database hospital;
     }
 }
 
-TEST_F(catalog__ddl_execution, invalid_create_list)
+TEST_F(catalog__ddl_execution__test, invalid_create_list)
 {
     array ddls{
         // Table names cannot contain a database name.
@@ -372,7 +372,7 @@ create relationship r (d.t1.link2 -> t2, d.t2.link1 -> t1);
     }
 }
 
-TEST_F(catalog__ddl_execution, ambiguous_reference_definition)
+TEST_F(catalog__ddl_execution__test, ambiguous_reference_definition)
 {
     string ddl{R"(
 create table t1(c1 int32, link1a references t2, link1b references t2)
@@ -384,7 +384,7 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
     ASSERT_THROW(execute(parser.statements), ambiguous_reference_definition);
 }
 
-TEST_F(catalog__ddl_execution, orphaned_reference_definition)
+TEST_F(catalog__ddl_execution__test, orphaned_reference_definition)
 {
     string ddl{R"(
 create table t1(c1 int32, link1 references t2)
@@ -396,7 +396,7 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
     ASSERT_THROW(execute(parser.statements), orphaned_reference_definition);
 }
 
-TEST_F(catalog__ddl_execution, invalid_relationship_field)
+TEST_F(catalog__ddl_execution__test, invalid_relationship_field)
 {
     array ddls{
         // Incorrect table names in where clause.
@@ -444,7 +444,7 @@ create table employee (
     }
 }
 
-TEST_F(catalog__ddl_execution, cross_db_relationship)
+TEST_F(catalog__ddl_execution__test, cross_db_relationship)
 {
     string ddl =
         R"(
@@ -460,7 +460,7 @@ create relationship r (d1.t1.link2 -> d2.t2, d2.t2.link1 -> d1.t1);
     ASSERT_THROW(execute(parser.statements), no_cross_db_relationship);
 }
 
-TEST_F(catalog__ddl_execution, create_optional_fields)
+TEST_F(catalog__ddl_execution__test, create_optional_fields)
 {
     const string ddl = R"(
 DROP TABLE IF EXISTS t1;
@@ -481,7 +481,7 @@ CREATE TABLE IF NOT EXISTS t2(t2c1 INT32 OPTIONAL UNIQUE, t2c2 INT32[] OPTIONAL)
     ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t2c2").begin()->optional(), true);
 }
 
-TEST_F(catalog__ddl_execution, no_system_db_operation)
+TEST_F(catalog__ddl_execution__test, no_system_db_operation)
 {
     array ddls{
         R"(
@@ -512,7 +512,7 @@ create table if not exists t (c int32);
 
 // Pairs of tables with disjoint relationships should result in hash codes
 // that are the same regardless of ordering.
-TEST_F(catalog__ddl_execution, hash_disjoint_relationships)
+TEST_F(catalog__ddl_execution__test, hash_disjoint_relationships)
 {
     const string ddl_order1 = R"(
 CREATE TABLE t1(c1 INT32);
@@ -576,7 +576,7 @@ CREATE RELATIONSHIP r1 (
 
 // Pairs of tables with disjoint relationships should result in hash codes
 // that are the same regardless of ordering.
-TEST_F(catalog__ddl_execution, hash_disjoint_inline_relationships)
+TEST_F(catalog__ddl_execution__test, hash_disjoint_inline_relationships)
 {
     const string ddl_order1 = R"(
 CREATE TABLE t1(
@@ -646,7 +646,7 @@ CREATE TABLE t4(
 
 // Tables with shared relationships should result in hash codes
 // that are the same when the tables are in a different order.
-TEST_F(catalog__ddl_execution, hash_overlapping_inline_relationships)
+TEST_F(catalog__ddl_execution__test, hash_overlapping_inline_relationships)
 {
     const string ddl_order1 = R"(
 CREATE TABLE t1(
@@ -709,7 +709,7 @@ CREATE TABLE t1(
 
 // Tables with shared relationships should result in hash codes
 // that are the same when the relationships are in a different order.
-TEST_F(catalog__ddl_execution, hash_reversed_relationships)
+TEST_F(catalog__ddl_execution__test, hash_reversed_relationships)
 {
     const string ddl_order1 = R"(
 CREATE TABLE t1(c1 INT32);

@@ -21,16 +21,16 @@ using namespace gaia::addr_book;
  * These tests were originally in the DAC object test suite, but as more tests
  * were added, they were separated into this array field test suite.
  */
-class direct_access__array_field : public db_catalog_test_base_t
+class direct_access__array_field__test : public db_catalog_test_base_t
 {
 protected:
-    direct_access__array_field()
+    direct_access__array_field__test()
         : db_catalog_test_base_t("addr_book.ddl")
     {
     }
 };
 
-TEST_F(direct_access__array_field, insert)
+TEST_F(direct_access__array_field__test, insert)
 {
     const char* customer_name = "Unibot";
     const int32_t q1_sales = 200;
@@ -46,7 +46,7 @@ TEST_F(direct_access__array_field, insert)
     EXPECT_TRUE(std::equal(sales_by_quarter.begin(), sales_by_quarter.end(), c.sales_by_quarter().data()));
 }
 
-TEST_F(direct_access__array_field, writer)
+TEST_F(direct_access__array_field__test, writer)
 {
     const char* customer_name = "xorlab";
     const int32_t q1_sales = 100;
@@ -73,7 +73,7 @@ TEST_F(direct_access__array_field, writer)
     EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
 }
 
-TEST_F(direct_access__array_field, empty)
+TEST_F(direct_access__array_field__test, empty)
 {
     // If the array field is not optional and no value is given when inserting
     // the row, an empty vector will be inserted (by FlatBuffers). This test
@@ -91,7 +91,7 @@ TEST_F(direct_access__array_field, empty)
     EXPECT_EQ(c.sales_by_quarter().size(), 0);
 }
 
-TEST_F(direct_access__array_field, iteration)
+TEST_F(direct_access__array_field__test, iteration)
 {
     auto_transaction_t txn;
     customer_t customer = customer_t::get(customer_t::insert_row("Unibot", {200, 300, 500}));

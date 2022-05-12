@@ -8,7 +8,7 @@
 // The child must be "clean" in the sense that it cannot be started with
 // handles and threads from the parent process that require separate cleanup.
 // For this reason, the function pthread_atfork() is used in the definition
-// of the fixture 'common__multi_process'. It causes the logger to be shut
+// of the fixture 'common__multi_process__test'. It causes the logger to be shut
 // down before the fork, then restarts it in the separate processes.
 //
 // If this test starts hanging while it runs, it is probably another form of
@@ -64,10 +64,10 @@ constexpr const char c_go_parent[] = "go_parent";
 
 // The multi_process fixture overrides SetUp() and TeadDown() because
 // it needs to control when begin_session() and end_session() are called.
-class common__multi_process : public db_catalog_test_base_t
+class common__multi_process__test : public db_catalog_test_base_t
 {
 protected:
-    common__multi_process()
+    common__multi_process__test()
         : db_catalog_test_base_t("addr_book.ddl", false)
     {
     }
@@ -148,7 +148,7 @@ protected:
 };
 
 // Test parallel multi-process transactions.
-TEST_F(common__multi_process, inserts)
+TEST_F(common__multi_process__test, inserts)
 {
     std::unordered_set<std::string> employee_names;
 
@@ -297,7 +297,7 @@ TEST_F(common__multi_process, inserts)
 }
 
 // Test parallel multi-process transactions and aborts.
-TEST_F(common__multi_process, aborts)
+TEST_F(common__multi_process__test, aborts)
 {
     std::unordered_set<std::string> employee_names;
 
@@ -449,7 +449,7 @@ TEST_F(common__multi_process, aborts)
 }
 
 // Create objects in one process, connect them in another, verify in first process.
-TEST_F(common__multi_process, conflict)
+TEST_F(common__multi_process__test, conflict)
 {
     semaphore_initialize();
 
@@ -548,7 +548,7 @@ TEST_F(common__multi_process, conflict)
 }
 
 // Create objects in one process, connect them in another, verify in first process.
-TEST_F(common__multi_process, commit)
+TEST_F(common__multi_process__test, commit)
 {
     semaphore_initialize();
 

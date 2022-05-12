@@ -29,10 +29,10 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-class direct_access__expressions : public db_catalog_test_base_t
+class direct_access__expressions__test : public db_catalog_test_base_t
 {
 public:
-    direct_access__expressions()
+    direct_access__expressions__test()
         : db_catalog_test_base_t("addr_book.ddl"){};
 
 protected:
@@ -182,7 +182,7 @@ protected:
     }
 };
 
-TEST_F(direct_access__expressions, gaia_id_ed)
+TEST_F(direct_access__expressions__test, gaia_id_ed)
 {
     auto_transaction_t txn;
     assert_contains(
@@ -206,7 +206,7 @@ TEST_F(direct_access__expressions, gaia_id_ed)
             .where(employee_t::expr::gaia_id != seattle.gaia_id()));
 }
 
-TEST_F(direct_access__expressions, int64_eq)
+TEST_F(direct_access__expressions__test, int64_eq)
 {
     auto_transaction_t txn;
 
@@ -229,7 +229,7 @@ TEST_F(direct_access__expressions, int64_eq)
             .where(date(2050, 5, 10) == hire_date));
 }
 
-TEST_F(direct_access__expressions, int64_ne)
+TEST_F(direct_access__expressions__test, int64_ne)
 {
     auto_transaction_t txn;
 
@@ -253,7 +253,7 @@ TEST_F(direct_access__expressions, int64_ne)
             .where(hire_date != hire_date));
 }
 
-TEST_F(direct_access__expressions, int64_gt)
+TEST_F(direct_access__expressions__test, int64_gt)
 {
     auto_transaction_t txn;
 
@@ -276,7 +276,7 @@ TEST_F(direct_access__expressions, int64_gt)
             .where(hire_date > hire_date));
 }
 
-TEST_F(direct_access__expressions, int64_ge)
+TEST_F(direct_access__expressions__test, int64_ge)
 {
     auto_transaction_t txn;
 
@@ -299,7 +299,7 @@ TEST_F(direct_access__expressions, int64_ge)
             .where(hire_date >= hire_date));
 }
 
-TEST_F(direct_access__expressions, int64_lt)
+TEST_F(direct_access__expressions__test, int64_lt)
 {
     auto_transaction_t txn;
 
@@ -322,7 +322,7 @@ TEST_F(direct_access__expressions, int64_lt)
             .where(hire_date < hire_date));
 }
 
-TEST_F(direct_access__expressions, int64_le)
+TEST_F(direct_access__expressions__test, int64_le)
 {
     auto_transaction_t txn;
 
@@ -345,7 +345,7 @@ TEST_F(direct_access__expressions, int64_le)
             .where(hire_date <= hire_date));
 }
 
-TEST_F(direct_access__expressions, string_eq)
+TEST_F(direct_access__expressions__test, string_eq)
 {
     auto_transaction_t txn;
 
@@ -388,7 +388,7 @@ TEST_F(direct_access__expressions, string_eq)
             .where(name_first == "Olbudio"));
 }
 
-TEST_F(direct_access__expressions, string_ne)
+TEST_F(direct_access__expressions__test, string_ne)
 {
     auto_transaction_t txn;
 
@@ -428,7 +428,7 @@ TEST_F(direct_access__expressions, string_ne)
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 }
 
-TEST_F(direct_access__expressions, object_eq)
+TEST_F(direct_access__expressions__test, object_eq)
 {
     auto_transaction_t txn;
 
@@ -451,7 +451,7 @@ TEST_F(direct_access__expressions, object_eq)
             .where(owner == employee_t()));
 }
 
-TEST_F(direct_access__expressions, object_ne)
+TEST_F(direct_access__expressions__test, object_ne)
 {
     auto_transaction_t txn;
 
@@ -476,7 +476,7 @@ TEST_F(direct_access__expressions, object_ne)
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
-TEST_F(direct_access__expressions, or_expr)
+TEST_F(direct_access__expressions__test, or_expr)
 {
     auto_transaction_t txn;
 
@@ -500,7 +500,7 @@ TEST_F(direct_access__expressions, or_expr)
     assert_empty(employees);
 }
 
-TEST_F(direct_access__expressions, and_expr)
+TEST_F(direct_access__expressions__test, and_expr)
 {
     auto_transaction_t txn;
 
@@ -519,7 +519,7 @@ TEST_F(direct_access__expressions, and_expr)
             .where(hire_date <= date(2021, 1, 1) && hire_date >= date(2036, 2, 7)));
 }
 
-TEST_F(direct_access__expressions, xor_expr)
+TEST_F(direct_access__expressions__test, xor_expr)
 {
     auto_transaction_t txn;
 
@@ -543,7 +543,7 @@ TEST_F(direct_access__expressions, xor_expr)
     assert_empty(employees);
 }
 
-TEST_F(direct_access__expressions, not_expr)
+TEST_F(direct_access__expressions__test, not_expr)
 {
     auto_transaction_t txn;
 
@@ -562,7 +562,7 @@ TEST_F(direct_access__expressions, not_expr)
             .where(!(hire_date > date(2001, 1, 1))));
 }
 
-TEST_F(direct_access__expressions, mix_boolean_expr)
+TEST_F(direct_access__expressions__test, mix_boolean_expr)
 {
     auto_transaction_t txn;
 
@@ -581,7 +581,7 @@ TEST_F(direct_access__expressions, mix_boolean_expr)
             .where((name_first == "Wayne" && name_last == "Warren") && (hire_date > date(2036, 2, 7))));
 }
 
-TEST_F(direct_access__expressions, container_contains_predicate)
+TEST_F(direct_access__expressions__test, container_contains_predicate)
 {
     auto_transaction_t txn;
 
@@ -597,7 +597,7 @@ TEST_F(direct_access__expressions, container_contains_predicate)
                        .contains(address_expr::state == "CA")));
 }
 
-TEST_F(direct_access__expressions, container_contains_object)
+TEST_F(direct_access__expressions__test, container_contains_object)
 {
     auto_transaction_t txn;
 
@@ -612,7 +612,7 @@ TEST_F(direct_access__expressions, container_contains_object)
     assert_empty(employee_t::list().where(addresses.contains(marzabotto)));
 }
 
-TEST_F(direct_access__expressions, nested_container)
+TEST_F(direct_access__expressions__test, nested_container)
 {
     auto_transaction_t txn;
 
@@ -622,7 +622,7 @@ TEST_F(direct_access__expressions, nested_container)
         {dax});
 }
 
-TEST_F(direct_access__expressions, container_empty)
+TEST_F(direct_access__expressions__test, container_empty)
 {
     auto_transaction_t txn;
 
@@ -637,7 +637,7 @@ TEST_F(direct_access__expressions, container_empty)
             .where(addresses.empty()));
 }
 
-TEST_F(direct_access__expressions, container_count)
+TEST_F(direct_access__expressions__test, container_count)
 {
     auto_transaction_t txn;
 
@@ -656,7 +656,7 @@ TEST_F(direct_access__expressions, container_count)
             .where(addresses.count() > 10));
 }
 
-TEST_F(direct_access__expressions, array)
+TEST_F(direct_access__expressions__test, array)
 {
     auto_transaction_t txn;
     assert_contains(
@@ -694,7 +694,7 @@ TEST_F(direct_access__expressions, array)
     assert_non_empty(customer_t::list().where(sales_by_quarter.size() == 5));
 }
 
-TEST_F(direct_access__expressions, one_to_one)
+TEST_F(direct_access__expressions__test, one_to_one)
 {
     auto_transaction_t txn;
 

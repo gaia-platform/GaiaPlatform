@@ -43,7 +43,7 @@ bool verify_serialization(const data_holder_t& from, bool optional)
     return to.compare(from) == 0;
 }
 
-TEST(db__payload_types__serialization, basic)
+TEST(db__payload_types__serialization__test, basic)
 {
     data_holder_t float_value = c_float_value;
     data_holder_t signed_float_value = c_another_float_value;
@@ -62,7 +62,7 @@ TEST(db__payload_types__serialization, basic)
     ASSERT_TRUE(verify_serialization(vector_value, false));
 }
 
-TEST(db__payload_types__serialization, optional)
+TEST(db__payload_types__serialization__test, optional)
 {
     data_holder_t float_value = c_float_value;
     data_holder_t signed_float_value = c_another_float_value;
@@ -81,7 +81,7 @@ TEST(db__payload_types__serialization, optional)
     ASSERT_TRUE(verify_serialization(vector_value, true));
 }
 
-TEST(db__payload_types__serialization, null)
+TEST(db__payload_types__serialization__test, null)
 {
     data_holder_t nullstring;
     nullstring.type = reflection::String;

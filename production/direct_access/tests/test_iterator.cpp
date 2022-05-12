@@ -28,10 +28,10 @@ constexpr size_t c_count_iterations = 10;
 
 bool g_stop_all = false;
 
-class direct_access__iterator : public db_catalog_test_base_t
+class direct_access__iterator__test : public db_catalog_test_base_t
 {
 protected:
-    direct_access__iterator()
+    direct_access__iterator__test()
         : db_catalog_test_base_t("addr_book.ddl", true, true, true)
     {
     }
@@ -202,7 +202,7 @@ void update_work(size_t id, size_t wait_in_ms)
         << "(" << found_name_1 << "/" << found_name_2 << ")" << std::endl;
 }
 
-TEST_F(direct_access__iterator, parallel_read_update)
+TEST_F(direct_access__iterator__test, parallel_read_update)
 {
     begin_transaction();
     customer_t::insert_row(c_name_1.c_str(), std::vector<int32_t>());

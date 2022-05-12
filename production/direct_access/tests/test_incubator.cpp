@@ -19,10 +19,10 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 
-class direct_access__incubator : public db_catalog_test_base_t
+class direct_access__incubator__test : public db_catalog_test_base_t
 {
 protected:
-    direct_access__incubator()
+    direct_access__incubator__test()
         : db_catalog_test_base_t(std::string("incubator.ddl")){};
 
     gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
@@ -36,7 +36,7 @@ protected:
 };
 
 // Make sure incubator demo schema works for read and write.
-TEST_F(direct_access__incubator, schema_read_write_test)
+TEST_F(direct_access__incubator__test, schema_read_write_test)
 {
     const char c_chicken[] = "Simone";
     const float c_chicken_min = 76.7f;

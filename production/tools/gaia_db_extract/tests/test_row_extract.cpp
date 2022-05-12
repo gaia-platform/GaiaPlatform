@@ -31,10 +31,10 @@ using std::thread;
 constexpr uint32_t c_one_K_rows = 1024;
 constexpr uint32_t c_just_a_few_rows = 7;
 
-class tools__gaia_db_extract__row_extract : public db_catalog_test_base_t
+class tools__gaia_db_extract__row_extract__test : public db_catalog_test_base_t
 {
 protected:
-    tools__gaia_db_extract__row_extract()
+    tools__gaia_db_extract__row_extract__test()
         : db_catalog_test_base_t(string("addr_book.ddl")){};
 
     // Utility function that creates one named employee row.
@@ -142,7 +142,7 @@ protected:
 };
 
 // Store rows, convert them to JSON, scan through them as multiple blocks.
-TEST_F(tools__gaia_db_extract__row_extract, read_blocks)
+TEST_F(tools__gaia_db_extract__row_extract__test, read_blocks)
 {
     // Try this with a number of permutations. The number of rows created goes from
     // 0 to over 1K. The test will scan the created rows in blocks of varying sizes

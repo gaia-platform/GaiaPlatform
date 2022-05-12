@@ -24,10 +24,10 @@ using json_t = nlohmann::json;
 constexpr char c_table_name[] = "test_table";
 constexpr char c_db_name[] = "extract_test";
 
-class tools__gaia_db_extract : public db_test_base_t
+class tools__gaia_db_extract__test : public db_test_base_t
 {
 public:
-    tools__gaia_db_extract()
+    tools__gaia_db_extract__test()
         : db_test_base_t(true, true)
     {
     }
@@ -47,12 +47,12 @@ protected:
     static field_def_list_t test_table_fields;
 };
 
-field_def_list_t tools__gaia_db_extract::test_table_fields;
+field_def_list_t tools__gaia_db_extract__test::test_table_fields;
 
 // TODO: This test is unstable as IDs are not guaranteed to be the same.
 // Compare a JSON-formatted query result to a known good result. Use a JSON
 // comparison method that is white-space and ordering independent.
-TEST_F(tools__gaia_db_extract, extract_catalog)
+TEST_F(tools__gaia_db_extract__test, extract_catalog)
 {
     create_database(c_db_name, false);
     create_table(c_db_name, c_table_name, test_table_fields);
@@ -106,7 +106,7 @@ TEST_F(tools__gaia_db_extract, extract_catalog)
 // Exercise the ability to scan through a database table as a sequence of blocks
 // of table rows. Verify that rows have been scanned and that the last of the rows
 // has been read.
-TEST_F(tools__gaia_db_extract, extract_catalog_rows)
+TEST_F(tools__gaia_db_extract__test, extract_catalog_rows)
 {
     create_database("extract_test", false);
     create_table(c_table_name, test_table_fields);

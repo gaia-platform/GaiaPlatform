@@ -28,10 +28,10 @@ using std::exception;
 using std::string;
 using std::thread;
 
-class tools__gaia_db_extract__row_field_values : public db_catalog_test_base_t
+class tools__gaia_db_extract__row_field_values__test : public db_catalog_test_base_t
 {
 protected:
-    tools__gaia_db_extract__row_field_values()
+    tools__gaia_db_extract__row_field_values__test()
         : db_catalog_test_base_t(string("amr_swarm.ddl")){};
 
     template <typename T_floatsize>
@@ -47,7 +47,7 @@ constexpr double double_tolerance = 0.00001;
 
 // Test JSON conversion to double, float, string, uint8_t, uint32_t, bool.
 // Using amr_swarm DDL because of it's variety of data types.
-TEST_F(tools__gaia_db_extract__row_field_values, verify_field_values)
+TEST_F(tools__gaia_db_extract__row_field_values__test, verify_field_values)
 {
     // Using configuration_t.
     {

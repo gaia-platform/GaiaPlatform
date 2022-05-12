@@ -239,7 +239,7 @@ public:
     }
 };
 
-class rules__rule_stats : public ::testing::Test
+class rules__rule_stats__test : public ::testing::Test
 {
 public:
     // Do comparison with a big fudge factor (within 5x)
@@ -489,21 +489,21 @@ protected:
     const char* c_rule6 = "rule6";
 };
 
-ostringstream rules__rule_stats::s_logger_output;
+ostringstream rules__rule_stats__test::s_logger_output;
 
-TEST_F(rules__rule_stats, rule_stats_ctor)
+TEST_F(rules__rule_stats__test, rule_stats_ctor)
 {
     rule_stats_t stats(c_rule_id);
     verify_stats(stats, {c_rule_id});
 }
 
-TEST_F(rules__rule_stats, rule_stats_null_rule_id)
+TEST_F(rules__rule_stats__test, rule_stats_null_rule_id)
 {
     rule_stats_t stats;
     EXPECT_STREQ(stats.rule_id.c_str(), "");
 }
 
-TEST_F(rules__rule_stats, rule_stats_reset)
+TEST_F(rules__rule_stats__test, rule_stats_reset)
 {
     rule_stats_t stats(c_rule_id);
     stats_data_t data = {c_rule_id, 1, 2, 3, 4, 5, 6};
@@ -512,7 +512,7 @@ TEST_F(rules__rule_stats, rule_stats_reset)
     verify_stats(stats, {c_rule_id});
 }
 
-TEST_F(rules__rule_stats, accumulators)
+TEST_F(rules__rule_stats__test, accumulators)
 {
     rule_stats_t stats(c_rule_id);
 
@@ -552,7 +552,7 @@ TEST_F(rules__rule_stats, accumulators)
     EXPECT_EQ(stats.max_rule_invocation_latency, c_max_latency);
 }
 
-TEST_F(rules__rule_stats, log)
+TEST_F(rules__rule_stats__test, log)
 {
     rule_stats_t stats(c_rule_id);
     // Writes out stats from 1 - 10.  The (7*2) and (9*2) values represent
@@ -571,7 +571,7 @@ TEST_F(rules__rule_stats, log)
     verify_log();
 }
 
-TEST_F(rules__rule_stats, log_no_executions)
+TEST_F(rules__rule_stats__test, log_no_executions)
 {
     rule_stats_t stats(c_rule_id);
     stats_data_t data = {c_rule_id, 5, 0, 4, 0, 0, 1};
@@ -581,7 +581,7 @@ TEST_F(rules__rule_stats, log_no_executions)
     verify_log();
 }
 
-TEST_F(rules__rule_stats, log_default)
+TEST_F(rules__rule_stats__test, log_default)
 {
     rule_stats_t stats;
     stats_data_t data = {""};
@@ -591,7 +591,7 @@ TEST_F(rules__rule_stats, log_default)
     verify_log();
 }
 
-TEST_F(rules__rule_stats, log_cumulative)
+TEST_F(rules__rule_stats__test, log_cumulative)
 {
     rule_stats_t stats;
     float thread_load = 25.0;
@@ -609,7 +609,7 @@ TEST_F(rules__rule_stats, log_cumulative)
     verify_log();
 }
 
-TEST_F(rules__rule_stats, scheduler_stats)
+TEST_F(rules__rule_stats__test, scheduler_stats)
 {
     const uint32_t log_interval = 10;
     const size_t count_threads = 2;
@@ -625,7 +625,7 @@ TEST_F(rules__rule_stats, scheduler_stats)
     verify_stats(stats, {});
 }
 
-TEST_F(rules__rule_stats, scheduler_stats_header)
+TEST_F(rules__rule_stats__test, scheduler_stats_header)
 {
     const uint32_t log_interval = 10;
     const size_t count_threads = 2;
@@ -638,7 +638,7 @@ TEST_F(rules__rule_stats, scheduler_stats_header)
     verify_log();
 }
 
-TEST_F(rules__rule_stats, stats_manager_header)
+TEST_F(rules__rule_stats__test, stats_manager_header)
 {
     const uint32_t log_interval = 0;
     const size_t count_threads = 10;
@@ -668,7 +668,7 @@ TEST_F(rules__rule_stats, stats_manager_header)
     verify_log();
 };
 
-TEST_F(rules__rule_stats, stats_manager_cumulative)
+TEST_F(rules__rule_stats__test, stats_manager_cumulative)
 {
     const uint32_t log_interval = 0;
     const size_t count_threads = 1;
@@ -712,7 +712,7 @@ TEST_F(rules__rule_stats, stats_manager_cumulative)
     verify_log(c_use_fuzzy_match);
 }
 
-TEST_F(rules__rule_stats, stats_manager_multi_individual)
+TEST_F(rules__rule_stats__test, stats_manager_multi_individual)
 {
     const uint32_t log_interval = 0;
     const size_t count_threads = 1;
@@ -766,7 +766,7 @@ TEST_F(rules__rule_stats, stats_manager_multi_individual)
     verify_log(c_use_fuzzy_match);
 }
 
-TEST_F(rules__rule_stats, stats_manager_same_individual)
+TEST_F(rules__rule_stats__test, stats_manager_same_individual)
 {
     const uint32_t log_interval = 0;
     const size_t count_threads = 1;
@@ -804,7 +804,7 @@ TEST_F(rules__rule_stats, stats_manager_same_individual)
     verify_log(c_use_fuzzy_match);
 }
 
-TEST_F(rules__rule_stats, truncated_rule_id)
+TEST_F(rules__rule_stats__test, truncated_rule_id)
 {
     // An empty rule name should be okay.
     rule_stats_t empty_name;

@@ -10,7 +10,7 @@
 using namespace gaia::common;
 using namespace gaia::db::caches;
 
-TEST(db__core__db_caches, table_relationship_fields_cache_t)
+TEST(db__core__db_caches__test, table_relationship_fields_cache_t)
 {
     ASSERT_FALSE(table_relationship_fields_cache_t::get()->is_initialized());
 

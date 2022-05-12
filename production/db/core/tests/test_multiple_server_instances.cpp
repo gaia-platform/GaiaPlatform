@@ -31,10 +31,10 @@ static constexpr uint32_t c_num_employees = 10;
 static constexpr uint32_t c_sleep_micros = 100000;
 static constexpr uint32_t c_max_reader_wait_seconds = 10;
 
-class db__core__multiple_server_instances : public ::testing::Test
+class db__core__multiple_server_instances__test : public ::testing::Test
 {
 public:
-    db__core__multiple_server_instances() = default;
+    db__core__multiple_server_instances__test() = default;
 
 protected:
     static void SetUpTestSuite()
@@ -140,7 +140,7 @@ private:
 };
 
 // TODO re-enable once we have multi-instance support.
-TEST_F(db__core__multiple_server_instances, DISABLED_basic)
+TEST_F(db__core__multiple_server_instances__test, DISABLED_basic)
 {
     std::vector<server_instance_t> server_instances;
 
