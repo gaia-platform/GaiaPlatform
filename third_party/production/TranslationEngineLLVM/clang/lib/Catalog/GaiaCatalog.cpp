@@ -101,6 +101,7 @@ void GaiaCatalog::fillTableData()
             }
             CatalogTableData table_data;
             table_data.dbName = table.database().name();
+            table_data.dbHash = table.database().hash();
             m_catalogTableData[table.name()] = table_data;
         }
 

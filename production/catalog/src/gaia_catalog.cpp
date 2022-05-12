@@ -17,12 +17,14 @@ namespace catalog
 // Implementation of class rule_relationship_t.
 //
 
-const char* rule_relationship_t::gaia_typename() {
+const char* rule_relationship_t::gaia_typename()
+{
     static const char* gaia_typename = "rule_relationship_t";
     return gaia_typename;
 }
 
-const char* rule_relationship_t::gaia_hash() {
+const char* rule_relationship_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -65,12 +67,14 @@ gaia_rule_t rule_relationship_t::rule() const
 // Implementation of class rule_field_t.
 //
 
-const char* rule_field_t::gaia_typename() {
+const char* rule_field_t::gaia_typename()
+{
     static const char* gaia_typename = "rule_field_t";
     return gaia_typename;
 }
 
-const char* rule_field_t::gaia_hash() {
+const char* rule_field_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -118,12 +122,14 @@ gaia_rule_t rule_field_t::rule() const
 // Implementation of class rule_table_t.
 //
 
-const char* rule_table_t::gaia_typename() {
+const char* rule_table_t::gaia_typename()
+{
     static const char* gaia_typename = "rule_table_t";
     return gaia_typename;
 }
 
-const char* rule_table_t::gaia_hash() {
+const char* rule_table_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -171,12 +177,14 @@ gaia_rule_t rule_table_t::rule() const
 // Implementation of class ruleset_database_t.
 //
 
-const char* ruleset_database_t::gaia_typename() {
+const char* ruleset_database_t::gaia_typename()
+{
     static const char* gaia_typename = "ruleset_database_t";
     return gaia_typename;
 }
 
-const char* ruleset_database_t::gaia_hash() {
+const char* ruleset_database_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -214,12 +222,14 @@ gaia_ruleset_t ruleset_database_t::ruleset() const
 // Implementation of class app_ruleset_t.
 //
 
-const char* app_ruleset_t::gaia_typename() {
+const char* app_ruleset_t::gaia_typename()
+{
     static const char* gaia_typename = "app_ruleset_t";
     return gaia_typename;
 }
 
-const char* app_ruleset_t::gaia_hash() {
+const char* app_ruleset_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -268,12 +278,14 @@ gaia_application_t app_ruleset_t::application() const
 // Implementation of class app_database_t.
 //
 
-const char* app_database_t::gaia_typename() {
+const char* app_database_t::gaia_typename()
+{
     static const char* gaia_typename = "app_database_t";
     return gaia_typename;
 }
 
-const char* app_database_t::gaia_hash() {
+const char* app_database_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -311,12 +323,14 @@ gaia_application_t app_database_t::application() const
 // Implementation of class gaia_application_t.
 //
 
-const char* gaia_application_t::gaia_typename() {
+const char* gaia_application_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_application_t";
     return gaia_typename;
 }
 
-const char* gaia_application_t::gaia_hash() {
+const char* gaia_application_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -353,12 +367,14 @@ gaia_application_t::app_databases_list_t gaia_application_t::app_databases() con
 // Implementation of class gaia_rule_t.
 //
 
-const char* gaia_rule_t::gaia_typename() {
+const char* gaia_rule_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_rule_t";
     return gaia_typename;
 }
 
-const char* gaia_rule_t::gaia_hash() {
+const char* gaia_rule_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -411,12 +427,14 @@ gaia_rule_t::rule_tables_list_t gaia_rule_t::rule_tables() const
 // Implementation of class gaia_ruleset_t.
 //
 
-const char* gaia_ruleset_t::gaia_typename() {
+const char* gaia_ruleset_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_ruleset_t";
     return gaia_typename;
 }
 
-const char* gaia_ruleset_t::gaia_hash() {
+const char* gaia_ruleset_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -463,12 +481,14 @@ gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const
 // Implementation of class gaia_ref_anchor_t.
 //
 
-const char* gaia_ref_anchor_t::gaia_typename() {
+const char* gaia_ref_anchor_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_ref_anchor_t";
     return gaia_typename;
 }
 
-const char* gaia_ref_anchor_t::gaia_hash() {
+const char* gaia_ref_anchor_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -490,12 +510,14 @@ gaia::direct_access::dac_container_t<c_gaia_type_gaia_ref_anchor, gaia_ref_ancho
 // Implementation of class gaia_index_t.
 //
 
-const char* gaia_index_t::gaia_typename() {
+const char* gaia_index_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_index_t";
     return gaia_typename;
 }
 
-const char* gaia_index_t::gaia_hash() {
+const char* gaia_index_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -553,12 +575,14 @@ gaia_table_t gaia_index_t::table() const
 // Implementation of class gaia_relationship_t.
 //
 
-const char* gaia_relationship_t::gaia_typename() {
+const char* gaia_relationship_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_relationship_t";
     return gaia_typename;
 }
 
-const char* gaia_relationship_t::gaia_hash() {
+const char* gaia_relationship_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -667,12 +691,14 @@ gaia_table_t gaia_relationship_t::parent() const
 // Implementation of class gaia_field_t.
 //
 
-const char* gaia_field_t::gaia_typename() {
+const char* gaia_field_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_field_t";
     return gaia_typename;
 }
 
-const char* gaia_field_t::gaia_hash() {
+const char* gaia_field_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -750,12 +776,14 @@ gaia_table_t gaia_field_t::table() const
 // Implementation of class gaia_table_t.
 //
 
-const char* gaia_table_t::gaia_typename() {
+const char* gaia_table_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_table_t";
     return gaia_typename;
 }
 
-const char* gaia_table_t::gaia_hash() {
+const char* gaia_table_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
@@ -838,12 +866,14 @@ gaia_table_t::gaia_fields_list_t gaia_table_t::gaia_fields() const
 // Implementation of class gaia_database_t.
 //
 
-const char* gaia_database_t::gaia_typename() {
+const char* gaia_database_t::gaia_typename()
+{
     static const char* gaia_typename = "gaia_database_t";
     return gaia_typename;
 }
 
-const char* gaia_database_t::gaia_hash() {
+const char* gaia_database_t::gaia_hash()
+{
     static const char* gaia_hash = "";
     return gaia_hash;
 }
