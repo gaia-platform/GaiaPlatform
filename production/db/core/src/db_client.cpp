@@ -312,13 +312,16 @@ void client_t::begin_transaction()
         apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
     }
 
+    // TODO: Re-enable these caches once we complete handling of DDL updates.
+    // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2160
+    //
     // We need to perform this initialization in the context of a transaction,
     // so we'll just piggyback on the first transaction started by the client
     // under a regular session.
-    if (s_session_options.session_type == session_type_t::regular)
-    {
-        std::call_once(s_are_db_caches_initialized, init_db_caches);
-    }
+    // if (s_session_options.session_type == session_type_t::regular)
+    // {
+    //     std::call_once(s_are_db_caches_initialized, init_db_caches);
+    // }
 
     cleanup_private_locators.dismiss();
 }
