@@ -72,6 +72,7 @@ public:
     static inline gaia_txn_id_t get_current_txn_id();
     static void clear_shared_memory();
     static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
+    static inline bool has_commit_trigger();
     static inline bool is_ping_session_open();
     static inline bool is_ddl_session_open();
 

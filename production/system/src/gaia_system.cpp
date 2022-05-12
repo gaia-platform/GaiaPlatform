@@ -6,7 +6,6 @@
 #include <cpptoml.h>
 
 #include "gaia/db/db.hpp"
-#include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -17,10 +16,14 @@
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/exceptions.hpp"
+
+#if INCLUDE_RULES_ENGINE
+#include "gaia/rules/rules.hpp"
+
 #include "gaia_internal/rules/rules_config.hpp"
+#endif
 
 using namespace std;
-using namespace gaia::rules;
 using namespace gaia::system;
 using namespace gaia::common;
 using namespace scope_guard;
@@ -87,7 +90,10 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     // so we need to perform this step within a regular database session.
     gaia::db::end_session();
     gaia::db::begin_session();
+
+#if INCLUDE_RULES_ENGINE
     gaia::rules::initialize_rules_engine(root_config);
+#endif
 
     cleanup_init_state.dismiss();
 }
@@ -96,7 +102,10 @@ void gaia::system::shutdown()
 {
     // Shutdown in reverse order of initialization. Shutdown functions should
     // not fail even if the component has not been initialized.
+#if INCLUDE_RULES_ENGINE
     gaia::rules::shutdown_rules_engine();
+#endif
+
     try
     {
         // We expect the session opened by gaia::system::initialize() on the
@@ -121,7 +130,7 @@ void gaia::system::shutdown()
     gaia_log::shutdown();
 }
 
-void gaia::system::validate_db_schema(const char* database_name, const char* hash)
+bool gaia::system::validate_db_schema(const char* database_name, const char* hash)
 {
     auto db_iterator = gaia::catalog::gaia_database_t::list().where(gaia::catalog::gaia_database_expr::name == database_name).begin();
     if (db_iterator != gaia::catalog::gaia_database_t::list().end())
@@ -129,11 +138,12 @@ void gaia::system::validate_db_schema(const char* database_name, const char* has
         const char* db_hash = db_iterator->hash();
         if (strcmp(db_hash, hash) != 0)
         {
-            throw gaia::rules::ruleset_schema_mismatch(database_name);
+            return false;
         }
     }
     else
     {
-        throw gaia::rules::ruleset_schema_mismatch(database_name);
+        return false;
     }
+    return true;
 }

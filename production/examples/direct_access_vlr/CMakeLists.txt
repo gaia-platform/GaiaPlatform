@@ -31,4 +31,4 @@ add_executable(direct_access_vlr
 
 target_add_gaia_generated_sources(direct_access_vlr)
 target_include_directories(direct_access_vlr PRIVATE ${GAIA_INC})
-target_link_libraries(direct_access_vlr PRIVATE ${GAIA_LIB} Threads::Threads)
+target_link_libraries(direct_access_vlr PRIVATE ${GAIA_DB_LIB} Threads::Threads)
