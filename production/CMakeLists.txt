@@ -49,7 +49,7 @@ if (NOT ENABLE_CLANG_TIDY)
 endif()
 
 if (NOT DEFINED ENABLE_LTO)
-  # LTO slow tests down significantly, therefore we keep it
+  # LTO slows tests down significantly, therefore we keep it
   # enabled by default only on Release builds.
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(ENABLE_LTO ON)
