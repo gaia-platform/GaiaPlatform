@@ -41,6 +41,15 @@ void initialize(const char* gaia_config_file = nullptr, const char* logger_confi
  */
 void shutdown();
 
+/**
+ * @brief Validates that DAC classes and ruleset correspond to current data in the catalog.
+ *
+ * @param database_name Name of the database to validate.
+ * @param hash Hash of the database as seen during ruleset compilation.
+ * @throw ruleset_schema_mismatch_internal
+ */
+void validate_db_schema(const char* database_name, const char* hash);
+
 /**@}*/
 } // namespace system
 /**@}*/
