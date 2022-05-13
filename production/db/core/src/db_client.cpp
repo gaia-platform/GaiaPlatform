@@ -268,8 +268,11 @@ void client_t::end_session()
     }
 
     // Clear db caches.
-    delete s_db_caches_ptr;
-    s_db_caches_ptr = nullptr;
+    if (s_db_caches_ptr)
+    {
+        delete s_db_caches_ptr;
+        s_db_caches_ptr = nullptr;
+    }
 }
 
 void client_t::begin_transaction()
@@ -452,6 +455,8 @@ caches::db_caches_t* client_t::init_db_caches()
 {
     caches::db_caches_t* db_caches_ptr = new caches::db_caches_t();
 
+    auto cleanup_db_caches_ptr = make_scope_guard([]() { delete db_caches_ptr; db_caches_ptr = nullptr });
+
     // Initialize table_relationship_fields_cache_t.
     for (const auto& table : catalog_core::list_tables())
     {
@@ -477,5 +482,6 @@ caches::db_caches_t* client_t::init_db_caches()
         }
     }
 
+    cleanup_db_caches_ptr.dismiss();
     return db_caches_ptr;
 }
