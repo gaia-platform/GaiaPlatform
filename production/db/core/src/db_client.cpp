@@ -22,11 +22,8 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
-#include "client_messenger.hpp"
-#include "db_caches.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "messages_generated.h"
 #include "predicate.hpp"
 
 using namespace gaia::common;
@@ -143,6 +140,10 @@ void client_t::begin_session(config::session_options_t session_options)
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
+
+    ASSERT_PRECONDITION(
+        !s_db_caches_ptr,
+        "Database caches should not be initialized already at the start of a new session!");
 
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
@@ -265,6 +266,10 @@ void client_t::end_session()
         // Release ownership of the chunk.
         s_chunk_manager.release();
     }
+
+    // Clear db caches.
+    delete s_db_caches_ptr;
+    s_db_caches_ptr = nullptr;
 }
 
 void client_t::begin_transaction()
@@ -312,16 +317,14 @@ void client_t::begin_transaction()
         apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
     }
 
-    // TODO: Re-enable these caches once we complete handling of DDL updates.
-    // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2160
-    //
     // We need to perform this initialization in the context of a transaction,
     // so we'll just piggyback on the first transaction started by the client
     // under a regular session.
-    // if (s_session_options.session_type == session_type_t::regular)
-    // {
-    //     std::call_once(s_are_db_caches_initialized, init_db_caches);
-    // }
+    if (s_session_options.session_type == session_type_t::regular
+        && !s_db_caches_ptr)
+    {
+        s_db_caches_ptr = init_db_caches();
+    }
 
     cleanup_private_locators.dismiss();
 }
@@ -442,20 +445,22 @@ void client_t::init_memory_manager()
         sizeof(s_shared_data.data()->objects));
 }
 
-void client_t::init_db_caches()
+caches::db_caches_t* client_t::init_db_caches()
 {
+    caches::db_caches_t* db_caches_ptr = new caches::db_caches_t();
+
     // Initialize table_relationship_fields_cache_t.
     for (const auto& table : catalog_core::list_tables())
     {
         gaia_id_t table_id = table.id();
-        caches::table_relationship_fields_cache_t::get()->put(table_id);
+        db_caches_ptr->table_relationship_fields_cache.put(table_id);
 
         for (const auto& relationship : catalog_core::list_relationship_from(table_id))
         {
             if (relationship.parent_field_positions()->size() == 1)
             {
                 field_position_t field = relationship.parent_field_positions()->Get(0);
-                caches::table_relationship_fields_cache_t::get()->put_parent_relationship_field(table_id, field);
+                db_caches_ptr->table_relationship_fields_cache.put_parent_relationship_field(table_id, field);
             }
         }
 
@@ -464,8 +469,10 @@ void client_t::init_db_caches()
             if (relationship.child_field_positions()->size() == 1)
             {
                 field_position_t field = relationship.child_field_positions()->Get(0);
-                caches::table_relationship_fields_cache_t::get()->put_child_relationship_field(table_id, field);
+                db_caches_ptr->table_relationship_fields_cache.put_child_relationship_field(table_id, field);
             }
         }
     }
+
+    return db_caches_ptr;
 }

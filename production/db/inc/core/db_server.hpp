@@ -22,6 +22,7 @@
 #include "gaia_internal/db/db.hpp"
 
 #include "chunk_manager.hpp"
+#include "db_caches.hpp"
 #include "db_internal_types.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
@@ -103,7 +104,6 @@ class server_t
     friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
-    friend gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offset);
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
     friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();

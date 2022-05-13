@@ -43,3 +43,6 @@ static inline gaia::db::txn_log_t* get_txn_log();
 
 // Gets the transaction ID for the current session thread.
 static inline gaia::db::gaia_txn_id_t get_txn_id();
+
+// Returns a reference to the db_caches structure.
+static inline const gaia::db::caches::db_caches_t* get_db_caches();

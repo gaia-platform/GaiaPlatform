@@ -37,13 +37,9 @@
 #include "gaia_spdlog/fmt/fmt.h"
 
 #include "db_helpers.hpp"
-#include "db_internal_types.hpp"
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
-#include "messages_generated.h"
-#include "persistent_store_manager.hpp"
 #include "system_checks.hpp"
-#include "txn_metadata.hpp"
 #include "type_id_mapping.hpp"
 
 using namespace flatbuffers;

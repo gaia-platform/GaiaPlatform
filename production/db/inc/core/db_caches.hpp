@@ -55,30 +55,30 @@ protected:
     table_relationship_fields_cache_t(const table_relationship_fields_cache_t&) = delete;
     table_relationship_fields_cache_t& operator=(const table_relationship_fields_cache_t&) = delete;
 
-    // table_relationship_fields_cache_t is a singleton, so its constructor is not public.
+public:
     table_relationship_fields_cache_t() = default;
 
-public:
-    // Return a pointer to the singleton instance.
-    static table_relationship_fields_cache_t* get();
-
     bool is_initialized();
+    void clear();
 
     // Each table gets an entry, regardless of whether it is involved in a relationship or not.
     // This eliminates having to check for special situations during lookups.
     void put(common::gaia_id_t table_id);
     void put_parent_relationship_field(common::gaia_id_t table_id, common::field_position_t field);
     void put_child_relationship_field(common::gaia_id_t table_id, common::field_position_t field);
-    std::pair<field_position_set_t, field_position_set_t>& get(common::gaia_id_t table_id);
+    const std::pair<field_position_set_t, field_position_set_t>& get(common::gaia_id_t table_id) const;
 
     size_t size() const;
 
 protected:
-    // The singleton instance.
-    static table_relationship_fields_cache_t s_cache;
-
     // The map used by the cache.
     table_relationship_fields_map_t m_map;
+};
+
+// This structure collects all db_caches, to avoid having to declare them individually elsewhere.
+struct db_caches_t
+{
+    table_relationship_fields_cache_t table_relationship_fields_cache;
 };
 
 } // namespace caches
