@@ -126,6 +126,8 @@ private:
     // These fields have session lifetime.
     thread_local static inline config::session_options_t s_session_options;
 
+    // NB: We need to use the (nonstandard) __thread attribute rather than
+    // thread_local to ensure that a minimal TLS implementation is used.
     __thread static inline gaia::db::caches::db_caches_t* s_db_caches_ptr{nullptr};
 
     // REVIEW [GAIAPLAT-2068]: When we enable snapshot reuse across txns (by
