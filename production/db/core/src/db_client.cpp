@@ -245,7 +245,7 @@ void client_t::begin_session(config::session_options_t session_options)
 void client_t::end_session()
 {
     // Clear s_db_caches_ptr no matter what.
-    auto cleanup_s_db_caches_ptr = make_scope_guard([]() {
+    auto cleanup_s_db_caches_ptr = make_scope_guard([&]() {
         if (s_db_caches_ptr)
         {
             delete s_db_caches_ptr;
@@ -456,7 +456,7 @@ caches::db_caches_t* client_t::init_db_caches()
 {
     caches::db_caches_t* db_caches_ptr = new caches::db_caches_t();
 
-    auto cleanup_db_caches_ptr = make_scope_guard([]() {
+    auto cleanup_db_caches_ptr = make_scope_guard([&]() {
         delete db_caches_ptr;
         db_caches_ptr = nullptr;
     });
