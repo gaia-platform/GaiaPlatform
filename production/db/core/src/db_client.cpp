@@ -454,7 +454,7 @@ caches::db_caches_t* client_t::init_db_caches()
 {
     caches::db_caches_t* db_caches_ptr = new caches::db_caches_t();
 
-    auto cleanup_db_caches = make_scope_guard([&] {
+    auto cleanup_db_caches = make_scope_guard([&db_caches_ptr] {
         delete db_caches_ptr;
         db_caches_ptr = nullptr;
     });
