@@ -46,9 +46,9 @@ void shutdown();
  *
  * @param database_name Name of the database to validate.
  * @param hash Hash of the database as seen during ruleset compilation.
- * @throw ruleset_schema_mismatch_internal
+ * @return False if the current database schema does not match the passed in hash, true otherwise.
  */
-void validate_db_schema(const char* database_name, const char* hash);
+bool validate_db_schema(const char* database_name, const char* hash);
 
 /**@}*/
 } // namespace system

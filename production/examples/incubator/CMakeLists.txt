@@ -41,4 +41,4 @@ add_executable(incubator
 target_add_gaia_generated_sources(incubator)
 target_include_directories(incubator PRIVATE ${GAIA_INC})
 target_link_directories(incubator PRIVATE ${GAIA_LIB_DIR})
-target_link_libraries(incubator PRIVATE gaia rt Threads::Threads)
+target_link_libraries(incubator PRIVATE ${GAIA_LIB} rt Threads::Threads)
