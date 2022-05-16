@@ -29,7 +29,7 @@ class sdk_db_no_init_rules__test : public sdk_base
 {
 };
 
-TEST_F(sdk_db_no_init_rules__test, rules_not_initializEd)
+TEST_F(sdk_db_no_init_rules__test, rules_not_initialized)
 {
     EXPECT_FALSE(g_initialize_rules_called);
 }
