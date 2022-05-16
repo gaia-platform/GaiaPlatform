@@ -95,7 +95,7 @@ int client_t::get_session_socket(const std::string& socket_name)
         throw_system_error("Socket creation failed!");
     }
 
-    auto cleanup_session_socket = make_scope_guard([&] { close_fd(session_socket); });
+    auto cleanup_session_socket = make_scope_guard([&session_socket] { close_fd(session_socket); });
 
     sockaddr_un server_addr{};
     server_addr.sun_family = AF_UNIX;
@@ -206,7 +206,7 @@ void client_t::begin_session(config::session_options_t session_options)
     // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
     // The other fds are not needed, so they'll get their own scope guard to clean them up.
     int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
-    auto cleanup_fd_locators = make_scope_guard([&] { close_fd(fd_locators); });
+    auto cleanup_fd_locators = make_scope_guard([&fd_locators] { close_fd(fd_locators); });
     auto cleanup_fd_others = make_scope_guard([&] {
         for (auto data_mapping : s_data_mappings)
         {

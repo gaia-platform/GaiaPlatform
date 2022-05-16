@@ -452,7 +452,7 @@ std::pair<int, int> server_t::get_stream_socket_pair()
     auto [client_socket, server_socket] = socket_pair;
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
     auto socket_cleanup = make_scope_guard(
-        [client_socket = client_socket, server_socket = server_socket] mutable {
+        [client_socket = client_socket, server_socket = server_socket]() mutable {
             close_fd(client_socket);
             close_fd(server_socket);
         });
@@ -483,8 +483,8 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&] { close_fd(client_socket); });
-    auto server_socket_cleanup = make_scope_guard([&] { close_fd(server_socket); });
+    auto client_socket_cleanup = make_scope_guard([&client_socket] { close_fd(client_socket); });
+    auto server_socket_cleanup = make_scope_guard([&server_socket] { close_fd(server_socket); });
 
     auto request = static_cast<const client_request_t*>(event_data);
 
@@ -1004,7 +1004,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     {
         throw_system_error("Socket creation failed!");
     }
-    auto socket_cleanup = make_scope_guard([&] { close_fd(listening_socket); });
+    auto socket_cleanup = make_scope_guard([&listening_socket] { close_fd(listening_socket); });
 
     // Initialize the socket address structure.
     sockaddr_un server_addr{};
@@ -1165,7 +1165,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // connections that arrive before the listening socket is closed will
     // receive ECONNRESET rather than ECONNREFUSED. This is perhaps unfortunate
     // but shouldn't really matter in practice.
-    auto epoll_cleanup = make_scope_guard([&] { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&epoll_fd] { close_fd(epoll_fd); });
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
     for (int registered_fd : registered_fds)
     {
@@ -1305,7 +1305,7 @@ void server_t::session_handler(int session_socket)
     {
         throw_system_error(c_message_epoll_create1_failed);
     }
-    auto epoll_cleanup = make_scope_guard([&] { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&epoll_fd] { close_fd(epoll_fd); });
 
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
     for (int fd : fds)
@@ -1469,7 +1469,7 @@ void server_t::stream_producer_handler(
 {
     // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR), because we
     // hold the only fd pointing to this socket.
-    auto socket_cleanup = make_scope_guard([&] { close_fd(stream_socket); });
+    auto socket_cleanup = make_scope_guard([&stream_socket] { close_fd(stream_socket); });
 
     // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
@@ -1482,7 +1482,7 @@ void server_t::stream_producer_handler(
     {
         throw_system_error(c_message_epoll_create1_failed);
     }
-    auto epoll_cleanup = make_scope_guard([&] { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&epoll_fd] { close_fd(epoll_fd); });
 
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
@@ -1884,7 +1884,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                             c_message_validating_txn_should_have_been_validated_before_log_invalidation);
                         return txn_metadata_t::is_txn_committed(commit_ts);
                     }
-                    auto release_committing_log_ref = make_scope_guard([&] {
+                    auto release_committing_log_ref = make_scope_guard([&commit_ts] {
                         release_txn_log_reference_from_commit_ts(commit_ts);
                     });
 
@@ -1901,7 +1901,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                             c_message_validating_txn_should_have_been_validated_before_conflicting_log_invalidation);
                         return txn_metadata_t::is_txn_committed(commit_ts);
                     }
-                    auto release_committed_log_ref = make_scope_guard([&] {
+                    auto release_committed_log_ref = make_scope_guard([&ts] {
                         release_txn_log_reference_from_commit_ts(ts);
                     });
 
@@ -1963,7 +1963,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         c_message_validating_txn_should_have_been_validated_before_log_invalidation);
                     return txn_metadata_t::is_txn_committed(commit_ts);
                 }
-                auto release_committing_log_ref = make_scope_guard([&] {
+                auto release_committing_log_ref = make_scope_guard([&commit_ts] {
                     release_txn_log_reference_from_commit_ts(commit_ts);
                 });
 
@@ -1980,7 +1980,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         c_message_validating_txn_should_have_been_validated_before_conflicting_log_invalidation);
                     return txn_metadata_t::is_txn_committed(commit_ts);
                 }
-                auto release_committed_log_ref = make_scope_guard([&] {
+                auto release_committed_log_ref = make_scope_guard([&ts] {
                     release_txn_log_reference_from_commit_ts(ts);
                 });
 
@@ -2433,7 +2433,7 @@ void server_t::gc_applied_txn_logs()
 
             // Because we invalidated the log offset, we need to ensure it is
             // deallocated so it can be reused.
-            auto cleanup_log_offset = make_scope_guard([&] { deallocate_log_offset(log_offset); });
+            auto cleanup_log_offset = make_scope_guard([&log_offset] { deallocate_log_offset(log_offset); });
 
             // Deallocate obsolete object versions and update index entries.
             gc_txn_log_from_offset(log_offset, txn_metadata_t::is_txn_committed(ts));
