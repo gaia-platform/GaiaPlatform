@@ -95,7 +95,7 @@ int client_t::get_session_socket(const std::string& socket_name)
         throw_system_error("Socket creation failed!");
     }
 
-    auto cleanup_session_socket = make_scope_guard([&]() { close_fd(session_socket); });
+    auto cleanup_session_socket = make_scope_guard([&] { close_fd(session_socket); });
 
     sockaddr_un server_addr{};
     server_addr.sun_family = AF_UNIX;
@@ -168,7 +168,7 @@ void client_t::begin_session(config::session_options_t session_options)
         throw server_connection_failed_internal(e.what(), e.get_errno());
     }
 
-    auto cleanup_session_socket = make_scope_guard([&]() { close_fd(s_session_socket); });
+    auto cleanup_session_socket = make_scope_guard([&] { close_fd(s_session_socket); });
 
     // Determine the type of session event based on the session type specified in the session options.
     session_event_t session_event = session_event_t::CONNECT;
@@ -206,8 +206,8 @@ void client_t::begin_session(config::session_options_t session_options)
     // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
     // The other fds are not needed, so they'll get their own scope guard to clean them up.
     int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
-    auto cleanup_fd_locators = make_scope_guard([&]() { close_fd(fd_locators); });
-    auto cleanup_fd_others = make_scope_guard([&]() {
+    auto cleanup_fd_locators = make_scope_guard([&] { close_fd(fd_locators); });
+    auto cleanup_fd_others = make_scope_guard([&] {
         for (auto data_mapping : s_data_mappings)
         {
             if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
@@ -245,12 +245,10 @@ void client_t::begin_session(config::session_options_t session_options)
 void client_t::end_session()
 {
     // Clear s_db_caches_ptr no matter what.
-    auto cleanup_s_db_caches_ptr = make_scope_guard([&]() {
-        if (s_db_caches_ptr)
-        {
-            delete s_db_caches_ptr;
-            s_db_caches_ptr = nullptr;
-        } });
+    auto cleanup_db_caches = make_scope_guard([&] {
+        delete s_db_caches_ptr;
+        s_db_caches_ptr = nullptr;
+    });
 
     verify_session_active();
     verify_no_txn();
@@ -290,7 +288,7 @@ void client_t::begin_transaction()
     bool manage_fd = false;
     bool is_shared = false;
     s_private_locators.open(s_fd_locators, manage_fd, is_shared);
-    auto cleanup_private_locators = make_scope_guard([&]() { s_private_locators.close(); });
+    auto cleanup_private_locators = make_scope_guard([&] { s_private_locators.close(); });
 
     // Send a TXN_BEGIN request to the server and receive a new txn ID, the
     // offset of a new txn log, and txn log offsets for all committed txns
@@ -456,7 +454,7 @@ caches::db_caches_t* client_t::init_db_caches()
 {
     caches::db_caches_t* db_caches_ptr = new caches::db_caches_t();
 
-    auto cleanup_db_caches_ptr = make_scope_guard([&]() {
+    auto cleanup_db_caches = make_scope_guard([&] {
         delete db_caches_ptr;
         db_caches_ptr = nullptr;
     });
@@ -486,6 +484,6 @@ caches::db_caches_t* client_t::init_db_caches()
         }
     }
 
-    cleanup_db_caches_ptr.dismiss();
+    cleanup_db_caches.dismiss();
     return db_caches_ptr;
 }
