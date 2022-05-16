@@ -439,7 +439,6 @@ function(add_example)
     DATABASE_NAME ${ARG_DB_NAME}
     LIB_NAME ${DAC_LIB_NAME})
 
-
   # Not all the examples have a ruleset file.
   if(DEFINED ARG_RULESET_FILE)
     set(GAIA_LIB_NAME "gaia")
