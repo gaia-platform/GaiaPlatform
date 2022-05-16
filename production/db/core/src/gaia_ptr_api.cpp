@@ -423,13 +423,13 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
         return;
     }
 
-    auto new_data = reinterpret_cast<const uint8_t*>(data);
-    auto old_data = reinterpret_cast<const uint8_t*>(old_this->data());
     const type_metadata_t& metadata = type_registry_t::instance().get(obj.type());
-
     if (client_t::has_commit_trigger() || metadata.has_value_linked_relationship())
     {
+        auto new_data = reinterpret_cast<const uint8_t*>(data);
+        auto old_data = reinterpret_cast<const uint8_t*>(old_this->data());
         field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data, new_data);
+
         if (metadata.has_value_linked_relationship())
         {
             auto_connect(
