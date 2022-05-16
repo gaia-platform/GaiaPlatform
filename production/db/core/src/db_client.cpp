@@ -22,11 +22,8 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
-#include "client_messenger.hpp"
-#include "db_caches.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "messages_generated.h"
 #include "predicate.hpp"
 
 using namespace gaia::common;
@@ -98,7 +95,7 @@ int client_t::get_session_socket(const std::string& socket_name)
         throw_system_error("Socket creation failed!");
     }
 
-    auto cleanup_session_socket = make_scope_guard([&]() { close_fd(session_socket); });
+    auto cleanup_session_socket = make_scope_guard([&session_socket] { close_fd(session_socket); });
 
     sockaddr_un server_addr{};
     server_addr.sun_family = AF_UNIX;
@@ -144,6 +141,10 @@ void client_t::begin_session(config::session_options_t session_options)
     // Fail if a session already exists on this thread.
     verify_no_session();
 
+    ASSERT_PRECONDITION(
+        !s_db_caches_ptr,
+        "Database caches should not be initialized already at the start of a new session!");
+
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
 
@@ -167,7 +168,7 @@ void client_t::begin_session(config::session_options_t session_options)
         throw server_connection_failed_internal(e.what(), e.get_errno());
     }
 
-    auto cleanup_session_socket = make_scope_guard([&]() { close_fd(s_session_socket); });
+    auto cleanup_session_socket = make_scope_guard([&] { close_fd(s_session_socket); });
 
     // Determine the type of session event based on the session type specified in the session options.
     session_event_t session_event = session_event_t::CONNECT;
@@ -205,8 +206,8 @@ void client_t::begin_session(config::session_options_t session_options)
     // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
     // The other fds are not needed, so they'll get their own scope guard to clean them up.
     int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
-    auto cleanup_fd_locators = make_scope_guard([&]() { close_fd(fd_locators); });
-    auto cleanup_fd_others = make_scope_guard([&]() {
+    auto cleanup_fd_locators = make_scope_guard([&fd_locators] { close_fd(fd_locators); });
+    auto cleanup_fd_others = make_scope_guard([&] {
         for (auto data_mapping : s_data_mappings)
         {
             if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
@@ -243,6 +244,12 @@ void client_t::begin_session(config::session_options_t session_options)
 
 void client_t::end_session()
 {
+    // Clear s_db_caches_ptr no matter what.
+    auto cleanup_db_caches = make_scope_guard([&] {
+        delete s_db_caches_ptr;
+        s_db_caches_ptr = nullptr;
+    });
+
     verify_session_active();
     verify_no_txn();
 
@@ -281,7 +288,7 @@ void client_t::begin_transaction()
     bool manage_fd = false;
     bool is_shared = false;
     s_private_locators.open(s_fd_locators, manage_fd, is_shared);
-    auto cleanup_private_locators = make_scope_guard([&]() { s_private_locators.close(); });
+    auto cleanup_private_locators = make_scope_guard([&] { s_private_locators.close(); });
 
     // Send a TXN_BEGIN request to the server and receive a new txn ID, the
     // offset of a new txn log, and txn log offsets for all committed txns
@@ -314,13 +321,14 @@ void client_t::begin_transaction()
 
     // TODO: Re-enable these caches once we complete handling of DDL updates.
     // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2160
-    //
-    // We need to perform this initialization in the context of a transaction,
-    // so we'll just piggyback on the first transaction started by the client
-    // under a regular session.
-    // if (s_session_options.session_type == session_type_t::regular)
+
+    // // We need to perform this initialization in the context of a transaction,
+    // // so we'll just piggyback on the first transaction started by the client
+    // // under a regular session.
+    // if (s_session_options.session_type == session_type_t::regular
+    //     && !s_db_caches_ptr)
     // {
-    //     std::call_once(s_are_db_caches_initialized, init_db_caches);
+    //     s_db_caches_ptr = init_db_caches();
     // }
 
     cleanup_private_locators.dismiss();
@@ -442,20 +450,27 @@ void client_t::init_memory_manager()
         sizeof(s_shared_data.data()->objects));
 }
 
-void client_t::init_db_caches()
+caches::db_caches_t* client_t::init_db_caches()
 {
+    caches::db_caches_t* db_caches_ptr = new caches::db_caches_t();
+
+    auto cleanup_db_caches = make_scope_guard([&db_caches_ptr] {
+        delete db_caches_ptr;
+        db_caches_ptr = nullptr;
+    });
+
     // Initialize table_relationship_fields_cache_t.
     for (const auto& table : catalog_core::list_tables())
     {
         gaia_id_t table_id = table.id();
-        caches::table_relationship_fields_cache_t::get()->put(table_id);
+        db_caches_ptr->table_relationship_fields_cache.put(table_id);
 
         for (const auto& relationship : catalog_core::list_relationship_from(table_id))
         {
             if (relationship.parent_field_positions()->size() == 1)
             {
                 field_position_t field = relationship.parent_field_positions()->Get(0);
-                caches::table_relationship_fields_cache_t::get()->put_parent_relationship_field(table_id, field);
+                db_caches_ptr->table_relationship_fields_cache.put_parent_relationship_field(table_id, field);
             }
         }
 
@@ -464,8 +479,11 @@ void client_t::init_db_caches()
             if (relationship.child_field_positions()->size() == 1)
             {
                 field_position_t field = relationship.child_field_positions()->Get(0);
-                caches::table_relationship_fields_cache_t::get()->put_child_relationship_field(table_id, field);
+                db_caches_ptr->table_relationship_fields_cache.put_child_relationship_field(table_id, field);
             }
         }
     }
+
+    cleanup_db_caches.dismiss();
+    return db_caches_ptr;
 }
