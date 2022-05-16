@@ -291,10 +291,11 @@ void auto_connect(
         return;
     }
 
-    if (caches::table_relationship_fields_cache_t::get()->is_initialized())
+    const gaia::db::caches::db_caches_t* db_caches_ptr = get_db_caches();
+    if (db_caches_ptr)
     {
         // Check table_relationship_fields_cache_t for the fields involved in relationships.
-        const auto& relationship_field_set_pair = caches::table_relationship_fields_cache_t::get()->get(table_id);
+        const auto& relationship_field_set_pair = db_caches_ptr->table_relationship_fields_cache.get(table_id);
         if (relationship_field_set_pair.first.empty()
             && relationship_field_set_pair.second.empty())
         {

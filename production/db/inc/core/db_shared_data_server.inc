@@ -99,3 +99,8 @@ static gaia::db::gaia_txn_id_t get_txn_id()
 {
     return gaia::db::server_t::s_txn_id;
 }
+
+static const gaia::db::caches::db_caches_t* get_db_caches()
+{
+    return nullptr;
+}
