@@ -18,16 +18,13 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
-#include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/triggers.hpp"
 #include "gaia_internal/exceptions.hpp"
 
-#include "chunk_manager.hpp"
+#include "client_contexts.hpp"
 #include "client_messenger.hpp"
-#include "db_caches.hpp"
 #include "mapped_data.hpp"
-#include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "type_index.hpp"
 
@@ -114,15 +111,13 @@ public:
         common::gaia_id_t id, common::field_position_list_t changed_fields);
 
 private:
-    // These fields have transaction lifetime.
-    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
+    // We don't use an auto-pointer because its destructor is "non-trivial"
+    // and that would add overhead to the TLS implementation.
+    thread_local static inline client_session_context_t* s_session_context{nullptr};
 
     // NB: We need to use the (nonstandard) __thread attribute rather than
     // thread_local to ensure that a minimal TLS implementation is used.
     __thread static inline mapped_data_t<locators_t> s_private_locators{};
-
-    thread_local static inline gaia::db::index::indexes_t s_local_indexes{};
 
     // These fields have session lifetime.
     thread_local static inline config::session_options_t s_session_options;
@@ -148,13 +143,7 @@ private:
     __thread static inline mapped_data_t<id_index_t> s_shared_id_index{};
     __thread static inline mapped_data_t<type_index_t> s_shared_type_index{};
 
-    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
-
     thread_local static inline int s_session_socket = -1;
-
-    // A log processing watermark that is used for index maintenance.
-    thread_local static inline size_t s_last_index_processed_log_count = 0;
 
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!

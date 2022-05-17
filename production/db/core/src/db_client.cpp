@@ -63,23 +63,13 @@ void client_t::clear_shared_memory()
 
 void client_t::txn_cleanup()
 {
+    // Ensure the cleaning of the txn context.
+    auto cleanup_txn_context = make_scope_guard([&] {
+        s_session_context->txn_context.reset();
+    });
+
     // Destroy the locator mapping.
     s_private_locators.close();
-
-    // Reset transaction id.
-    s_txn_id = c_invalid_gaia_txn_id;
-
-    // Reset transaction log offset.
-    s_txn_log_offset = c_invalid_log_offset;
-
-    // Reset the log processing watermark that is used for index building.
-    s_last_index_processed_log_count = 0;
-
-    // Clear the local indexes.
-    for (const auto& index : client_t::s_local_indexes)
-    {
-        index.second->clear();
-    }
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
@@ -142,8 +132,14 @@ void client_t::begin_session(config::session_options_t session_options)
     verify_no_session();
 
     ASSERT_PRECONDITION(
-        !s_db_caches_ptr,
-        "Database caches should not be initialized already at the start of a new session!");
+        !s_session_context,
+        "Session context should not be initialized already at the start of a new session!");
+
+    s_session_context = new client_session_context_t();
+    auto cleanup_session_context = make_scope_guard([&] {
+        delete s_session_context;
+        s_session_context = nullptr;
+    });
 
     // Clean up possible stale state from a server crash or reset.
     clear_shared_memory();
@@ -155,13 +151,13 @@ void client_t::begin_session(config::session_options_t session_options)
         ASSERT_INVARIANT(!data_mapping.is_set(), "Segment is already mapped!");
     }
 
-    s_session_options = session_options;
+    s_session_context->session_options = session_options;
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
     try
     {
-        s_session_socket = get_session_socket(s_session_options.db_instance_name);
+        s_session_socket = get_session_socket(s_session_context->session_options.db_instance_name);
     }
     catch (const system_error& e)
     {
@@ -172,11 +168,11 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Determine the type of session event based on the session type specified in the session options.
     session_event_t session_event = session_event_t::CONNECT;
-    if (s_session_options.session_type == session_type_t::ping)
+    if (s_session_context->session_options.session_type == session_type_t::ping)
     {
         session_event = session_event_t::CONNECT_PING;
     }
-    else if (s_session_options.session_type == session_type_t::ddl)
+    else if (s_session_context->session_options.session_type == session_type_t::ddl)
     {
         session_event = session_event_t::CONNECT_DDL;
     }
@@ -240,18 +236,19 @@ void client_t::begin_session(config::session_options_t session_options)
 
     cleanup_fd_locators.dismiss();
     cleanup_session_socket.dismiss();
+    cleanup_session_context.dismiss();
 }
 
 void client_t::end_session()
 {
-    // Clear s_db_caches_ptr no matter what.
-    auto cleanup_db_caches = make_scope_guard([&] {
-        delete s_db_caches_ptr;
-        s_db_caches_ptr = nullptr;
-    });
-
     verify_session_active();
     verify_no_txn();
+
+    // Ensure the cleaning of the session context.
+    auto cleanup_session_context = make_scope_guard([&] {
+        delete s_session_context;
+        s_session_context = nullptr;
+    });
 
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
@@ -261,16 +258,16 @@ void client_t::end_session()
     // reused when it is empty.
     // NB: The chunk manager could be uninitialized if this session never made
     // any allocations.
-    if (s_chunk_manager.initialized())
+    if (s_session_context->chunk_manager.initialized())
     {
         // Get the session's chunk version for safe deallocation.
-        chunk_version_t version = s_chunk_manager.get_version();
+        chunk_version_t version = s_session_context->chunk_manager.get_version();
 
         // Now retire the chunk.
-        s_chunk_manager.retire_chunk(version);
+        s_session_context->chunk_manager.retire_chunk(version);
 
         // Release ownership of the chunk.
-        s_chunk_manager.release();
+        s_session_context->chunk_manager.release();
     }
 }
 
@@ -280,8 +277,21 @@ void client_t::begin_transaction()
     verify_no_txn();
 
     ASSERT_PRECONDITION(
-        s_session_options.session_type != session_type_t::ping,
+        s_session_context,
+        "Session context should be initialized already at the start of a new transaction!");
+
+    ASSERT_PRECONDITION(
+        !(s_session_context->txn_context),
+        "Transaction context should not be initialized already at the start of a new transaction!");
+
+    ASSERT_PRECONDITION(
+        s_session_context->session_options.session_type != session_type_t::ping,
         "Ping sessions should not be starting transactions");
+
+    s_session_context->txn_context = std::make_shared<client_transaction_context_t>();
+    auto cleanup_txn_context = make_scope_guard([&] {
+        s_session_context->txn_context.reset();
+    });
 
     // Map a private COW view of the locator shared memory segment.
     ASSERT_PRECONDITION(!s_private_locators.is_set(), "Locators segment is already mapped!");
@@ -301,13 +311,13 @@ void client_t::begin_transaction()
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    s_txn_id = txn_info->transaction_id();
-    s_txn_log_offset = txn_info->transaction_log_offset();
+    s_session_context->txn_context->txn_id = txn_info->transaction_id();
+    s_session_context->txn_context->txn_log_offset = txn_info->transaction_log_offset();
     ASSERT_INVARIANT(
-        s_txn_id.is_valid(),
+        s_session_context->txn_context->txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
     ASSERT_INVARIANT(
-        s_txn_log_offset.is_valid(),
+        s_session_context->txn_context->txn_log_offset.is_valid(),
         "Txn log offset should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.
@@ -324,13 +334,14 @@ void client_t::begin_transaction()
     // // We need to perform this initialization in the context of a transaction,
     // // so we'll just piggyback on the first transaction started by the client
     // // under a regular session.
-    // if (s_session_options.session_type == session_type_t::regular
-    //     && !s_db_caches_ptr)
+    // if (s_session_context->session_options.session_type == session_type_t::regular
+    //     && !s_session_context->db_caches)
     // {
-    //     s_db_caches_ptr = init_db_caches();
+    //     s_session_context->db_caches.reset(init_db_caches());
     // }
 
     cleanup_private_locators.dismiss();
+    cleanup_txn_context.dismiss();
 }
 
 void client_t::rollback_transaction()
@@ -407,7 +418,8 @@ void client_t::commit_transaction()
     if (event != session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
         const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-        ASSERT_INVARIANT(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
+        ASSERT_INVARIANT(
+            txn_info->transaction_id() == s_session_context->txn_context->txn_id, "Unexpected transaction id!");
     }
 
     // Execute trigger only if rules engine is initialized.
@@ -443,7 +455,7 @@ void client_t::commit_transaction()
 
 void client_t::init_memory_manager()
 {
-    s_memory_manager.load(
+    s_session_context->memory_manager.load(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
 }

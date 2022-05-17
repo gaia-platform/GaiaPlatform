@@ -62,6 +62,7 @@ endforeach(FBS_SOURCE)
 add_library(gaia_db_client STATIC
   src/catalog_core.cpp
   src/chunk_manager.cpp
+  src/client_contexts.cpp
   src/client_messenger.cpp
   src/db_caches.cpp
   src/db_client_api.cpp

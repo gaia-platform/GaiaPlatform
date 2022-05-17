@@ -10,12 +10,12 @@ inline bool client_t::is_session_open()
 
 inline bool client_t::is_ping_session_open()
 {
-    return is_session_open() && s_session_options.session_type == session_type_t::ping;
+    return is_session_open() && s_session_context->session_options.session_type == session_type_t::ping;
 }
 
 inline bool client_t::is_ddl_session_open()
 {
-    return is_session_open() && s_session_options.session_type == session_type_t::ddl;
+    return is_session_open() && s_session_context->session_options.session_type == session_type_t::ddl;
 }
 
 inline bool client_t::is_transaction_open()
@@ -25,7 +25,7 @@ inline bool client_t::is_transaction_open()
 
 inline gaia_txn_id_t client_t::get_current_txn_id()
 {
-    return s_txn_id;
+    return s_session_context->txn_context->txn_id;
 }
 
 inline void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
@@ -90,7 +90,7 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
     // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
     verify_txn_active();
-    gaia_txn_id_t owning_txn_id = s_txn_id;
+    gaia_txn_id_t owning_txn_id = s_session_context->txn_context->txn_id;
 
     // The userspace buffer that we use to receive a batch datagram message.
     std::vector<T_element_type> batch_buffer;
@@ -101,7 +101,9 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         ASSERT_INVARIANT(*stream_socket_ptr != -1, c_message_stream_socket_is_invalid);
 
         // The cursor should only be called from within the scope of its owning transaction.
-        ASSERT_INVARIANT(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
+        ASSERT_INVARIANT(
+            s_session_context->txn_context->txn_id == owning_txn_id,
+            "Cursor was not called from the scope of its own transaction!");
 
         // If buffer is empty, block until a new batch is available.
         if (batch_buffer.size() == 0)
@@ -172,6 +174,7 @@ inline void client_t::log_event(
     triggers::event_type_t event_type, common::gaia_type_t type,
     common::gaia_id_t id, common::field_position_list_t changed_fields)
 {
-    DEBUG_ASSERT_PRECONDITION(s_txn_id.is_valid(), "Event can only be logged in a transaction!");
-    s_events.emplace_back(event_type, type, id, changed_fields, s_txn_id);
+    DEBUG_ASSERT_PRECONDITION(
+        s_session_context->txn_context->txn_id.is_valid(), "Event can only be logged in a transaction!");
+    s_events.emplace_back(event_type, type, id, changed_fields, s_session_context->txn_context->txn_id);
 }

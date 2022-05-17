@@ -73,17 +73,17 @@ static gaia::db::type_index_t* get_type_index()
 
 static gaia::db::index::indexes_t* get_indexes()
 {
-    return &gaia::db::client_t::s_local_indexes;
+    return &gaia::db::client_t::s_session_context->txn_context->local_indexes;
 }
 
 static gaia::db::memory_manager::memory_manager_t* get_memory_manager()
 {
-    return &gaia::db::client_t::s_memory_manager;
+    return &gaia::db::client_t::s_session_context->memory_manager;
 }
 
 static gaia::db::memory_manager::chunk_manager_t* get_chunk_manager()
 {
-    return &gaia::db::client_t::s_chunk_manager;
+    return &gaia::db::client_t::s_session_context->chunk_manager;
 }
 
 static gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offset)
@@ -99,17 +99,18 @@ static gaia::db::txn_log_t* get_txn_log()
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the id_index segment unmapped).
-    DEBUG_ASSERT_PRECONDITION(gaia::db::client_t::s_txn_log_offset.is_valid(), "Invalid txn log offset!");
+    DEBUG_ASSERT_PRECONDITION(
+        gaia::db::client_t::s_session_context->txn_context->txn_log_offset.is_valid(), "Invalid txn log offset!");
 
-    return get_txn_log_from_offset(gaia::db::client_t::s_txn_log_offset);
+    return get_txn_log_from_offset(gaia::db::client_t::s_session_context->txn_context->txn_log_offset);
 }
 
 static gaia::db::gaia_txn_id_t get_txn_id()
 {
-    return gaia::db::client_t::s_txn_id;
+    return gaia::db::client_t::s_session_context->txn_context->txn_id;
 }
 
 static const gaia::db::caches::db_caches_t* get_db_caches()
 {
-    return gaia::db::client_t::s_db_caches_ptr;
+    return gaia::db::client_t::s_session_context->db_caches.get();
 }
