@@ -5,7 +5,7 @@
 
 inline bool client_t::is_session_open()
 {
-    return (s_session_socket != -1);
+    return (s_session_context != nullptr && s_session_context->session_socket != -1);
 }
 
 inline bool client_t::is_ping_session_open()
@@ -40,7 +40,7 @@ inline bool client_t::has_commit_trigger()
 
 inline int client_t::get_session_socket_for_txn()
 {
-    return s_session_socket;
+    return s_session_context->session_socket;
 }
 
 inline bool client_t::is_valid_event(common::gaia_type_t type)
@@ -66,7 +66,7 @@ inline void client_t::verify_no_txn()
 
 inline void client_t::verify_session_active()
 {
-    if (s_session_socket == -1)
+    if (s_session_context == nullptr || s_session_context->session_socket == -1)
     {
         throw no_open_session_internal();
     }
@@ -74,7 +74,7 @@ inline void client_t::verify_session_active()
 
 inline void client_t::verify_no_session()
 {
-    if (s_session_socket != -1)
+    if (s_session_context != nullptr && s_session_context->session_socket != -1)
     {
         throw session_exists_internal();
     }
@@ -176,5 +176,6 @@ inline void client_t::log_event(
 {
     DEBUG_ASSERT_PRECONDITION(
         s_session_context->txn_context->txn_id.is_valid(), "Event can only be logged in a transaction!");
-    s_events.emplace_back(event_type, type, id, changed_fields, s_session_context->txn_context->txn_id);
+    s_session_context->txn_context->events.emplace_back(
+        event_type, type, id, changed_fields, s_session_context->txn_context->txn_id);
 }

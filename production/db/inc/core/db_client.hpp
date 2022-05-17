@@ -19,7 +19,6 @@
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
-#include "gaia_internal/db/triggers.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 #include "client_contexts.hpp"
@@ -143,8 +142,6 @@ private:
     __thread static inline mapped_data_t<id_index_t> s_shared_id_index{};
     __thread static inline mapped_data_t<type_index_t> s_shared_type_index{};
 
-    thread_local static inline int s_session_socket = -1;
-
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!
     thread_local static inline data_mapping_t s_data_mappings[] = {
@@ -156,9 +153,7 @@ private:
         {data_mapping_t::index_t::type_index, &s_shared_type_index, c_gaia_mem_type_index_prefix},
     };
 
-    // s_events has transaction lifetime and is cleared after each transaction.
-    // Set by the rules engine.
-    thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
+    // This is a callback set by the rules engine.
     static inline triggers::commit_trigger_fn s_txn_commit_trigger = nullptr;
 
 private:

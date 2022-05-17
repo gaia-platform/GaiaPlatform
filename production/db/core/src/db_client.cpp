@@ -55,10 +55,6 @@ void client_t::clear_shared_memory()
 
     // We closed our original fds for these data segments, so we only need to unmap them.
     data_mapping_t::close(s_data_mappings);
-
-    // If the server has already closed its fd for the locator segment
-    // (and there are no other clients), this will release it.
-    close_fd(s_fd_locators);
 }
 
 void client_t::txn_cleanup()
@@ -70,9 +66,6 @@ void client_t::txn_cleanup()
 
     // Destroy the locator mapping.
     s_private_locators.close();
-
-    // Reset TLS events vector for the next transaction that will run on this thread.
-    s_events.clear();
 }
 
 int client_t::get_session_socket(const std::string& socket_name)
@@ -157,14 +150,14 @@ void client_t::begin_session(config::session_options_t session_options)
     // for the data and locator shared memory segment fds.
     try
     {
-        s_session_socket = get_session_socket(s_session_context->session_options.db_instance_name);
+        s_session_context->session_socket = get_session_socket(s_session_context->session_options.db_instance_name);
     }
     catch (const system_error& e)
     {
         throw server_connection_failed_internal(e.what(), e.get_errno());
     }
 
-    auto cleanup_session_socket = make_scope_guard([&] { close_fd(s_session_socket); });
+    auto cleanup_session_socket = make_scope_guard([&] { close_fd(s_session_context->session_socket); });
 
     // Determine the type of session event based on the session type specified in the session options.
     session_event_t session_event = session_event_t::CONNECT;
@@ -191,7 +184,8 @@ void client_t::begin_session(config::session_options_t session_options)
     try
     {
         client_messenger.send_and_receive(
-            s_session_socket, nullptr, 0, builder, static_cast<size_t>(data_mapping_t::index_t::count_mappings));
+            s_session_context->session_socket, nullptr, 0, builder,
+            static_cast<size_t>(data_mapping_t::index_t::count_mappings));
     }
     catch (const gaia::common::peer_disconnected&)
     {
@@ -230,7 +224,7 @@ void client_t::begin_session(config::session_options_t session_options)
     }
 
     // Set up the private locator segment fd.
-    s_fd_locators = fd_locators;
+    s_session_context->fd_locators = fd_locators;
 
     init_memory_manager();
 
@@ -249,26 +243,6 @@ void client_t::end_session()
         delete s_session_context;
         s_session_context = nullptr;
     });
-
-    // This will gracefully shut down the server-side session thread
-    // and all other threads that session thread owns.
-    close_fd(s_session_socket);
-
-    // If we own a chunk, we need to release it to the memory manager to be
-    // reused when it is empty.
-    // NB: The chunk manager could be uninitialized if this session never made
-    // any allocations.
-    if (s_session_context->chunk_manager.initialized())
-    {
-        // Get the session's chunk version for safe deallocation.
-        chunk_version_t version = s_session_context->chunk_manager.get_version();
-
-        // Now retire the chunk.
-        s_session_context->chunk_manager.retire_chunk(version);
-
-        // Release ownership of the chunk.
-        s_session_context->chunk_manager.release();
-    }
 }
 
 void client_t::begin_transaction()
@@ -297,7 +271,7 @@ void client_t::begin_transaction()
     ASSERT_PRECONDITION(!s_private_locators.is_set(), "Locators segment is already mapped!");
     bool manage_fd = false;
     bool is_shared = false;
-    s_private_locators.open(s_fd_locators, manage_fd, is_shared);
+    s_private_locators.open(s_session_context->fd_locators, manage_fd, is_shared);
     auto cleanup_private_locators = make_scope_guard([&] { s_private_locators.close(); });
 
     // Send a TXN_BEGIN request to the server and receive a new txn ID, the
@@ -307,7 +281,7 @@ void client_t::begin_transaction()
     build_client_request(builder, session_event_t::BEGIN_TXN);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
+    client_messenger.send_and_receive(s_session_context->session_socket, nullptr, 0, builder);
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
@@ -353,7 +327,7 @@ void client_t::rollback_transaction()
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(s_session_context->session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 // This method needs to be updated whenever a new pre_commit_validation_failure exception
@@ -402,7 +376,7 @@ void client_t::commit_transaction()
     build_client_request(builder, session_event_t::COMMIT_TXN);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder);
+    client_messenger.send_and_receive(s_session_context->session_socket, nullptr, 0, builder);
 
     // Extract the commit decision from the server's reply and return it.
     session_event_t event = client_messenger.server_reply()->event();
@@ -425,9 +399,9 @@ void client_t::commit_transaction()
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger
         && event == session_event_t::DECIDE_TXN_COMMIT
-        && s_events.size() > 0)
+        && s_session_context->txn_context->events.size() > 0)
     {
-        s_txn_commit_trigger(s_events);
+        s_txn_commit_trigger(s_session_context->txn_context->events);
     }
 
     // Throw an exception on server-side abort.

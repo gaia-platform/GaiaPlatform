@@ -6,9 +6,11 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/db/triggers.hpp"
 
 #include "chunk_manager.hpp"
 #include "db_caches.hpp"
@@ -30,6 +32,8 @@ struct client_transaction_context_t
     // A log processing watermark that is used for index maintenance.
     size_t last_index_processed_log_count{0};
 
+    std::vector<gaia::db::triggers::trigger_event_t> events;
+
 public:
     inline ~client_transaction_context_t();
 
@@ -49,6 +53,9 @@ struct client_session_context_t
     // Database caches are initialized for each session
     // during the first transaction of the session.
     std::shared_ptr<caches::db_caches_t> db_caches;
+
+    int fd_locators{-1};
+    int session_socket{-1};
 
     // REVIEW [GAIAPLAT-2068]: When we enable snapshot reuse across txns (by
     // applying the undo log from the previous txn to the existing snapshot and
