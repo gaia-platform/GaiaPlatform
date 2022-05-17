@@ -34,29 +34,34 @@ public:
     /**
      * Obtain offset to write the next log record at.
      */
-    size_t get_current_offset();
+    file_offset_t get_current_offset() const;
 
     /**
      * Get remaining space in persistent log file.
      */
-    size_t get_remaining_bytes_count(size_t record_size);
+    size_t get_bytes_remaining_after_append(size_t record_size) const;
 
     /**
      * Allocate space in persistent log file.
      */
     void allocate(size_t size);
 
-    int get_file_fd();
+    int get_file_fd() const;
+
+    /**
+     * Obtain sequence number for the file.
+     */
+    file_sequence_t get_file_sequence() const;
 
 private:
-    size_t m_file_size;
-    file_sequence_t m_file_seq;
-    size_t m_current_offset;
-    std::string m_dir_name;
-    int m_dir_fd;
-    int m_file_fd;
-    std::string m_file_name;
-    inline static constexpr int c_file_permissions = 0666;
+    std::string m_dir_name{};
+    int m_dir_fd{-1};
+    std::string m_file_name{};
+    int m_file_fd{-1};
+    file_sequence_t m_file_seq{0};
+    size_t m_file_size{0};
+    size_t m_current_offset{0};
+    inline static constexpr int c_file_permissions{0666};
 };
 
 } // namespace persistence

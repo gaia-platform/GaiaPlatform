@@ -25,14 +25,9 @@ namespace persistence
 // TODO (Mihir): Use io_uring for fsync, close & fallocate operations in this file.
 // open() operation will remain synchronous, since we need the file fd to perform other async
 // operations on the file.
-log_file_t::log_file_t(const std::string& dir, int dir_fd, file_sequence_t file_seq, size_t size)
+log_file_t::log_file_t(const std::string& dir_name, int dir_fd, file_sequence_t file_seq, size_t file_size)
+    : m_dir_name(dir_name), m_dir_fd(dir_fd), m_file_seq(file_seq), m_file_size(file_size)
 {
-    m_dir_fd = dir_fd;
-    m_dir_name = dir;
-    m_file_seq = file_seq;
-    m_file_size = size;
-    m_current_offset = 0;
-
     // open and fallocate depending on size.
     std::stringstream file_name;
     file_name << m_dir_name << "/" << m_file_seq;
@@ -66,12 +61,12 @@ log_file_t::log_file_t(const std::string& dir, int dir_fd, file_sequence_t file_
     }
 }
 
-size_t log_file_t::get_current_offset()
+file_offset_t log_file_t::get_current_offset() const
 {
     return m_current_offset;
 }
 
-int log_file_t::get_file_fd()
+int log_file_t::get_file_fd() const
 {
     return m_file_fd;
 }
@@ -81,7 +76,12 @@ void log_file_t::allocate(size_t size)
     m_current_offset += size;
 }
 
-size_t log_file_t::get_remaining_bytes_count(size_t record_size)
+file_sequence_t log_file_t::get_file_sequence() const
+{
+    return m_file_seq;
+}
+
+size_t log_file_t::get_bytes_remaining_after_append(size_t record_size) const
 {
     ASSERT_INVARIANT(m_file_size > 0, "Preallocated file size should be greater than 0.");
     if (m_file_size < (m_current_offset + record_size))
