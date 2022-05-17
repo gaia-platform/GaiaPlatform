@@ -26,7 +26,7 @@ namespace persistence
 // open() operation will remain synchronous, since we need the file fd to perform other async
 // operations on the file.
 log_file_t::log_file_t(const std::string& dir_name, int dir_fd, file_sequence_t file_seq, size_t file_size)
-    : m_file_size(file_size), m_file_seq(file_seq), m_dir_name(dir_name), m_dir_fd(dir_fd)
+    : m_dir_name(dir_name), m_dir_fd(dir_fd), m_file_seq(file_seq), m_file_size(file_size)
 {
     // open and fallocate depending on size.
     std::stringstream file_name;

@@ -49,7 +49,7 @@ static constexpr crc32_t c_crc_initial_value = ((uint32_t)-1);
 class log_handler_t
 {
 public:
-    explicit log_handler_t(const std::string& directory_path);
+    explicit log_handler_t(const std::string& data_dir_path);
     ~log_handler_t();
     void open_for_writes(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd);
 
@@ -88,9 +88,9 @@ public:
     void perform_flushed_batch_maintenance();
 
 private:
-    static constexpr char c_gaia_wal_dir_name[] = "/wal_dir";
+    static constexpr char c_gaia_wal_dir_name[] = "wal_dir";
     static constexpr int c_gaia_wal_dir_permissions = S_IRWXU | (S_IRGRP | S_IROTH | S_IXGRP | S_IXOTH);
-    static inline std::string s_wal_dir_path{};
+    static inline std::filesystem::path s_wal_dir_path{};
     static inline int s_dir_fd{-1};
 
     // Log file sequence starts from 1.

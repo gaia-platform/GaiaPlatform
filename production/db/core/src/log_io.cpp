@@ -48,18 +48,20 @@ namespace db
 namespace persistence
 {
 
-log_handler_t::log_handler_t(const std::string& wal_dir_path)
+log_handler_t::log_handler_t(const std::string& data_dir_path)
 {
-    auto dirpath = wal_dir_path;
-    ASSERT_PRECONDITION(!dirpath.empty(), "Gaia persistent directory path shouldn't be empty.");
-    s_wal_dir_path = dirpath.append(c_gaia_wal_dir_name);
+    ASSERT_PRECONDITION(!data_dir_path.empty(), "Gaia persistent data directory path shouldn't be empty.");
 
-    if (-1 == mkdir(s_wal_dir_path.c_str(), c_gaia_wal_dir_permissions) && errno != EEXIST)
+    std::filesystem::path wal_dir_parent = data_dir_path;
+    std::filesystem::path wal_dir_child = c_gaia_wal_dir_name;
+    s_wal_dir_path = wal_dir_parent / wal_dir_child;
+
+    if (-1 == ::mkdir(s_wal_dir_path.c_str(), c_gaia_wal_dir_permissions) && errno != EEXIST)
     {
         throw_system_error("Unable to create persistent log directory");
     }
 
-    if (-1 == open(s_wal_dir_path.c_str(), O_DIRECTORY))
+    if (-1 == ::open(s_wal_dir_path.c_str(), O_DIRECTORY))
     {
         throw_system_error("Unable to open persistent log directory.");
     }
@@ -67,7 +69,7 @@ log_handler_t::log_handler_t(const std::string& wal_dir_path)
 
 void log_handler_t::open_for_writes(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd)
 {
-    ASSERT_PRECONDITION(validate_flushed_batch_eventfd != -1, "Eventfd to signal post flush maintenance operations invalid!");
+    ASSERT_PRECONDITION(validate_flushed_batch_eventfd != -1, "Eventfd to signal post-flush maintenance operations invalid!");
     ASSERT_PRECONDITION(signal_checkpoint_eventfd != -1, "Eventfd to signal checkpointing of log file is invalid!");
     ASSERT_INVARIANT(s_dir_fd != -1, "Unable to open data directory for persistent log writes.");
 
@@ -107,7 +109,8 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
     }
     else if (m_current_file->get_bytes_remaining_after_append(payload_size) <= 0)
     {
-        m_async_disk_writer->perform_file_close_operations(m_current_file->get_file_fd(), m_current_file->get_file_sequence());
+        m_async_disk_writer->perform_file_close_operations(
+            m_current_file->get_file_fd(), m_current_file->get_file_sequence());
 
         // One batch writes to a single log file at a time.
         m_async_disk_writer->submit_and_swap_in_progress_batch(m_current_file->get_file_fd());
@@ -157,13 +160,17 @@ void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
     header.crc = txn_crc;
 
     // Copy information which needs to survive for the entire batch lifetime into the metadata buffer.
-    auto header_ptr = m_async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), m_current_file->get_file_fd());
-    auto txn_decisions_ptr = m_async_disk_writer->copy_into_metadata_buffer(txn_decisions.data(), txn_decision_size, m_current_file->get_file_fd());
+    auto header_ptr = m_async_disk_writer->copy_into_metadata_buffer(
+        &header, sizeof(record_header_t), m_current_file->get_file_fd());
+    auto txn_decisions_ptr = m_async_disk_writer->copy_into_metadata_buffer(
+        txn_decisions.data(), txn_decision_size, m_current_file->get_file_fd());
 
     writes_to_submit.push_back({header_ptr, sizeof(record_header_t)});
     writes_to_submit.push_back({txn_decisions_ptr, txn_decision_size});
 
-    m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_decision);
+    m_async_disk_writer->enqueue_pwritev_requests(
+        writes_to_submit, m_current_file->get_file_fd(),
+        m_current_file->get_current_offset(), uring_op_t::pwritev_decision);
 }
 
 void log_handler_t::process_txn_log_and_write(log_offset_t log_offset, gaia_txn_id_t commit_ts)
@@ -199,7 +206,7 @@ void log_handler_t::process_txn_log_and_write(log_offset_t log_offset, gaia_txn_
     std::vector<chunk_data_t> chunk_data;
 
     // Obtain deleted IDs and min/max offsets per chunk.
-    for (size_t i = 0; i < txn_log->record_count; i++)
+    for (size_t i = 0; i < txn_log->record_count; ++i)
     {
         auto lr = txn_log->log_records[i];
 
@@ -248,6 +255,7 @@ void log_handler_t::process_txn_log_and_write(log_offset_t log_offset, gaia_txn_
 
     for (const auto& entry : chunk_data)
     {
+        ASSERT_INVARIANT(entry.min_offset <= entry.max_offset, "Lowest offset in chunk cannot exceed highest offset in chunk!");
         auto first_obj_ptr = offset_to_ptr(entry.min_offset);
         auto last_obj_ptr = offset_to_ptr(entry.max_offset);
         auto last_payload_size = last_obj_ptr->payload_size + c_db_object_header_size;

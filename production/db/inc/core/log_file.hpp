@@ -54,13 +54,13 @@ public:
     file_sequence_t get_file_sequence() const;
 
 private:
-    size_t m_file_size{0};
-    file_sequence_t m_file_seq{0};
-    size_t m_current_offset{0};
     std::string m_dir_name{};
     int m_dir_fd{-1};
-    int m_file_fd{-1};
     std::string m_file_name{};
+    int m_file_fd{-1};
+    file_sequence_t m_file_seq{0};
+    size_t m_file_size{0};
+    size_t m_current_offset{0};
     inline static constexpr int c_file_permissions{0666};
 };
 
