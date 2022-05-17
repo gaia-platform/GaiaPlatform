@@ -10,6 +10,22 @@ include(gaia_internal)
 file(WRITE ${CMAKE_BINARY_DIR}/sdk_dummy.c "")
 
 # TODO: Replace dummy source with object libraries.
+
+# Build the database only shared libary
+add_library(gaia_db SHARED ${CMAKE_BINARY_DIR}/sdk_dummy.c)
+set(SDK_LINK_DB_LIBRARIES
+  -Wl,--whole-archive
+  gaia_system_db
+  -Wl,--no-whole-archive
+)
+
+target_compile_options(gaia_db PRIVATE -Qunused-arguments)
+target_link_libraries(gaia_db PRIVATE
+  ${SDK_LINK_DB_LIBRARIES}
+)
+install(TARGETS gaia_db DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+# Build the full library (database + rules engine)
 add_library(gaia SHARED ${CMAKE_BINARY_DIR}/sdk_dummy.c)
 set(SDK_LINK_LIBRARIES
   -Wl,--whole-archive
@@ -41,13 +57,32 @@ configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl")
 
-add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
+# The following tests ensure that the shared libraries contains the definitions we expect.
+# test_sdk: verify rules functionality when linked to the full gaia library.
+# test_sdk_db: verify database functionality when linked to the full gaia library.
+# test_sdk_db_only: verify database functionality when linked to the gaia_db library.
+# test_sdk_no_init_rules: verifies that missing initialize_rules doesn't cause a link error
+#   when linked against the full library.
+# test_sdk_db_no_init_rules: verifies that the rules engine is not initalized when linked against the
+#   gaia_db library.
+
+add_gtest(test_sdk "tests/test_sdk_rules.cpp;${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
 # We don't want to link against dac_addr_book to keep the test as close as possible to customers' environment.
 # Though we want to ensure that the DAC headers have been generated before building the test.
 add_dependencies(test_sdk dac_addr_book)
 set_source_files_properties(${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
 
+add_gtest(test_sdk_db "tests/test_sdk_db.cpp;${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
+add_dependencies(test_sdk_db dac_addr_book)
+set_source_files_properties(${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
+
+add_gtest(test_sdk_db_only "tests/test_sdk_db.cpp;${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia_db")
+add_dependencies(test_sdk_db_only dac_addr_book)
+set_source_files_properties(${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
+
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
+
+add_gtest(test_sdk_db_no_init_rules "tests/test_sdk_db_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia_db;dac_addr_book")
 
 # Set CPack variables required for building a DEB package.
 #

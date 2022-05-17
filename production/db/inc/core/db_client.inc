@@ -33,6 +33,11 @@ inline void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
     s_txn_commit_trigger = trigger_fn;
 }
 
+inline bool client_t::has_commit_trigger()
+{
+    return (s_txn_commit_trigger != nullptr);
+}
+
 inline int client_t::get_session_socket_for_txn()
 {
     return s_session_socket;

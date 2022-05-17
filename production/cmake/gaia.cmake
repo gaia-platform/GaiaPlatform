@@ -14,8 +14,9 @@ cmake_minimum_required(VERSION 3.16)
 # - GAIA_ROOT: Gaia root directory. Default: /opt/gaia.
 # - GAIA_INC: Gaia include directory. Default: ${GAIA_ROOT}/include.
 # - GAIA_BIN: Gaia bin directory. Default: ${GAIA_ROOT}/bin.
-# - GAIA_LIB_DIR: libgaia.so directory. Default: ${GAIA_ROOT}/lib.
+# - GAIA_LIB_DIR: libgaia.so and libgaia_db.so directory. Default: ${GAIA_ROOT}/lib.
 # - GAIA_LIB: Automatically set by CMake if libgaia.so is found.
+# - GAIA_DB_LIB: Automatically set by CMake if libgaia_db.so is found.
 # - GAIA_GAIAC_CMD: The gaiac command. Default: ${GAIA_BIN}/gaiac.
 # - GAIA_GAIAT_CMD: The gaiat command. Default: ${GAIA_BIN}/gaiat.
 # - GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR: The process_schema() function puts the generated Direct Access code
@@ -62,6 +63,11 @@ endif()
 find_library(GAIA_LIB gaia PATHS ${GAIA_LIB_DIR})
 if(NOT GAIA_LIB)
   message(FATAL_ERROR "Gaia library is not found!")
+endif()
+
+find_library(GAIA_DB_LIB gaia_db PATHS ${GAIA_LIB_DIR})
+if(NOT GAIA_DB_LIB)
+  message(FATAL_ERROR "Gaia database-only library is not found!")
 endif()
 
 if(NOT DEFINED GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR)

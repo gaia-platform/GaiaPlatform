@@ -125,9 +125,10 @@ else()
 endif()
 
 add_library(gaia_db_persistence STATIC
-  src/log_file.cpp
   src/async_disk_writer.cpp
-  src/async_write_batch.cpp)
+  src/async_write_batch.cpp
+  src/log_file.cpp
+  src/log_io.cpp)
 # Add GAIA_DB_SERVER preprocessor definition for conditional includes.
 target_compile_definitions(gaia_db_persistence PUBLIC GAIA_DB_SERVER=1)
 configure_gaia_target(gaia_db_persistence)

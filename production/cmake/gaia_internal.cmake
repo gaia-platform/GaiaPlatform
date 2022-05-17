@@ -441,6 +441,7 @@ function(add_example)
 
   # Not all the examples have a ruleset file.
   if(DEFINED ARG_RULESET_FILE)
+    set(GAIA_LIB_NAME "gaia")
     get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
     string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
 
@@ -458,6 +459,8 @@ function(add_example)
     endif()
 
     string(APPEND ARG_SRC_FILES ";" ${GAIA_GENERATED_CODE}/rules/${RULESET_NAME}/${RULESET_NAME}_ruleset.cpp)
+  else()
+    set(GAIA_LIB_NAME "gaia_db")
   endif()
 
   add_executable(${ARG_NAME}
@@ -465,7 +468,7 @@ function(add_example)
   )
 
   target_link_libraries(${ARG_NAME}
-    gaia
+    "${GAIA_LIB_NAME}"
     "${DAC_LIB_NAME}"
     Threads::Threads
   )

@@ -25,6 +25,7 @@
 
 #include "chunk_manager.hpp"
 #include "client_messenger.hpp"
+#include "db_caches.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
@@ -50,7 +51,6 @@ class client_t
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
-    friend gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offset);
 
     /**
      * @throws no_open_session_internal if there is no open session.
@@ -64,6 +64,7 @@ class client_t
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
     friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();
+    friend const gaia::db::caches::db_caches_t* gaia::db::get_db_caches();
 
     friend class gaia::db::query_processor::db_client_proxy_t;
 
@@ -72,6 +73,7 @@ public:
     static inline gaia_txn_id_t get_current_txn_id();
     static void clear_shared_memory();
     static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
+    static inline bool has_commit_trigger();
     static inline bool is_ping_session_open();
     static inline bool is_ddl_session_open();
 
@@ -112,8 +114,6 @@ public:
         common::gaia_id_t id, common::field_position_list_t changed_fields);
 
 private:
-    static inline std::once_flag s_are_db_caches_initialized;
-
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
@@ -126,6 +126,10 @@ private:
 
     // These fields have session lifetime.
     thread_local static inline config::session_options_t s_session_options;
+
+    // We don't use an auto-pointer because its destructor is "non-trivial"
+    // and that would add overhead to the TLS implementation.
+    thread_local static inline gaia::db::caches::db_caches_t* s_db_caches_ptr{nullptr};
 
     // REVIEW [GAIAPLAT-2068]: When we enable snapshot reuse across txns (by
     // applying the undo log from the previous txn to the existing snapshot and
@@ -172,7 +176,7 @@ private:
 private:
     static void init_memory_manager();
 
-    static void init_db_caches();
+    static gaia::db::caches::db_caches_t* init_db_caches();
 
     static void txn_cleanup();
 
