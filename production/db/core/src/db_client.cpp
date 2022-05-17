@@ -191,7 +191,13 @@ void client_t::begin_session(config::session_options_t options)
         } });
 
     session_event_t event = client_messenger.server_reply()->event();
-    ASSERT_INVARIANT(event == session_event_t::CONNECT, c_message_unexpected_event_received);
+    ASSERT_INVARIANT(event == session_event_t::CONNECT || event == session_event_t::SESSION_ERROR, c_message_unexpected_event_received);
+
+    if (event == session_event_t::SESSION_ERROR)
+    {
+        gaia::db::end_session();
+        throw session_failure_internal();
+    }
 
     // Set up the shared-memory mappings.
     // The locators mapping will be performed manually, so skip its information in the mapping table.
@@ -303,7 +309,7 @@ void client_t::rollback_transaction()
     verify_txn_active();
 
     // Clean up all transaction-local session state.
-    auto cleanup = make_scope_guard(txn_cleanup);
+    [[maybe_unused]] auto cleanup = make_scope_guard(txn_cleanup);
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
@@ -349,7 +355,7 @@ void client_t::commit_transaction()
     }
 
     // Clean up all transaction-local session state when we exit.
-    auto cleanup = make_scope_guard(txn_cleanup);
+    [[maybe_unused]] auto cleanup = make_scope_guard(txn_cleanup);
 
     // Send the server the commit message.
     FlatBufferBuilder builder;

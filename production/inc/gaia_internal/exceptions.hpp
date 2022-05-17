@@ -290,6 +290,12 @@ public:
     session_limit_exceeded_internal();
 };
 
+class session_failure_internal : public session_failure
+{
+public:
+    session_failure_internal();
+};
+
 class invalid_reference_offset_internal : public invalid_reference_offset
 {
 public:

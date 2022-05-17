@@ -384,6 +384,14 @@ class session_limit_exceeded : public common::gaia_exception
 };
 
 /**
+ * @brief A generic session failure. Check the server output for
+ * more details.
+ */
+class session_failure : public common::gaia_exception
+{
+};
+
+/**
  * @brief Trying to add a reference to an offset that does not exist.
  *
  * This can happen when a relationship is deleted at runtime,
