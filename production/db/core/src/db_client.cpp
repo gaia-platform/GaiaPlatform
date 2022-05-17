@@ -45,18 +45,6 @@ static void build_client_request(
     builder.Finish(message);
 }
 
-// This function must be called before establishing a new session. It ensures
-// that if the server restarts or is reset, no session will start with a stale
-// data mapping or locator fd.
-void client_t::clear_shared_memory()
-{
-    // This is intended to be called before a session is established.
-    verify_no_session();
-
-    // We closed our original fds for these data segments, so we only need to unmap them.
-    data_mapping_t::close(s_data_mappings);
-}
-
 void client_t::txn_cleanup()
 {
     // Ensure the cleaning of the txn context.
@@ -65,7 +53,7 @@ void client_t::txn_cleanup()
     });
 
     // Destroy the locator mapping.
-    s_private_locators.close();
+    s_session_context->private_locators.close();
 }
 
 int client_t::get_session_socket(const std::string& socket_name)
@@ -134,12 +122,9 @@ void client_t::begin_session(config::session_options_t session_options)
         s_session_context = nullptr;
     });
 
-    // Clean up possible stale state from a server crash or reset.
-    clear_shared_memory();
-
     // Validate shared memory mapping definitions and assert that mappings are not made yet.
-    data_mapping_t::validate(s_data_mappings, std::size(s_data_mappings));
-    for (auto data_mapping : s_data_mappings)
+    data_mapping_t::validate(s_session_context->data_mappings);
+    for (const auto& data_mapping : s_session_context->data_mappings)
     {
         ASSERT_INVARIANT(!data_mapping.is_set(), "Segment is already mapped!");
     }
@@ -156,8 +141,6 @@ void client_t::begin_session(config::session_options_t session_options)
     {
         throw server_connection_failed_internal(e.what(), e.get_errno());
     }
-
-    auto cleanup_session_socket = make_scope_guard([&] { close_fd(s_session_context->session_socket); });
 
     // Determine the type of session event based on the session type specified in the session options.
     session_event_t session_event = session_event_t::CONNECT;
@@ -198,7 +181,7 @@ void client_t::begin_session(config::session_options_t session_options)
     int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
     auto cleanup_fd_locators = make_scope_guard([&fd_locators] { close_fd(fd_locators); });
     auto cleanup_fd_others = make_scope_guard([&] {
-        for (auto data_mapping : s_data_mappings)
+        for (const auto& data_mapping : s_session_context->data_mappings)
         {
             if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
             {
@@ -212,15 +195,13 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Set up the shared-memory mappings.
     // The locators mapping will be performed manually, so skip its information in the mapping table.
-    size_t fd_index = 0;
-    for (auto data_mapping : s_data_mappings)
+    for (const auto& data_mapping : s_session_context->data_mappings)
     {
         if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
         {
-            int fd = client_messenger.received_fd(fd_index);
+            int fd = client_messenger.received_fd(static_cast<size_t>(data_mapping.mapping_index));
             data_mapping.open(fd);
         }
-        ++fd_index;
     }
 
     // Set up the private locator segment fd.
@@ -229,7 +210,6 @@ void client_t::begin_session(config::session_options_t session_options)
     init_memory_manager();
 
     cleanup_fd_locators.dismiss();
-    cleanup_session_socket.dismiss();
     cleanup_session_context.dismiss();
 }
 
@@ -268,11 +248,11 @@ void client_t::begin_transaction()
     });
 
     // Map a private COW view of the locator shared memory segment.
-    ASSERT_PRECONDITION(!s_private_locators.is_set(), "Locators segment is already mapped!");
+    ASSERT_PRECONDITION(!s_session_context->private_locators.is_set(), "Locators segment is already mapped!");
     bool manage_fd = false;
     bool is_shared = false;
-    s_private_locators.open(s_session_context->fd_locators, manage_fd, is_shared);
-    auto cleanup_private_locators = make_scope_guard([&] { s_private_locators.close(); });
+    s_session_context->private_locators.open(s_session_context->fd_locators, manage_fd, is_shared);
+    auto cleanup_private_locators = make_scope_guard([&] { s_session_context->private_locators.close(); });
 
     // Send a TXN_BEGIN request to the server and receive a new txn ID, the
     // offset of a new txn log, and txn log offsets for all committed txns
@@ -298,9 +278,15 @@ void client_t::begin_transaction()
     const auto transaction_logs_to_apply = txn_info->transaction_logs_to_apply();
     for (const auto txn_log_info : *transaction_logs_to_apply)
     {
+<<<<<<< HEAD
         // REVIEW: After snapshot reuse is enabled, skip applying logs with
         // txn_log_info.commit_timestamp <= s_latest_applied_commit_ts.
         apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
+=======
+        // REVIEW: After snapshot reuse (GAIAPLAT-2068) is enabled, skip applying logs with
+        // txn_log_info.commit_timestamp <= s_session_context->latest_applied_commit_ts.
+        apply_log_from_offset(s_session_context->private_locators.data(), txn_log_info->log_offset());
+>>>>>>> Move data mappings into session context
     }
 
     // REVIEW: Re-enable these caches once we complete handling of DDL updates.
@@ -430,8 +416,8 @@ void client_t::commit_transaction()
 void client_t::init_memory_manager()
 {
     s_session_context->memory_manager.load(
-        reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
-        sizeof(s_shared_data.data()->objects));
+        reinterpret_cast<uint8_t*>(s_session_context->shared_data.data()->objects),
+        sizeof(s_session_context->shared_data.data()->objects));
 }
 
 caches::db_caches_t* client_t::init_db_caches()

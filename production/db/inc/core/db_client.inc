@@ -20,7 +20,7 @@ inline bool client_t::is_ddl_session_open()
 
 inline bool client_t::is_transaction_open()
 {
-    return (s_private_locators.is_set());
+    return (s_session_context && s_session_context->private_locators.is_set());
 }
 
 inline gaia_txn_id_t client_t::get_current_txn_id()

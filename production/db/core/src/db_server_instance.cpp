@@ -211,9 +211,6 @@ void server_instance_t::reset_server(bool wait_for_init)
     // We need to allow enough time after the signal is sent for the process to
     // receive and process the signal.
     constexpr int c_wait_signal_millis = 10;
-    // We need to drop all client references to shared memory before resetting the server.
-    // NB: this cannot be called within an active session!
-    gaia::db::clear_shared_memory();
     // Reinitialize the server (forcibly disconnects all clients and clears database).
     // Resetting the server will cause Recovery to be skipped. Recovery will only occur post
     // server process reboot.

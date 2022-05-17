@@ -55,13 +55,6 @@ void begin_ddl_session();
 void set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
 
 /**
- * @brief Reinitializes the DB client's shared memory structures.
- * For use only by test code, in combination with the DB
- * server's reinitialization feature.
- */
-void clear_shared_memory();
-
-/**
  * @brief Internal API for getting the begin_ts of the current txn.
  */
 gaia_txn_id_t get_current_txn_id();

@@ -23,9 +23,7 @@
 
 #include "client_contexts.hpp"
 #include "client_messenger.hpp"
-#include "mapped_data.hpp"
 #include "messages_generated.h"
-#include "type_index.hpp"
 
 namespace gaia
 {
@@ -67,7 +65,6 @@ class client_t
 public:
     // These functions are exported from gaia_internal/db/db.hpp.
     static inline gaia_txn_id_t get_current_txn_id();
-    static void clear_shared_memory();
     static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
     static inline bool has_commit_trigger();
     static inline bool is_ping_session_open();
@@ -113,45 +110,6 @@ private:
     // We don't use an auto-pointer because its destructor is "non-trivial"
     // and that would add overhead to the TLS implementation.
     thread_local static inline client_session_context_t* s_session_context{nullptr};
-
-    // NB: We need to use the (nonstandard) __thread attribute rather than
-    // thread_local to ensure that a minimal TLS implementation is used.
-    __thread static inline mapped_data_t<locators_t> s_private_locators{};
-
-    // These fields have session lifetime.
-    thread_local static inline config::session_options_t s_session_options;
-
-    // We don't use an auto-pointer because its destructor is "non-trivial"
-    // and that would add overhead to the TLS implementation.
-    thread_local static inline gaia::db::caches::db_caches_t* s_db_caches_ptr{nullptr};
-
-    // REVIEW: When we enable snapshot reuse across txns (by applying the undo
-    // log from the previous txn to the existing snapshot and then applying redo
-    // logs from txns committed after the last shared locators view update), we
-    // need to track the last commit_ts whose log was applied to the snapshot,
-    // so we can ignore any logs committed at or before that commit_ts.
-    thread_local static inline gaia_txn_id_t s_latest_applied_commit_ts = c_invalid_gaia_txn_id;
-
-    thread_local static inline int s_fd_locators = -1;
-
-    // NB: We need to use the (nonstandard) __thread attribute rather than
-    // thread_local to ensure that a minimal TLS implementation is used.
-    __thread static inline mapped_data_t<counters_t> s_shared_counters{};
-    __thread static inline mapped_data_t<data_t> s_shared_data{};
-    __thread static inline mapped_data_t<logs_t> s_shared_logs{};
-    __thread static inline mapped_data_t<id_index_t> s_shared_id_index{};
-    __thread static inline mapped_data_t<type_index_t> s_shared_type_index{};
-
-    // A list of data mappings that we manage together.
-    // The order of declarations must be the order of data_mapping_t::index_t values!
-    thread_local static inline data_mapping_t s_data_mappings[] = {
-        {data_mapping_t::index_t::locators, &s_private_locators, c_gaia_mem_locators_prefix},
-        {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
-        {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
-        {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
-        {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
-        {data_mapping_t::index_t::type_index, &s_shared_type_index, c_gaia_mem_type_index_prefix},
-    };
 
     // This is a callback set by the rules engine.
     static inline triggers::commit_trigger_fn s_txn_commit_trigger = nullptr;
