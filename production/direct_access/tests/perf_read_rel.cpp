@@ -21,10 +21,10 @@ using namespace std;
 // This is why c_max_insertion_single_txn is divided by 5.
 static const size_t c_max_insertion_single_txn_rel = c_max_insertion_single_txn / 5;
 
-class test_read_perf_rel : public gaia::db::db_catalog_test_base_t
+class direct_access__perf_read_rel__test : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_read_perf_rel()
+    direct_access__perf_read_rel__test()
         : db_catalog_test_base_t("perf_rel.ddl", true, true, true)
     {
     }
@@ -97,7 +97,7 @@ size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
     return total_records_inserted;
 }
 
-TEST_F(test_read_perf_rel, single_join)
+TEST_F(direct_access__perf_read_rel__test, single_join)
 {
     const size_t num_records_inserted = insert_data();
 
@@ -172,7 +172,7 @@ size_t insert_nested_join_data(size_t num_records = c_num_records)
     return num_j3_records;
 }
 
-TEST_F(test_read_perf_rel, nested_joins)
+TEST_F(direct_access__perf_read_rel__test, nested_joins)
 {
     for (size_t num_records : {10UL, 100UL, 1000UL, 10000UL, 100000UL})
     {

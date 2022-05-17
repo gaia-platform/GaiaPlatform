@@ -33,7 +33,7 @@ index_record_t create_index_record()
     return {c_fake_txn_id, locator, c_fake_offset, index_record_operation_t::insert, 0};
 }
 
-TEST(index, empty_range_index)
+TEST(db__index__basic__test, empty_range_index)
 {
     index_key_schema_t schema;
     range_index_t range_index(0, schema);
@@ -47,7 +47,7 @@ TEST(index, empty_range_index)
     ASSERT_EQ(count, 0);
 }
 
-TEST(index, empty_hash_index)
+TEST(db__index__basic__test, empty_hash_index)
 {
     index_key_schema_t schema;
     hash_index_t hash_index(0, schema);
@@ -59,7 +59,7 @@ TEST(index, empty_hash_index)
     ASSERT_EQ(count, 0);
 }
 
-TEST(index, one_record_hash_index)
+TEST(db__index__basic__test, one_record_hash_index)
 {
     index_key_schema_t schema;
     hash_index_t hash_index(0, schema);
@@ -76,7 +76,7 @@ TEST(index, one_record_hash_index)
     ASSERT_EQ(count, 1);
 }
 
-TEST(index, one_record_range_index)
+TEST(db__index__basic__test, one_record_range_index)
 {
     index_key_schema_t schema;
     range_index_t range_index(0, schema);
@@ -93,7 +93,7 @@ TEST(index, one_record_range_index)
     ASSERT_EQ(count, 1);
 }
 
-TEST(index, single_key_multi_record_hash_index)
+TEST(db__index__basic__test, single_key_multi_record_hash_index)
 {
     index_key_schema_t schema;
     hash_index_t hash_index(0, schema);
@@ -112,7 +112,7 @@ TEST(index, single_key_multi_record_hash_index)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index, single_key_multi_record_range_index)
+TEST(db__index__basic__test, single_key_multi_record_range_index)
 {
     index_key_schema_t schema;
     range_index_t range_index(0, schema);
@@ -131,7 +131,7 @@ TEST(index, single_key_multi_record_range_index)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index, multi_key_multi_record_hash_index)
+TEST(db__index__basic__test, multi_key_multi_record_hash_index)
 {
     index_key_schema_t schema;
     hash_index_t hash_index(0, schema);
@@ -152,7 +152,7 @@ TEST(index, multi_key_multi_record_hash_index)
     ASSERT_EQ(count, 5);
 }
 
-TEST(index, multi_key_multi_record_range_index)
+TEST(db__index__basic__test, multi_key_multi_record_range_index)
 {
     index_key_schema_t schema;
     range_index_t range_index(0, schema);
@@ -174,7 +174,7 @@ TEST(index, multi_key_multi_record_range_index)
 }
 
 // Simulate index updates for range index
-TEST(index, range_update_test)
+TEST(db__index__basic__test, range_update_test)
 {
     index_key_schema_t schema;
     index_record_t to_update = create_index_record();
@@ -197,7 +197,7 @@ TEST(index, range_update_test)
 }
 
 // Simulate index updates for hash index
-TEST(index, hash_update_test)
+TEST(db__index__basic__test, hash_update_test)
 {
     index_record_t to_update = create_index_record();
     index_key_schema_t schema;
@@ -219,7 +219,7 @@ TEST(index, hash_update_test)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index, eq_range_hash_index)
+TEST(db__index__basic__test, eq_range_hash_index)
 {
     index_key_schema_t schema;
     hash_index_t hash_index(0, schema);
@@ -242,7 +242,7 @@ TEST(index, eq_range_hash_index)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index, eq_range_range_index)
+TEST(db__index__basic__test, eq_range_range_index)
 {
     index_key_schema_t schema;
     range_index_t range_index(0, schema);
@@ -265,7 +265,7 @@ TEST(index, eq_range_range_index)
     ASSERT_EQ(count, 3);
 }
 
-TEST(index, key_hash_test)
+TEST(db__index__basic__test, key_hash_test)
 {
     // Check compound keys with different orders are distributed differently
     index_key_t k1(1, 0);
@@ -282,7 +282,7 @@ TEST(index, key_hash_test)
     ASSERT_NE(index_key_hash{}(zero_key), index_key_hash{}(double_zero_key));
 }
 
-TEST(index, null_key_hash_test)
+TEST(db__index__basic__test, null_key_hash_test)
 {
     // Check keys with nulls in in a key hash are distributed differently.
     data_holder_t value = 1;
@@ -302,7 +302,7 @@ TEST(index, null_key_hash_test)
     ASSERT_TRUE(two_null.is_null());
 }
 
-TEST(index, key_comparator_test)
+TEST(db__index__basic__test, key_comparator_test)
 {
     // Primitive equality test.
     index_key_t k1(1);
@@ -318,7 +318,7 @@ TEST(index, key_comparator_test)
 }
 
 // Ordering needs to be consistent with optional's comparator.
-TEST(index, key_optional_comparator_test)
+TEST(db__index__basic__test, key_optional_comparator_test)
 {
     data_holder_t null_value(reflection::Int, nullptr);
     index_key_t null_key(null_value);
@@ -344,14 +344,14 @@ TEST(index, key_optional_comparator_test)
     ASSERT_EQ(index_key_le, optional_le);
 }
 
-class index_test : public db_catalog_test_base_t
+class db__index__test : public db_catalog_test_base_t
 {
 protected:
-    index_test()
+    db__index__test()
         : db_catalog_test_base_t("prerequisites.ddl"){};
 };
 
-TEST_F(index_test, unique_constraint_same_txn)
+TEST_F(db__index__test, unique_constraint_same_txn)
 {
     const char* student_id = "00002217";
 
@@ -361,7 +361,7 @@ TEST_F(index_test, unique_constraint_same_txn)
     ASSERT_THROW(txn.commit(), unique_constraint_violation);
 }
 
-TEST_F(index_test, unique_constraint_different_txn)
+TEST_F(db__index__test, unique_constraint_different_txn)
 {
     const char* student_id = "00002217";
 
@@ -374,7 +374,7 @@ TEST_F(index_test, unique_constraint_different_txn)
     ASSERT_THROW(txn.commit(), unique_constraint_violation);
 }
 
-TEST_F(index_test, unique_constraint_update_record)
+TEST_F(db__index__test, unique_constraint_update_record)
 {
     const char* student_id = "00002217";
 
@@ -394,7 +394,7 @@ TEST_F(index_test, unique_constraint_update_record)
     ASSERT_EQ(0, strcmp(alice.surname(), "Alicia"));
 }
 
-TEST_F(index_test, unique_constraint_delete_record)
+TEST_F(db__index__test, unique_constraint_delete_record)
 {
     const char* student_id = "00002217";
 
@@ -413,7 +413,7 @@ TEST_F(index_test, unique_constraint_delete_record)
     ASSERT_EQ(0, strcmp(alice.surname(), "Alicia"));
 }
 
-TEST_F(index_test, unique_constraint_rollback_transaction)
+TEST_F(db__index__test, unique_constraint_rollback_transaction)
 {
     const char* alice_student_id = "00002217";
     const char* bob_student_id = "00002346";

@@ -41,4 +41,4 @@ add_executable(hello
 target_add_gaia_generated_sources(hello)
 target_include_directories(hello PRIVATE ${GAIA_INC})
 target_link_directories(hello PRIVATE ${GAIA_LIB_DIR})
-target_link_libraries(hello PRIVATE gaia rt Threads::Threads)
+target_link_libraries(hello PRIVATE ${GAIA_LIB} rt Threads::Threads)

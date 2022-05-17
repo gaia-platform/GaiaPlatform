@@ -16,10 +16,10 @@ using namespace gaia::direct_access;
 using namespace gaia::perf_basic;
 using namespace std;
 
-class test_update_perf_basic : public gaia::db::db_catalog_test_base_t
+class direct_access__perf_update_basic__test : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_update_perf_basic()
+    direct_access__perf_update_basic__test()
         : db_catalog_test_base_t("perf_basic.ddl", true, true, true)
     {
     }
@@ -63,7 +63,7 @@ void insert_data()
     }
 }
 
-TEST_F(test_update_perf_basic, simple_table_update)
+TEST_F(direct_access__perf_update_basic__test, simple_table_update)
 {
     insert_data();
 
@@ -80,7 +80,7 @@ TEST_F(test_update_perf_basic, simple_table_update)
         update, clear_database, "simple_table_update", clear_db_after_each_iteration);
 }
 
-TEST_F(test_update_perf_basic, simple_table_update_dynamic)
+TEST_F(direct_access__perf_update_basic__test, simple_table_update_dynamic)
 {
     insert_data();
 

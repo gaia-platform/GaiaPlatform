@@ -11,7 +11,7 @@
 
 using namespace gaia::db::persistence;
 
-TEST(write_read_assert, basic)
+TEST(db__core__rdb_object_converter__test, basic)
 {
     string_writer_t writer;
 
@@ -69,7 +69,7 @@ TEST(write_read_assert, basic)
 }
 
 // This test illustrates why payload should always be stored at the end
-TEST(write_read_assert, payload_edge_case)
+TEST(db__core__rdb_object_converter__test, payload_edge_case)
 {
     // Our payloads are at the end of the value slice
     // hence we don't need to deal with encoding empty strings.

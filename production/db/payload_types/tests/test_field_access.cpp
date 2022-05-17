@@ -339,7 +339,7 @@ void read_flatbuffers_data()
     cout << endl;
 }
 
-TEST(payload_types, field_read)
+TEST(db__payload_types__field_access__test, field_read)
 {
     read_flatbuffers_data();
 }
@@ -528,7 +528,7 @@ void update_flatbuffers_data()
     cout << endl;
 }
 
-TEST(payload_types, field_update)
+TEST(db__payload_types__field_access__test, field_update)
 {
     update_flatbuffers_data();
 }

@@ -46,6 +46,7 @@ struct CatalogTableData
     llvm::StringMap<CatalogFieldData> fieldData;
     llvm::StringMap<CatalogLinkData> linkData;
     string dbName;
+    string dbHash;
 };
 
 class GaiaCatalog

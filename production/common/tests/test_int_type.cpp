@@ -172,7 +172,7 @@ void test_int_type()
     EXPECT_EQ(expected_result, data);
 }
 
-TEST(common, int_type)
+TEST(common__int_type__test, operations)
 {
     test_int_type<uint8_t>();
     test_int_type<uint16_t>();
@@ -185,7 +185,7 @@ TEST(common, int_type)
     test_int_type<int64_t>();
 }
 
-TEST(common, int_type_is_valid)
+TEST(common__int_type__test, is_valid)
 {
     constexpr uint64_t c_uint64_max = std::numeric_limits<uint64_t>::max();
 

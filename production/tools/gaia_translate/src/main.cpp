@@ -170,7 +170,7 @@ llvm::DenseMap<SourceRange, string> g_continue_label_map;
 llvm::SmallVector<writer_data_t, c_size_32> g_writer_data;
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
-static const char c_ident[] = "    ";
+static const char c_indent[] = "    ";
 
 static void print_version(raw_ostream& stream)
 {
@@ -471,6 +471,11 @@ void validate_table_data()
     }
 }
 
+string db_namespace(StringRef db_name)
+{
+    return db_name == catalog::c_empty_db_name ? "" : Twine(db_name, "::").str();
+}
+
 llvm::SmallString<c_size_256> generate_general_subscription_code()
 {
     llvm::SmallString<c_size_256> return_value = StringRef(
@@ -483,27 +488,27 @@ llvm::SmallString<c_size_256> generate_general_subscription_code()
 
     for (const string& ruleset : g_rulesets)
     {
-        return_value.append(c_ident);
+        return_value.append(c_indent);
         return_value.append("if (strcmp(ruleset_name, \"");
         return_value.append(ruleset);
         return_value.append("\") == 0)\n");
-        return_value.append(c_ident);
+        return_value.append(c_indent);
         return_value.append("{\n");
-        return_value.append(c_ident);
-        return_value.append(c_ident);
+        return_value.append(c_indent);
+        return_value.append(c_indent);
         return_value.append("::");
         return_value.append(ruleset);
         return_value.append("::subscribe_ruleset_");
         return_value.append(ruleset);
         return_value.append("();\n");
-        return_value.append(c_ident);
-        return_value.append(c_ident);
+        return_value.append(c_indent);
+        return_value.append(c_indent);
         return_value.append("return;\n");
-        return_value.append(c_ident);
+        return_value.append(c_indent);
         return_value.append("}\n");
     }
 
-    return_value.append(c_ident);
+    return_value.append(c_indent);
     return_value.append("throw gaia::rules::ruleset_not_found(ruleset_name);\n"
                         "}\n"
                         "extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n"
@@ -511,35 +516,87 @@ llvm::SmallString<c_size_256> generate_general_subscription_code()
 
     for (const string& ruleset : g_rulesets)
     {
-        return_value.append(c_ident);
+        return_value.append(c_indent);
         return_value.append("if (strcmp(ruleset_name, \"");
         return_value.append(ruleset);
         return_value.append("\") == 0)\n");
-        return_value.append(c_ident);
+        return_value.append(c_indent);
         return_value.append("{\n");
-        return_value.append(c_ident);
-        return_value.append(c_ident);
+        return_value.append(c_indent);
+        return_value.append(c_indent);
         return_value.append("::");
         return_value.append(ruleset);
         return_value.append("::unsubscribe_ruleset_");
         return_value.append(ruleset);
         return_value.append("();\n");
-        return_value.append(c_ident);
-        return_value.append(c_ident);
+        return_value.append(c_indent);
+        return_value.append(c_indent);
         return_value.append("return;\n");
-        return_value.append(c_ident);
+        return_value.append(c_indent);
         return_value.append("}\n");
     }
 
-    return_value.append(c_ident);
+    return_value.append(c_indent);
     return_value.append("throw ruleset_not_found(ruleset_name);\n"
                         "}\n"
                         "extern \"C\" void initialize_rules()\n"
-                        "{\n");
+                        "{\n"
+                        "::gaia::db::begin_transaction();\n");
+    const llvm::StringMap<CatalogTableData>& catalog_data = getCatalogTableData();
+    for (const auto& used_db : g_used_dbs)
+    {
+        string db_hash;
+        for (const auto& catalog_entry : catalog_data)
+        {
+            if (catalog_entry.second.dbName == used_db.first())
+            {
+                db_hash = catalog_entry.second.dbHash;
+                break;
+            }
+        }
+
+        // We have three hashes that we are comparing:
+        // The hash stored in the database [current version of the schema that we are checking against at runtime in initialize_rules].
+        // The hash stored in the generated DAC headers [the hash of the database at the time the DAC header is generated].
+        // The hash stored in the generated ruleset file [the hash of the database at the time the translated code is generated].
+        // The following generated code will make sure that all 3 above mentioned hashes are the same to ensure correct execution.
+        return_value.append("if (!::gaia::system::validate_db_schema(\"");
+        return_value.append(used_db.first());
+        return_value.append("\",");
+        return_value.append("\"");
+        return_value.append(db_hash);
+        return_value.append("\"))\n");
+        return_value.append("{\n");
+        return_value.append(c_indent);
+        return_value.append("throw gaia::rules::ruleset_schema_mismatch(\"");
+        return_value.append(used_db.first());
+        return_value.append("\");\n");
+        return_value.append("}\n");
+        return_value.append("::gaia::db::commit_transaction();\n");
+
+        for (const auto& catalog_entry : catalog_data)
+        {
+            if (catalog_entry.second.dbName == used_db.first())
+            {
+                return_value.append("if (strcmp(\"");
+                return_value.append(db_hash);
+                return_value.append("\", gaia::");
+                return_value.append(db_namespace(used_db.first()));
+                return_value.append(table_facade_t::class_name(catalog_entry.first()));
+                return_value.append("::gaia_hash()) != 0)\n");
+                return_value.append("{\n");
+                return_value.append(c_indent);
+                return_value.append("throw ::gaia::rules::dac_schema_mismatch(\"");
+                return_value.append(table_facade_t::class_name(catalog_entry.first()));
+                return_value.append("\");\n");
+                return_value.append("}\n");
+            }
+        }
+    }
 
     for (const string& ruleset : g_rulesets)
     {
-        return_value.append(c_ident);
+        return_value.append(c_indent);
         return_value.append("::");
         return_value.append(ruleset);
         return_value.append("::subscribe_ruleset_");
@@ -697,11 +754,6 @@ StringRef get_table_name(StringRef table, const llvm::StringMap<string>& tag_map
     }
 
     return table;
-}
-
-string db_namespace(StringRef db_name)
-{
-    return db_name == catalog::c_empty_db_name ? "" : Twine(db_name, "::").str();
 }
 
 void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
@@ -1012,7 +1064,7 @@ void generate_table_subscription(
         rule_line_numbers[g_current_ruleset_rule_number] = rule_line_var;
 
         (
-            Twine(c_ident)
+            Twine(c_indent)
             + "const uint32_t "
             + rule_line_var
             + " = "
@@ -1021,10 +1073,10 @@ void generate_table_subscription(
             .toVector(common_subscription_code);
     }
 
-    common_subscription_code.append(c_ident);
+    common_subscription_code.append(c_indent);
     common_subscription_code.append(c_nolint_identifier_naming);
     common_subscription_code.append("\n");
-    common_subscription_code.append(c_ident);
+    common_subscription_code.append(c_indent);
     common_subscription_code.append("gaia::rules::rule_binding_t ");
     common_subscription_code.append(rule_name);
     common_subscription_code.append("binding(\"");
@@ -1046,7 +1098,7 @@ void generate_table_subscription(
 
     if (field_subscription_code.empty())
     {
-        g_current_ruleset_subscription.append(c_ident);
+        g_current_ruleset_subscription.append(c_indent);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
         g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(class_name);
@@ -1063,7 +1115,7 @@ void generate_table_subscription(
         g_current_ruleset_subscription.append(rule_name);
         g_current_ruleset_subscription.append("binding);\n");
 
-        g_current_ruleset_unsubscription.append(c_ident);
+        g_current_ruleset_unsubscription.append(c_indent);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
         g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(class_name);
@@ -1081,7 +1133,7 @@ void generate_table_subscription(
     else
     {
         g_current_ruleset_subscription.append(field_subscription_code);
-        g_current_ruleset_subscription.append(c_ident);
+        g_current_ruleset_subscription.append(c_indent);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
         g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(class_name);
@@ -1091,7 +1143,7 @@ void generate_table_subscription(
         g_current_ruleset_subscription.append(rule_name);
         g_current_ruleset_subscription.append("binding);\n");
         g_current_ruleset_unsubscription.append(field_subscription_code);
-        g_current_ruleset_unsubscription.append(c_ident);
+        g_current_ruleset_unsubscription.append(c_indent);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
         g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(class_name);
@@ -1248,7 +1300,7 @@ void optimize_subscription(StringRef table, int rule_count)
     {
         string rule_name
             = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
-        g_current_ruleset_subscription.append(c_ident);
+        g_current_ruleset_subscription.append(c_indent);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
         g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(class_name);
@@ -1256,7 +1308,7 @@ void optimize_subscription(StringRef table, int rule_count)
         g_current_ruleset_subscription.append(rule_name);
         g_current_ruleset_subscription.append("binding);\n");
 
-        g_current_ruleset_unsubscription.append(c_ident);
+        g_current_ruleset_unsubscription.append(c_indent);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
         g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(class_name);
@@ -1352,10 +1404,10 @@ void generate_rules(Rewriter& rewriter)
         string rule_name
             = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
 
-        field_subscription_code.append(c_ident);
+        field_subscription_code.append(c_indent);
         field_subscription_code.append(c_nolint_identifier_naming);
         field_subscription_code.append("\n");
-        field_subscription_code.append(c_ident);
+        field_subscription_code.append(c_indent);
         field_subscription_code.append("gaia::common::field_position_list_t fields_");
         field_subscription_code.append(rule_name);
         field_subscription_code.append(";\n");
@@ -1372,7 +1424,7 @@ void generate_rules(Rewriter& rewriter)
                 return;
             }
             field_subscription_code.append(
-                (Twine(c_ident) + "fields_" + rule_name + ".push_back(" + Twine(field_iterator->second.position) + ");\n").str());
+                (Twine(c_indent) + "fields_" + rule_name + ".push_back(" + Twine(field_iterator->second.position) + ");\n").str());
         }
 
         generate_table_subscription(table, field_subscription_code, rule_count, true, rule_line_numbers, rewriter);
@@ -4499,6 +4551,7 @@ public:
                 output_file << "#include <cstring>\n";
                 output_file << "\n";
                 output_file << "#include \"gaia/rules/rules.hpp\"\n";
+                output_file << "#include \"gaia/system.hpp\"\n";
                 output_file << "\n";
                 for (const auto& db_iterator : g_used_dbs)
                 {

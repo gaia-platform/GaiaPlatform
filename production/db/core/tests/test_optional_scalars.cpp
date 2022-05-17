@@ -18,16 +18,16 @@ using namespace gaia::catalog;
 using namespace gaia::direct_access;
 using namespace gaia::db::payload_types;
 
-class test_optional_scalars : public db_test_base_t
+class db__core__optional_scalars__test : public db_test_base_t
 {
 public:
-    test_optional_scalars()
+    db__core__optional_scalars__test()
         : db_test_base_t(true, true)
     {
     }
 };
 
-TEST_F(test_optional_scalars, binary_schema_has_optional_values)
+TEST_F(db__core__optional_scalars__test, binary_schema_has_optional_values)
 {
     gaia_id_t internal_type_id
         = table_builder_t::new_table("test_optional")

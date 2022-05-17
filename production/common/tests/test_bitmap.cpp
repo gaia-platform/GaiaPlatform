@@ -16,7 +16,7 @@ using namespace std;
 using namespace gaia::common;
 using namespace gaia::common::bitmap;
 
-TEST(bitmap, set_bit_value_and_is_bit_set)
+TEST(common__bitmap__test, set_bit_value_and_is_bit_set)
 {
     constexpr size_t c_bitmap_size_in_words = 3;
     std::atomic<uint64_t> bitmap[c_bitmap_size_in_words];
@@ -44,7 +44,7 @@ TEST(bitmap, set_bit_value_and_is_bit_set)
     }
 }
 
-TEST(bitmap, set_already_set_bit_value)
+TEST(common__bitmap__test, set_already_set_bit_value)
 {
     constexpr size_t c_bitmap_size_in_words = 3;
     std::atomic<uint64_t> bitmap[c_bitmap_size_in_words];
@@ -82,7 +82,7 @@ TEST(bitmap, set_already_set_bit_value)
     }
 }
 
-TEST(bitmap, find_first_unset_bit)
+TEST(common__bitmap__test, find_first_unset_bit)
 {
     constexpr size_t c_bitmap_size_in_words = 3;
     std::atomic<uint64_t> bitmap[c_bitmap_size_in_words] = {0};
@@ -112,7 +112,7 @@ TEST(bitmap, find_first_unset_bit)
     ASSERT_EQ((c_bitmap_size_in_words - 1) * c_uint64_bit_count, count_set_bits(bitmap, c_bitmap_size_in_words));
 }
 
-TEST(bitmap, find_last_set_bit)
+TEST(common__bitmap__test, find_last_set_bit)
 {
     constexpr size_t c_bitmap_size_in_words = 3;
     std::atomic<uint64_t> bitmap[c_bitmap_size_in_words] = {0};
@@ -130,7 +130,7 @@ TEST(bitmap, find_last_set_bit)
     ASSERT_EQ(bitmap_size_in_bits, count_set_bits(bitmap, c_bitmap_size_in_words));
 }
 
-TEST(bitmap, limit)
+TEST(common__bitmap__test, limit)
 {
     std::atomic<uint64_t> bitmap = 0;
     size_t end_limit_bit_index = 8;
@@ -171,7 +171,7 @@ TEST(bitmap, limit)
     ASSERT_EQ(end_limit_bit_index, count_set_bits(&bitmap, 1, end_limit_bit_index));
 }
 
-TEST(bitmap, count_set_bits)
+TEST(common__bitmap__test, count_set_bits)
 {
     constexpr size_t c_bitmap_size_in_words = 3;
     std::atomic<uint64_t> bitmap[c_bitmap_size_in_words];
@@ -200,7 +200,7 @@ TEST(bitmap, count_set_bits)
     ASSERT_EQ((c_bitmap_size_in_words - 1) * c_uint64_bit_count, count_set_bits(bitmap, c_bitmap_size_in_words));
 }
 
-TEST(bitmap, bit_setting)
+TEST(common__bitmap__test, bit_setting)
 {
     std::atomic<uint64_t> bitmap = 0;
 
@@ -244,7 +244,7 @@ TEST(bitmap, bit_setting)
     ASSERT_EQ(bit_count, 2);
 }
 
-TEST(bitmap, bit_range_setting)
+TEST(common__bitmap__test, bit_range_setting)
 {
     constexpr size_t c_bitmap_size_in_words = 5;
     std::atomic<uint64_t> bitmap[c_bitmap_size_in_words]{0};

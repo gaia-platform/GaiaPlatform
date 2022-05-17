@@ -18,10 +18,10 @@ using namespace gaia::direct_access;
 using namespace gaia::perf_rel;
 using namespace std;
 
-class test_insert_perf_rel : public gaia::db::db_catalog_test_base_t
+class direct_access__perf_insert_rel__test : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_insert_perf_rel()
+    direct_access__perf_insert_rel__test()
         : db_catalog_test_base_t("perf_rel.ddl", true, true, true)
     {
     }
@@ -47,7 +47,7 @@ void clear_database()
     clear_table<table_parent_vlr_t>(c_max_deletion_per_txn);
 }
 
-TEST_F(test_insert_perf_rel, simple_relationships)
+TEST_F(direct_access__perf_insert_rel__test, simple_relationships)
 {
     auto insert = []() {
         bulk_insert(
@@ -64,7 +64,7 @@ TEST_F(test_insert_perf_rel, simple_relationships)
         insert, clear_database, "simple_relationships");
 }
 
-TEST_F(test_insert_perf_rel, value_linked_relationships_parent_only)
+TEST_F(direct_access__perf_insert_rel__test, value_linked_relationships_parent_only)
 {
     // VLR are so slow that we need to use a lower number of insertions to
     // finish in a reasonable amount of time.
@@ -88,7 +88,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_parent_only)
         c_vlr_insertions);
 }
 
-TEST_F(test_insert_perf_rel, value_linked_relationships_child_only)
+TEST_F(direct_access__perf_insert_rel__test, value_linked_relationships_child_only)
 {
     // VLR are so slow that we need to use a lower number of insertions to
     // finish in a reasonable amount of time.
@@ -112,7 +112,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_child_only)
         c_vlr_insertions);
 }
 
-TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_parent_insert_parent_first)
+TEST_F(direct_access__perf_insert_rel__test, value_linked_relationships_autoconnect_to_same_parent_insert_parent_first)
 {
     // VLR are so slow that we need to use a lower number of insertions to
     // finish in a reasonable amount of time.
@@ -141,7 +141,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
         c_vlr_insertions + 1);
 }
 
-TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_parent_insert_children_first)
+TEST_F(direct_access__perf_insert_rel__test, value_linked_relationships_autoconnect_to_same_parent_insert_children_first)
 {
     // A max limit of 20000 is imposed to avoid running into the per-txn object update limit.
     // The additional arithmetic makes the count scale with c_num_records, so that the test
@@ -171,7 +171,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
         c_vlr_insertions + 1);
 }
 
-TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different_parent_insert_parent_first)
+TEST_F(direct_access__perf_insert_rel__test, value_linked_relationships_autoconnect_to_different_parent_insert_parent_first)
 {
     // VLR are so slow that we need to use a lower number of insertions to
     // finish in a reasonable amount of time.
@@ -199,7 +199,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different
         c_vlr_insertions * 2);
 }
 
-TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different_parent_insert_child_first)
+TEST_F(direct_access__perf_insert_rel__test, value_linked_relationships_autoconnect_to_different_parent_insert_child_first)
 {
     // VLR are so slow that we need to use a lower number of insertions to
     // finish in a reasonable amount of time.

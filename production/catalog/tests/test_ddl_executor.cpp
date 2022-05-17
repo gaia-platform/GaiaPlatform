@@ -70,10 +70,10 @@ gaia_relationship_t find_relationship(
  * Tests
  */
 
-class ddl_executor_test : public db_catalog_test_base_t
+class catalog__ddl_executor__test : public db_catalog_test_base_t
 {
 protected:
-    ddl_executor_test()
+    catalog__ddl_executor__test()
         : db_catalog_test_base_t("addr_book.ddl"){};
 
     void SetUp() override
@@ -100,7 +100,7 @@ protected:
     }
 };
 
-TEST_F(ddl_executor_test, create_database)
+TEST_F(catalog__ddl_executor__test, create_database)
 {
     string test_db_name{"create_database_test"};
     gaia_id_t db_id = create_database(test_db_name);
@@ -109,7 +109,7 @@ TEST_F(ddl_executor_test, create_database)
     commit_transaction();
 }
 
-TEST_F(ddl_executor_test, create_table)
+TEST_F(catalog__ddl_executor__test, create_table)
 {
     string test_db_name{"test_db"};
     create_database(test_db_name);
@@ -123,7 +123,7 @@ TEST_F(ddl_executor_test, create_table)
     ASSERT_THROW(create_table(test_db_name, test_table_name, fields), table_already_exists);
 }
 
-TEST_F(ddl_executor_test, system_tables)
+TEST_F(catalog__ddl_executor__test, system_tables)
 {
     string test_table_name{"create_table_test"};
     ddl::field_def_list_t fields;
@@ -142,7 +142,7 @@ TEST_F(ddl_executor_test, system_tables)
     }
 }
 
-TEST_F(ddl_executor_test, create_existing_table)
+TEST_F(catalog__ddl_executor__test, create_existing_table)
 {
     string test_table_name{"create_existing_table"};
     ddl::field_def_list_t fields;
@@ -151,7 +151,7 @@ TEST_F(ddl_executor_test, create_existing_table)
     EXPECT_THROW(create_table(test_table_name, fields), table_already_exists);
 }
 
-TEST_F(ddl_executor_test, list_tables)
+TEST_F(catalog__ddl_executor__test, list_tables)
 {
     ddl::field_def_list_t fields;
     set<gaia_id_t> table_ids;
@@ -175,7 +175,7 @@ TEST_F(ddl_executor_test, list_tables)
     EXPECT_TRUE(includes(list_result.begin(), list_result.end(), table_ids.begin(), table_ids.end()));
 }
 
-TEST_F(ddl_executor_test, list_fields)
+TEST_F(catalog__ddl_executor__test, list_fields)
 {
     string test_table_name{"list_fields_test"};
 
@@ -197,7 +197,7 @@ TEST_F(ddl_executor_test, list_fields)
     gaia::db::commit_transaction();
 }
 
-TEST_F(ddl_executor_test, create_table_case_sensitivity)
+TEST_F(catalog__ddl_executor__test, create_table_case_sensitivity)
 {
     string lower_case_table_name{"case_test_table"};
     string upper_case_table_name{"CASE_TEST_TABLE"};
@@ -219,7 +219,7 @@ TEST_F(ddl_executor_test, create_table_case_sensitivity)
     check_table_name(test_field_case_table_id, test_field_case_table_name);
 }
 
-TEST_F(ddl_executor_test, create_table_duplicate_field)
+TEST_F(catalog__ddl_executor__test, create_table_duplicate_field)
 {
     string test_duplicate_field_table_name{"test_duplicate_field_table"};
     ddl::field_def_list_t fields;
@@ -228,7 +228,7 @@ TEST_F(ddl_executor_test, create_table_duplicate_field)
     EXPECT_THROW(create_table(test_duplicate_field_table_name, fields), duplicate_field);
 }
 
-TEST_F(ddl_executor_test, drop_table)
+TEST_F(catalog__ddl_executor__test, drop_table)
 {
     string test_table_name{"drop_table_test"};
     ddl::field_def_list_t fields;
@@ -244,7 +244,7 @@ TEST_F(ddl_executor_test, drop_table)
     }
 }
 
-TEST_F(ddl_executor_test, drop_table_not_exist)
+TEST_F(catalog__ddl_executor__test, drop_table_not_exist)
 {
     string test_table_name{"a_not_existed_table"};
 
@@ -253,7 +253,7 @@ TEST_F(ddl_executor_test, drop_table_not_exist)
     EXPECT_THROW(drop_table(test_table_name), table_does_not_exist);
 }
 
-TEST_F(ddl_executor_test, drop_table_with_self_reference)
+TEST_F(catalog__ddl_executor__test, drop_table_with_self_reference)
 {
     string test_table_name{"self_ref_table"};
     ddl::field_def_list_t fields;
@@ -274,7 +274,7 @@ TEST_F(ddl_executor_test, drop_table_with_self_reference)
     }
 }
 
-TEST_F(ddl_executor_test, drop_table_parent_reference_fail)
+TEST_F(catalog__ddl_executor__test, drop_table_parent_reference_fail)
 {
     string parent_table_name{"parent_table"};
     ddl::field_def_list_t parent_fields;
@@ -301,7 +301,7 @@ TEST_F(ddl_executor_test, drop_table_parent_reference_fail)
     txn.commit();
 }
 
-TEST_F(ddl_executor_test, drop_table_child_reference)
+TEST_F(catalog__ddl_executor__test, drop_table_child_reference)
 {
     string parent_table_name{"parent_table"};
     ddl::field_def_list_t parent_fields;
@@ -325,7 +325,7 @@ TEST_F(ddl_executor_test, drop_table_child_reference)
     EXPECT_THROW(drop_table(child_table_name), referential_integrity_violation);
 }
 
-TEST_F(ddl_executor_test, drop_table_with_data)
+TEST_F(catalog__ddl_executor__test, drop_table_with_data)
 {
     begin_transaction();
     auto w = gaia::addr_book::customer_writer();
@@ -349,7 +349,7 @@ TEST_F(ddl_executor_test, drop_table_with_data)
     commit_transaction();
 }
 
-TEST_F(ddl_executor_test, drop_database)
+TEST_F(catalog__ddl_executor__test, drop_database)
 {
     string test_db_name{"drop_database_test"};
     gaia_id_t db_id = create_database(test_db_name);
@@ -386,7 +386,7 @@ TEST_F(ddl_executor_test, drop_database)
     }
 }
 
-TEST_F(ddl_executor_test, create_relationships)
+TEST_F(catalog__ddl_executor__test, create_relationships)
 {
     // (clinic) 1 -[doctors]-> N (doctor)
     // (doctor) N -[clinic]-> 1 (clinic)
@@ -513,7 +513,7 @@ TEST_F(ddl_executor_test, create_relationships)
     txn.commit();
 }
 
-TEST_F(ddl_executor_test, create_self_relationships)
+TEST_F(catalog__ddl_executor__test, create_self_relationships)
 {
     // (doctor) 1 -[doctor]-> N (doctor)
     // (doctor) N -[doctors]-> 1 (doctor)
@@ -553,7 +553,7 @@ TEST_F(ddl_executor_test, create_self_relationships)
     txn.commit();
 }
 
-TEST_F(ddl_executor_test, create_index)
+TEST_F(catalog__ddl_executor__test, create_index)
 {
     string test_table_name{"create_index_test"};
     ddl::field_def_list_t test_table_fields;
@@ -578,7 +578,7 @@ TEST_F(ddl_executor_test, create_index)
     ASSERT_NO_THROW(create_index(test_index_name, true, index_type_t::hash, c_empty_db_name, test_table_name, {"name"}, false));
 }
 
-TEST_F(ddl_executor_test, create_index_duplicate_field)
+TEST_F(catalog__ddl_executor__test, create_index_duplicate_field)
 {
     string test_table_name{"create_index_test"};
     ddl::field_def_list_t test_table_fields;
@@ -592,7 +592,7 @@ TEST_F(ddl_executor_test, create_index_duplicate_field)
         duplicate_field);
 }
 
-TEST_F(ddl_executor_test, list_indexes)
+TEST_F(catalog__ddl_executor__test, list_indexes)
 {
     // CREATE TABLE book(title STRING, author STRING, isbn STRING);
     // CREATE INDEX title_idx ON book(title);
@@ -632,7 +632,7 @@ TEST_F(ddl_executor_test, list_indexes)
     ASSERT_EQ(unique_settings, expected_unique_settings);
 }
 
-TEST_F(ddl_executor_test, drop_relationship_with_data)
+TEST_F(catalog__ddl_executor__test, drop_relationship_with_data)
 {
     begin_transaction();
 
@@ -679,7 +679,7 @@ TEST_F(ddl_executor_test, drop_relationship_with_data)
 }
 
 // Create a table, check resulting hash. Do same after dropping table. Expect euality.
-TEST_F(ddl_executor_test, create_drop_create_hash)
+TEST_F(catalog__ddl_executor__test, create_drop_create_hash)
 {
     string test_table_name{"create_drop_create"};
     ddl::field_def_list_t fields;
@@ -696,7 +696,7 @@ TEST_F(ddl_executor_test, create_drop_create_hash)
 }
 
 // Reverse table order in a named database. Expect equal hash results.
-TEST_F(ddl_executor_test, reverse_table_order_hash)
+TEST_F(catalog__ddl_executor__test, reverse_table_order_hash)
 {
     string test_db_name{"hash_db"};
     create_database(test_db_name);
@@ -719,7 +719,7 @@ TEST_F(ddl_executor_test, reverse_table_order_hash)
 }
 
 // Reverse table order in an unnamed database. Expect equal hash results.
-TEST_F(ddl_executor_test, empty_db_name_hash)
+TEST_F(catalog__ddl_executor__test, empty_db_name_hash)
 {
     string first_test_table_name{"first_test_table"};
     string second_test_table_name{"second_test_table"};
@@ -743,7 +743,7 @@ TEST_F(ddl_executor_test, empty_db_name_hash)
 }
 
 // Reverse field order in a table. Expect hash to be different.
-TEST_F(ddl_executor_test, reverse_field_order_hash)
+TEST_F(catalog__ddl_executor__test, reverse_field_order_hash)
 {
     string test_table_name{"field_order_table"};
     ddl::field_def_list_t fields;

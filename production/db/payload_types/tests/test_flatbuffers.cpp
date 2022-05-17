@@ -31,7 +31,7 @@ void compare_file_content(const char* filename1, const char* filename2)
     ASSERT_EQ(0, content1.compare(content2));
 }
 
-TEST(flatbuffers, fbs_compilation)
+TEST(db__payload_types__flatbuffers__test, fbs_compilation)
 {
     // Load flatbuffers schema.
     string schema;
@@ -61,7 +61,7 @@ TEST(flatbuffers, fbs_compilation)
     compare_file_content(c_build_bfbs_filename, c_programmatic_bfbs_filename);
 }
 
-TEST(flatbuffers, json_compilation)
+TEST(db__payload_types__flatbuffers__test, json_compilation)
 {
     // Load flatbuffers schema.
     string schema;

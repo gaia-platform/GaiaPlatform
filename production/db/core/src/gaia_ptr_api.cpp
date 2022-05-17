@@ -291,10 +291,11 @@ void auto_connect(
         return;
     }
 
-    if (caches::table_relationship_fields_cache_t::get()->is_initialized())
+    const gaia::db::caches::db_caches_t* db_caches_ptr = get_db_caches();
+    if (db_caches_ptr)
     {
         // Check table_relationship_fields_cache_t for the fields involved in relationships.
-        const auto& relationship_field_set_pair = caches::table_relationship_fields_cache_t::get()->get(table_id);
+        const auto& relationship_field_set_pair = db_caches_ptr->table_relationship_fields_cache.get(table_id);
         if (relationship_field_set_pair.first.empty()
             && relationship_field_set_pair.second.empty())
         {
@@ -423,29 +424,31 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
         return;
     }
 
-    auto new_data = reinterpret_cast<const uint8_t*>(data);
-    auto old_data = reinterpret_cast<const uint8_t*>(old_this->data());
-
-    field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data, new_data);
-
     const type_metadata_t& metadata = type_registry_t::instance().get(obj.type());
-    if (metadata.has_value_linked_relationship())
+    if (client_t::has_commit_trigger() || metadata.has_value_linked_relationship())
     {
-        auto_connect(
-            obj.id(),
-            obj.type(),
-            type_id_mapping_t::instance().get_table_id(obj.type()),
-            obj.references(),
-            new_data,
-            changed_fields);
+        auto new_data = reinterpret_cast<const uint8_t*>(data);
+        auto old_data = reinterpret_cast<const uint8_t*>(old_this->data());
+        field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data, new_data);
+
+        if (metadata.has_value_linked_relationship())
+        {
+            auto_connect(
+                obj.id(),
+                obj.type(),
+                type_id_mapping_t::instance().get_table_id(obj.type()),
+                obj.references(),
+                new_data,
+                changed_fields);
+        }
+
+        if (client_t::has_commit_trigger() && client_t::is_valid_event(obj.type()))
+        {
+            client_t::log_event(triggers::event_type_t::row_update, obj.type(), obj.id(), changed_fields);
+        }
     }
 
     obj.finalize_update(old_offset);
-
-    if (client_t::is_valid_event(obj.type()))
-    {
-        client_t::log_event(triggers::event_type_t::row_update, obj.type(), obj.id(), changed_fields);
-    }
 }
 
 void remove(gaia_ptr_t& object, bool force)

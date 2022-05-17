@@ -17,16 +17,16 @@
 using namespace gaia::common;
 using namespace gaia::db;
 
-class catalog_core_test : public db_test_base_t
+class db__core__catalog_core__test : public db_test_base_t
 {
 public:
-    catalog_core_test()
+    db__core__catalog_core__test()
         : db_test_base_t(true, true)
     {
     }
 };
 
-TEST_F(catalog_core_test, get_table)
+TEST_F(db__core__catalog_core__test, get_table)
 {
     const char test_table_name[] = "get_table_test";
     gaia::catalog::ddl::field_def_list_t fields;
@@ -38,7 +38,7 @@ TEST_F(catalog_core_test, get_table)
     commit_transaction();
 }
 
-TEST_F(catalog_core_test, list_tables)
+TEST_F(db__core__catalog_core__test, list_tables)
 {
     std::set<gaia_type_t> system_table_ids{
         static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_field),
@@ -60,7 +60,7 @@ TEST_F(catalog_core_test, list_tables)
     ASSERT_TRUE(std::includes(list_result.begin(), list_result.end(), system_table_ids.begin(), system_table_ids.end()));
 }
 
-TEST_F(catalog_core_test, list_fields)
+TEST_F(db__core__catalog_core__test, list_fields)
 {
     const char test_table_name[] = "list_fields_test";
     gaia::catalog::ddl::field_def_list_t fields;
@@ -89,7 +89,7 @@ TEST_F(catalog_core_test, list_fields)
         }));
 }
 
-TEST_F(catalog_core_test, list_relationship_from)
+TEST_F(db__core__catalog_core__test, list_relationship_from)
 {
     // CREATE TABLE star(name STRING);
     // CREATE TABLE planet(name STRING);
@@ -129,7 +129,7 @@ TEST_F(catalog_core_test, list_relationship_from)
     ASSERT_EQ(tables_with_relationship_from_star, std::set({star_table_id, planet_table_id, comet_table_id}));
 }
 
-TEST_F(catalog_core_test, list_relationship_to)
+TEST_F(db__core__catalog_core__test, list_relationship_to)
 {
     // CREATE TABLE color(name STRING);
     // CREATE TABLE shape(name STRING);
@@ -163,7 +163,7 @@ TEST_F(catalog_core_test, list_relationship_to)
     commit_transaction();
 }
 
-TEST_F(catalog_core_test, list_indexes)
+TEST_F(db__core__catalog_core__test, list_indexes)
 {
     // CREATE TABLE book(title STRING, author STRING, isbn STRING);
     // CREATE INDEX title_idx ON book(title);

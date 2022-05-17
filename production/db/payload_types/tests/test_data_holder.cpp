@@ -20,7 +20,7 @@ constexpr int64_t c_negated_integer_value = -c_integer_value;
 constexpr double c_float_value = -12.345;
 constexpr double c_another_float_value = 67.890;
 
-TEST(payload_types, is_signed_integer)
+TEST(db__payload_types__data_holder__test, is_signed_integer)
 {
     ASSERT_TRUE(is_signed_integer(reflection::Byte));
     ASSERT_FALSE(is_signed_integer(reflection::UByte));
@@ -34,7 +34,7 @@ TEST(payload_types, is_signed_integer)
     ASSERT_FALSE(is_signed_integer(reflection::String));
 }
 
-TEST(payload_types, type_holder_string)
+TEST(db__payload_types__data_holder__test, string)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -50,7 +50,7 @@ TEST(payload_types, type_holder_string)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(payload_types, type_holder_vector)
+TEST(db__payload_types__data_holder__test, vector)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -78,7 +78,7 @@ TEST(payload_types, type_holder_vector)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(payload_types, type_holder_signed_integer)
+TEST(db__payload_types__data_holder__test, signed_integer)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -95,7 +95,7 @@ TEST(payload_types, type_holder_signed_integer)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(payload_types, type_holder_unsigned_integer)
+TEST(db__payload_types__data_holder__test, unsigned_integer)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -112,7 +112,7 @@ TEST(payload_types, type_holder_unsigned_integer)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(payload_types, type_holder_float)
+TEST(db__payload_types__data_holder__test, float)
 {
     data_holder_t value;
     data_holder_t other_value;
@@ -128,7 +128,7 @@ TEST(payload_types, type_holder_float)
     ASSERT_EQ(0, value.compare(value));
 }
 
-TEST(payload_types, type_holder_box_unbox)
+TEST(db__payload_types__data_holder__test, box_unbox)
 {
     data_holder_t float_value = c_float_value;
     data_holder_t signed_float_value = c_another_float_value;
@@ -180,7 +180,7 @@ TEST(payload_types, type_holder_box_unbox)
     ASSERT_EQ(u32, c_unsigned_integer_value);
 }
 
-TEST(payload_types, type_holder_box_unbox_string)
+TEST(db__payload_types__data_holder__test, box_unbox_string)
 {
     data_holder_t value = "Hello";
     const char* str = value;
@@ -188,7 +188,7 @@ TEST(payload_types, type_holder_box_unbox_string)
     ASSERT_TRUE(strcmp(str, "Hello") == 0);
 }
 
-TEST(payload_types, type_holder_null_empty_string_hash_compare)
+TEST(db__payload_types__data_holder__test, null_empty_string_hash_compare)
 {
     data_holder_t value = "";
     data_holder_t nullstring;

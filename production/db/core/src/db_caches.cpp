@@ -20,16 +20,15 @@ namespace caches
 static constexpr char c_cannot_find_table_id_in_table_relationship_fields_cache_t[]
     = "Cannot find table id in table_relationship_fields_cache_t!";
 
-table_relationship_fields_cache_t table_relationship_fields_cache_t::s_cache;
-
-table_relationship_fields_cache_t* table_relationship_fields_cache_t::get()
-{
-    return &s_cache;
-}
-
 bool table_relationship_fields_cache_t::is_initialized()
 {
     return m_is_initialized;
+}
+
+void table_relationship_fields_cache_t::clear()
+{
+    m_map.clear();
+    m_is_initialized = false;
 }
 
 void table_relationship_fields_cache_t::put(
@@ -70,8 +69,8 @@ void table_relationship_fields_cache_t::put_child_relationship_field(
     iterator->second.second.insert(field);
 }
 
-pair<field_position_set_t, field_position_set_t>& table_relationship_fields_cache_t::get(
-    gaia::common::gaia_id_t table_id)
+const pair<field_position_set_t, field_position_set_t>& table_relationship_fields_cache_t::get(
+    gaia::common::gaia_id_t table_id) const
 {
     auto iterator = m_map.find(table_id);
 

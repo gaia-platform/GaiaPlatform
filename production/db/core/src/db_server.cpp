@@ -37,13 +37,9 @@
 #include "gaia_spdlog/fmt/fmt.h"
 
 #include "db_helpers.hpp"
-#include "db_internal_types.hpp"
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
-#include "messages_generated.h"
-#include "persistent_store_manager.hpp"
 #include "system_checks.hpp"
-#include "txn_metadata.hpp"
 #include "type_id_mapping.hpp"
 
 using namespace flatbuffers;
@@ -108,34 +104,37 @@ void server_t::handle_connect(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
-    // or after a regular session has already been started.
-    if (s_session_type == session_type_t::ddl)
-    {
-        ASSERT_INVARIANT(
-            s_can_ddl_sessions_still_be_started,
-            "Attempting to start a DDL session after a regular session was started!");
+    // TODO: Restore these checks once test issues are addressed.
+    // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2159.
+    //
+    // // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
+    // // or after a regular session has already been started.
+    // if (s_session_type == session_type_t::ddl)
+    // {
+    //     ASSERT_INVARIANT(
+    //         s_can_ddl_sessions_still_be_started,
+    //         "Attempting to start a DDL session after a regular session was started!");
 
-        bool expected_value = false;
-        bool has_succeeded = s_is_ddl_session_active.compare_exchange_strong(expected_value, true);
-        ASSERT_INVARIANT(
-            has_succeeded,
-            "Attempting to start a DDL session while another one has already been started!");
+    //     bool expected_value = false;
+    //     bool has_succeeded = s_is_ddl_session_active.compare_exchange_strong(expected_value, true);
+    //     ASSERT_INVARIANT(
+    //         has_succeeded,
+    //         "Attempting to start a DDL session while another one has already been started!");
 
-        // Double-check, in case a concurrent regular session has set the flag after our initial check.
-        ASSERT_INVARIANT(
-            s_can_ddl_sessions_still_be_started,
-            "Attempting to start a DDL session after a regular session was started!");
-    }
-    else if (s_session_type == session_type_t::regular)
-    {
-        // Once a regular session was started, no more DDL sessions can be started.
-        s_can_ddl_sessions_still_be_started = false;
+    //     // Double-check, in case a concurrent regular session has set the flag after our initial check.
+    //     ASSERT_INVARIANT(
+    //         s_can_ddl_sessions_still_be_started,
+    //         "Attempting to start a DDL session after a regular session was started!");
+    // }
+    // else if (s_session_type == session_type_t::regular)
+    // {
+    //     // Once a regular session was started, no more DDL sessions can be started.
+    //     s_can_ddl_sessions_still_be_started = false;
 
-        ASSERT_INVARIANT(
-            !s_is_ddl_session_active,
-            "Attempting to start a regular session while a DDL session is still active!");
-    }
+    //     ASSERT_INVARIANT(
+    //         !s_is_ddl_session_active,
+    //         "Attempting to start a regular session while a DDL session is still active!");
+    // }
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
@@ -368,7 +367,7 @@ void server_t::handle_decide_txn(
         old_state == session_state_t::TXN_COMMITTING && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    auto cleanup = make_scope_guard([&]() { release_transaction_resources(); });
+    auto cleanup = make_scope_guard([&] { release_transaction_resources(); });
 
     FlatBufferBuilder builder;
     if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
@@ -484,8 +483,8 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
-    auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
+    auto client_socket_cleanup = make_scope_guard([&client_socket] { close_fd(client_socket); });
+    auto server_socket_cleanup = make_scope_guard([&server_socket] { close_fd(server_socket); });
 
     auto request = static_cast<const client_request_t*>(event_data);
 
@@ -666,7 +665,7 @@ void server_t::init_shared_memory()
     clear_server_state();
 
     // Clear server state if an exception is thrown.
-    auto cleanup_memory = make_scope_guard([]() { clear_server_state(); });
+    auto cleanup_memory = make_scope_guard([] { clear_server_state(); });
 
     // Validate shared memory mapping definitions and assert that mappings are not made yet.
     data_mapping_t::validate(c_data_mappings, std::size(c_data_mappings));
@@ -781,7 +780,7 @@ void server_t::init_indexes()
         return;
     }
 
-    auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+    auto cleanup = make_scope_guard([] { end_startup_txn(); });
 
     // Allocate new txn id for initializing indexes.
     begin_startup_txn();
@@ -842,7 +841,7 @@ void server_t::recover_db()
         // in which case we need to recover from the original persistent image.
         if (!s_persistent_store)
         {
-            auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+            auto cleanup = make_scope_guard([] { end_startup_txn(); });
             begin_startup_txn();
 
             s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(
@@ -889,7 +888,7 @@ void server_t::end_startup_txn()
 {
     // The main thread no longer needs to perform any operations requiring a
     // safe_ts index.
-    auto cleanup_safe_ts_index = make_scope_guard([&]() { release_safe_ts_index(); });
+    auto cleanup_safe_ts_index = make_scope_guard([&] { release_safe_ts_index(); });
 
     // Register this txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, s_txn_log_offset);
@@ -1005,7 +1004,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     {
         throw_system_error("Socket creation failed!");
     }
-    auto socket_cleanup = make_scope_guard([&]() { close_fd(listening_socket); });
+    auto socket_cleanup = make_scope_guard([&listening_socket] { close_fd(listening_socket); });
 
     // Initialize the socket address structure.
     sockaddr_un server_addr{};
@@ -1137,7 +1136,7 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
 void server_t::client_dispatch_handler(const std::string& socket_name)
 {
     // Register session cleanup handler first, so we can execute it last.
-    auto session_cleanup = make_scope_guard([]() {
+    auto session_cleanup = make_scope_guard([] {
         for (auto& thread : s_session_threads)
         {
             ASSERT_INVARIANT(thread.joinable(), c_message_thread_must_be_joinable);
@@ -1153,7 +1152,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([&]() { close_fd(s_listening_socket); });
+    auto listener_cleanup = make_scope_guard([&] { close_fd(s_listening_socket); });
 
     // Set up the epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -1166,7 +1165,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // connections that arrive before the listening socket is closed will
     // receive ECONNRESET rather than ECONNREFUSED. This is perhaps unfortunate
     // but shouldn't really matter in practice.
-    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&epoll_fd] { close_fd(epoll_fd); });
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
     for (int registered_fd : registered_fds)
     {
@@ -1266,7 +1265,7 @@ void server_t::session_handler(int session_socket)
     // Set up session socket.
     s_session_shutdown = false;
     s_session_socket = session_socket;
-    auto socket_cleanup = make_scope_guard([&]() {
+    auto socket_cleanup = make_scope_guard([&] {
         // We can rely on close_fd() to perform the equivalent of
         // shutdown(SHUT_RDWR), because we hold the only fd pointing to this
         // socket. That should allow the client to read EOF if they're in a
@@ -1294,7 +1293,7 @@ void server_t::session_handler(int session_socket)
         return;
     }
 
-    auto safe_ts_index_cleanup = make_scope_guard([&]() {
+    auto safe_ts_index_cleanup = make_scope_guard([&] {
         // Release this thread's index in the safe_ts array.
         // (If reserve_safe_ts_index() succeeded, then the index must be valid.)
         release_safe_ts_index();
@@ -1306,7 +1305,7 @@ void server_t::session_handler(int session_socket)
     {
         throw_system_error(c_message_epoll_create1_failed);
     }
-    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&epoll_fd] { close_fd(epoll_fd); });
 
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
     for (int fd : fds)
@@ -1324,7 +1323,7 @@ void server_t::session_handler(int session_socket)
 
     // Event to signal session-owned threads to terminate.
     s_session_shutdown_eventfd = make_eventfd();
-    auto owned_threads_cleanup = make_scope_guard([]() {
+    auto owned_threads_cleanup = make_scope_guard([] {
         // Signal all session-owned threads to terminate.
         signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
 
@@ -1470,7 +1469,7 @@ void server_t::stream_producer_handler(
 {
     // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR), because we
     // hold the only fd pointing to this socket.
-    auto socket_cleanup = make_scope_guard([&]() { close_fd(stream_socket); });
+    auto socket_cleanup = make_scope_guard([&stream_socket] { close_fd(stream_socket); });
 
     // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
@@ -1483,7 +1482,7 @@ void server_t::stream_producer_handler(
     {
         throw_system_error(c_message_epoll_create1_failed);
     }
-    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&epoll_fd] { close_fd(epoll_fd); });
 
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
@@ -1885,7 +1884,9 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                             c_message_validating_txn_should_have_been_validated_before_log_invalidation);
                         return txn_metadata_t::is_txn_committed(commit_ts);
                     }
-                    auto release_committing_log_ref = make_scope_guard([&]() { release_txn_log_reference_from_commit_ts(commit_ts); });
+                    auto release_committing_log_ref = make_scope_guard([&commit_ts] {
+                        release_txn_log_reference_from_commit_ts(commit_ts);
+                    });
 
                     if (!acquire_txn_log_reference_from_commit_ts(ts))
                     {
@@ -1900,7 +1901,9 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                             c_message_validating_txn_should_have_been_validated_before_conflicting_log_invalidation);
                         return txn_metadata_t::is_txn_committed(commit_ts);
                     }
-                    auto release_committed_log_ref = make_scope_guard([&]() { release_txn_log_reference_from_commit_ts(ts); });
+                    auto release_committed_log_ref = make_scope_guard([&ts] {
+                        release_txn_log_reference_from_commit_ts(ts);
+                    });
 
                     if (txn_logs_conflict(txn_metadata_t::get_txn_log_offset(commit_ts), txn_metadata_t::get_txn_log_offset(ts)))
                     {
@@ -1960,7 +1963,9 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         c_message_validating_txn_should_have_been_validated_before_log_invalidation);
                     return txn_metadata_t::is_txn_committed(commit_ts);
                 }
-                auto release_committing_log_ref = make_scope_guard([&]() { release_txn_log_reference_from_commit_ts(commit_ts); });
+                auto release_committing_log_ref = make_scope_guard([&commit_ts] {
+                    release_txn_log_reference_from_commit_ts(commit_ts);
+                });
 
                 if (!acquire_txn_log_reference_from_commit_ts(ts))
                 {
@@ -1975,7 +1980,9 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                         c_message_validating_txn_should_have_been_validated_before_conflicting_log_invalidation);
                     return txn_metadata_t::is_txn_committed(commit_ts);
                 }
-                auto release_committed_log_ref = make_scope_guard([&]() { release_txn_log_reference_from_commit_ts(ts); });
+                auto release_committed_log_ref = make_scope_guard([&ts] {
+                    release_txn_log_reference_from_commit_ts(ts);
+                });
 
                 if (txn_logs_conflict(txn_metadata_t::get_txn_log_offset(commit_ts), txn_metadata_t::get_txn_log_offset(ts)))
                 {
@@ -2360,7 +2367,7 @@ void server_t::apply_txn_logs_to_shared_view()
 void server_t::gc_applied_txn_logs()
 {
     // Ensure we clean up our cached chunk IDs when we exit this task.
-    auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
+    auto cleanup_fd = make_scope_guard([&] { s_map_gc_chunks_to_versions.clear(); });
 
     // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
@@ -2426,7 +2433,7 @@ void server_t::gc_applied_txn_logs()
 
             // Because we invalidated the log offset, we need to ensure it is
             // deallocated so it can be reused.
-            auto cleanup_log_offset = make_scope_guard([&]() { deallocate_log_offset(log_offset); });
+            auto cleanup_log_offset = make_scope_guard([&log_offset] { deallocate_log_offset(log_offset); });
 
             // Deallocate obsolete object versions and update index entries.
             gc_txn_log_from_offset(log_offset, txn_metadata_t::is_txn_committed(ts));
@@ -2616,7 +2623,7 @@ char* server_t::get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts)
 
 void server_t::txn_rollback(bool client_disconnected)
 {
-    auto cleanup = make_scope_guard([&]() { release_transaction_resources(); });
+    auto cleanup = make_scope_guard([&] { release_transaction_resources(); });
 
     // Directly free the final allocation recorded in chunk metadata if it is
     // absent from the txn log (due to a crashed session), and retire the chunk
@@ -3349,7 +3356,7 @@ void server_t::run(server_config_t server_conf)
     {
         // Create eventfd shutdown event.
         s_server_shutdown_eventfd = make_eventfd();
-        auto cleanup_shutdown_eventfd = make_scope_guard([]() {
+        auto cleanup_shutdown_eventfd = make_scope_guard([] {
             // We can't close this fd until all readers and writers have exited.
             // The only readers are the client dispatch thread and the session
             // threads, and the only writer is the signal handler thread. All

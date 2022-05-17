@@ -38,7 +38,7 @@ void rule1(const rule_context_t*)
     g_rule_count++;
 }
 
-class gaia_system_test : public db_test_base_t
+class system__gaia_system__test : public db_test_base_t
 {
 public:
     static void SetUpTestSuite()
@@ -135,7 +135,7 @@ void validate_and_end_test(uint32_t count_txn, uint32_t crud_events_per_txn, uin
     EXPECT_EQ(g_rule_count, count_txn * crud_events_per_txn * count_threads);
 }
 
-TEST_F(gaia_system_test, single_threaded_transactions)
+TEST_F(system__gaia_system__test, single_threaded_transactions)
 {
     uint32_t count_txn = 2;
     uint32_t crud_events_per_txn = 2; // insert and update
@@ -143,7 +143,7 @@ TEST_F(gaia_system_test, single_threaded_transactions)
     validate_and_end_test(count_txn, crud_events_per_txn, 1);
 }
 
-TEST_F(gaia_system_test, multi_threaded_transactions)
+TEST_F(system__gaia_system__test, multi_threaded_transactions)
 {
     uint32_t count_txn_per_thread = 1;
     uint32_t crud_events_per_txn = 2;
