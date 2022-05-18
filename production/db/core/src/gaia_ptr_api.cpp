@@ -781,9 +781,9 @@ bool update_parent_reference(gaia_ptr_t& child, gaia_id_t new_parent_id, referen
         throw invalid_object_id_internal(new_parent_id);
     }
 
-    // TODO: this implementation will produce more garbage than necessary. Also, many of the RI methods
-    //  perform redundant checks. Created JIRA to improve RI performance/api:
-    //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-435
+    // TODO: this implementation will produce more garbage (i.e., intermediate
+    // versions) than necessary. Also, many of the RI methods perform redundant
+    // checks.
 
     // Check cardinality.
     if (new_parent.references()[relationship->first_child_offset].is_valid())

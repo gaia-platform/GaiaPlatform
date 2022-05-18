@@ -75,8 +75,6 @@ void persistent_store_manager::open()
     // Currently in place for development purposes. The default option
     // 'kPointInTimeRecovery' will stop the WAL playback on discovering WAL
     // inconsistency without notifying the caller.
-    // TODO (Mihir): Update to 'kPointInTimeRecovery' after
-    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-321.
     constexpr auto c_wal_recovery_mode = WALRecoveryMode::kAbsoluteConsistency;
 
     init_options.allow_2pc = c_allow_2pc;

@@ -105,7 +105,6 @@ void server_t::handle_connect(
         c_message_current_event_is_inconsistent_with_state_transition);
 
     // TODO: Restore these checks once test issues are addressed.
-    // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2159.
     //
     // // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
     // // or after a regular session has already been started.
@@ -194,7 +193,7 @@ void server_t::txn_begin()
     // Allocate the txn log offset on the server, for rollback-safety if the client session crashes.
     s_txn_log_offset = allocate_log_offset();
 
-    // REVIEW (GAIAPLAT-2033): This exception needs to be thrown on the client!
+    // REVIEW: This exception needs to be thrown on the client!
     if (!s_txn_log_offset.is_valid())
     {
         throw transaction_log_allocation_failure_internal();
@@ -809,8 +808,12 @@ void server_t::init_indexes()
         gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
         if (!table_id.is_valid())
         {
-            // Orphaned object detected. We continue instead of throw here because of GAIAPLAT-1276.
-            // This should be reverted once we no longer orphan objects during a DROP operation.
+            // Orphaned object detected. We continue instead of throwing here
+            // because types can be orphaned after DROP TABLE is executed (the
+            // table's type is removed from the catalog and in-memory data is
+            // deleted, but the old data is not removed from the persistent
+            // store and will be recreated on recovery). This should be reverted
+            // once we no longer orphan objects during a DROP operation.
             std::cerr << "Cannot find type for object " << obj->id << " in the catalog!";
             continue;
         }
@@ -1060,9 +1063,8 @@ bool server_t::authenticate_client_socket(int socket)
         throw_system_error("getsockopt(SO_PEERCRED) failed!");
     }
 
-    // Disable client authentication until we can figure out
-    // how to fix the Postgres tests.
-    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1253
+    // REVIEW: Disable client authentication until we figure out
+    // how to let Postgres authenticate as a different user.
     // Client must have same effective user ID as server.
     // return (cred.uid == ::geteuid());
 
@@ -1284,9 +1286,10 @@ void server_t::session_handler(int session_socket)
     // are currently claimed by sessions), then immediately close the socket, so
     // the client throws a `peer_disconnected` exception and rethrows a
     // `session_limit_exceeded_internal` exception.
-    // REVIEW (GAIAPLAT-2034): When we have a way to marshal exceptions to the
-    // client, we should directly ensure that `session_limit_exceeded_internal`
-    // is thrown in this case.
+    //
+    // REVIEW: When we have a way to marshal exceptions to the client, we should
+    // directly ensure that `session_limit_exceeded_internal` is thrown in this
+    // case.
     if (!reserve_safe_ts_index())
     {
         std::cerr << "Disconnecting new session because session handler failed to reserve a safe_ts entry index." << std::endl;
@@ -2451,7 +2454,7 @@ void server_t::gc_applied_txn_logs()
     }
 
     // Now deallocate any unused chunks that have already been retired.
-    // TODO: decommit unused pages (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1446)
+    // TODO: decommit unused pages in used chunks.
     for (auto& entry : s_map_gc_chunks_to_versions)
     {
         chunk_offset_t chunk_offset = entry.first;
@@ -2630,11 +2633,11 @@ void server_t::txn_rollback(bool client_disconnected)
     // owned by the client session when it crashed.
     if (client_disconnected)
     {
-        // TODO[GAIAPLAT-1490]: Implement this logic correctly by tracking the
-        // current chunk ID in shared session state. For now, chunks owned by a
-        // crashed session will never be retired (and therefore can never be
-        // reallocated). Deallocation of object versions in these orphaned
-        // chunks will still succeed, though, so GC correctness is unaffected.
+        // TODO: Implement this logic correctly by tracking the current chunk ID
+        // in shared session state. For now, chunks owned by a crashed session
+        // will never be retired (and therefore can never be reallocated).
+        // Deallocation of object versions in these orphaned chunks will still
+        // succeed, though, so GC correctness is unaffected.
     }
 
     // Free any deallocated objects.

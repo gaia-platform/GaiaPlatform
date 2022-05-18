@@ -211,8 +211,8 @@ public:
     // for 2-3 days at 10K TPS. This shouldn't be a concern for TSan builds,
     // which are not intended for production.
     //
-    // REVIEW (GAIAPLAT-1577): We should be able to revert this restriction when
-    // we move the txn metadata to a fixed-size circular buffer.
+    // REVIEW: We should be able to revert this restriction when we move the txn
+    // metadata to a fixed-size circular buffer.
     static constexpr size_t c_txn_ts_bit_width{32};
 #else
     static constexpr size_t c_txn_ts_bit_width{42};
