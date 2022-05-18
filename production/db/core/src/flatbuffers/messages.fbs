@@ -24,8 +24,7 @@ enum session_event_t: uint8 {
     REQUEST_STREAM,
     DECIDE_TXN_ROLLBACK_FOR_ERROR,
     CONNECT_DDL,
-    CONNECT_PING,
-    SESSION_ERROR
+    CONNECT_PING
 }
 
 union index_query_t {index_range_query_t, index_point_read_query_t, index_equal_range_query_t}
