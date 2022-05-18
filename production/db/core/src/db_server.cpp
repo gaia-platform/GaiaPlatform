@@ -1077,8 +1077,6 @@ bool server_t::can_start_session(int socket_fd)
 {
     if (s_session_threads.size() >= c_session_limit)
     {
-        // The connecting client will get ECONNRESET on their first
-        // read from this socket.
         std::cerr << "Disconnecting new session because session limit has been exceeded." << std::endl;
         return false;
     }
@@ -1252,6 +1250,8 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
                     throw_system_error("accept() failed!");
                 }
 
+                // The connecting client will get ECONNRESET on their first
+                // read from this socket.
                 if (!can_start_session(session_socket))
                 {
                     close_fd(session_socket);
