@@ -143,11 +143,6 @@ session_limit_exceeded_internal::session_limit_exceeded_internal()
     m_message = "Server session limit exceeded.";
 }
 
-session_failure_internal::session_failure_internal()
-{
-    m_message = "An error occurred while starting a session. Check the server output for more details.";
-}
-
 invalid_reference_offset_internal::invalid_reference_offset_internal(
     gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset)
 {

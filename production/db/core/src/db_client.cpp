@@ -191,12 +191,7 @@ void client_t::begin_session(config::session_options_t options)
         } });
 
     session_event_t event = client_messenger.server_reply()->event();
-    ASSERT_INVARIANT(event == session_event_t::CONNECT || event == session_event_t::SESSION_ERROR, c_message_unexpected_event_received);
-
-    if (event == session_event_t::SESSION_ERROR)
-    {
-        throw session_failure_internal();
-    }
+    ASSERT_INVARIANT(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings.
     // The locators mapping will be performed manually, so skip its information in the mapping table.

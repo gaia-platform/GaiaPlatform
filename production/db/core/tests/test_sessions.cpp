@@ -82,7 +82,7 @@ TEST_F(session_test, only_one_ddl_session_running)
     std::vector<std::thread> threads;
     std::atomic<uint32_t> num_active_sessions{0};
 
-    for (int i = 0; i < c_num_concurrent_sessions; i++)
+    for (int i = 0; i < c_num_concurrent_sessions; ++i)
     {
         // NOLINTNEXTLINE(performance-inefficient-vector-operation)
         threads.emplace_back([&num_active_sessions] {
@@ -103,7 +103,6 @@ TEST_F(session_test, only_one_ddl_session_running)
 
 TEST_F(session_test, ddl_session_wait_regular_session)
 {
-
     std::atomic<uint32_t> num_active_sessions{0};
 
     std::thread regular_session([&num_active_sessions] {
@@ -127,7 +126,6 @@ TEST_F(session_test, ddl_session_wait_regular_session)
 
 TEST_F(session_test, regular_session_wait_for_ddl_session)
 {
-
     std::atomic<uint32_t> num_active_sessions{0};
 
     std::thread ddl_session([&num_active_sessions] {
@@ -147,4 +145,42 @@ TEST_F(session_test, regular_session_wait_for_ddl_session)
 
     ddl_session.join();
     regular_session.join();
+}
+
+TEST_F(session_test, ping_sessions_can_run_with_ddl_sessions)
+{
+    constexpr int c_num_concurrent_sessions = 5;
+
+    std::vector<std::thread> threads;
+
+    std::condition_variable running_ping_sessions_cv;
+    std::mutex ping_session_mutex;
+
+    std::atomic<int> num_ping_sessions = c_num_concurrent_sessions;
+
+    threads.emplace_back([&] {
+        gaia::db::begin_ddl_session();
+        std::unique_lock lock(ping_session_mutex);
+
+        running_ping_sessions_cv.wait(
+            lock, [&] { return num_ping_sessions == 0; });
+
+        gaia::db::end_session();
+    });
+
+    for (int i = 0; i < c_num_concurrent_sessions; ++i)
+    {
+        // NOLINTNEXTLINE(performance-inefficient-vector-operation)
+        threads.emplace_back([&] {
+            gaia::db::begin_ping_session();
+            num_ping_sessions--;
+            running_ping_sessions_cv.notify_one();
+            gaia::db::end_session();
+        });
+    }
+
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
 }

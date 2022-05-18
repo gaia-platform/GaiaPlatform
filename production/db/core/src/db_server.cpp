@@ -108,7 +108,7 @@ void server_t::handle_connect(
     {
         s_start_session_mutex.lock();
     }
-    else
+    else if (s_session_type == session_type_t::regular)
     {
         s_start_session_mutex.lock_shared();
     }
@@ -400,7 +400,7 @@ void server_t::handle_client_shutdown(
     {
         s_start_session_mutex.unlock();
     }
-    else
+    else if (s_session_type == session_type_t::regular)
     {
         s_start_session_mutex.unlock_shared();
     }
