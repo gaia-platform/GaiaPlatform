@@ -102,7 +102,13 @@ void rule_thread_pool_t::shutdown()
     m_threads.clear();
 
     int64_t shutdown_duration = gaia::common::timer_t::get_duration(start_shutdown_time);
-    gaia_log::rules().trace("shutdown took {:.2f} ms", gaia::common::timer_t::ns_to_ms(shutdown_duration));
+
+    // This method is called automatically at the rule_engine shutdown. It could happen that the logger
+    // has already been destroyed, hence a call to the logger may throw an exception.
+    if (gaia_log::is_initialized())
+    {
+        gaia_log::rules().trace("shutdown took {:.2f} ms", gaia::common::timer_t::ns_to_ms(shutdown_duration));
+    }
 }
 
 void rule_thread_pool_t::execute_immediate()
