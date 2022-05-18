@@ -109,7 +109,6 @@ TEST_F(session_test, ddl_session_wait_regular_session)
         gaia::db::begin_session();
         num_active_sessions++;
         std::this_thread::sleep_for(std::chrono::milliseconds(c_session_sleep_millis));
-        ASSERT_EQ(num_active_sessions, 1);
         num_active_sessions--;
         gaia::db::end_session();
     });
