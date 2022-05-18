@@ -76,6 +76,11 @@ void initialize(const std::string& config_path);
  */
 void shutdown();
 
+/**
+ * Returns true if the logger is initialized;
+ */
+bool is_initialized();
+
 /*
  * Exposed loggers. Filled in by initialize and destroyed on shutdown.
  */
