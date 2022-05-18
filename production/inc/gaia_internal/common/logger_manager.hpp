@@ -110,7 +110,6 @@ public:
 
     bool init_logging(const std::string& config_path);
     bool stop_logging();
-    bool is_logging_initialized();
 
 private:
     logger_manager_t() = default;

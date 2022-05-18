@@ -195,7 +195,6 @@ void client_t::begin_session(config::session_options_t options)
 
     if (event == session_event_t::SESSION_ERROR)
     {
-        gaia::db::end_session();
         throw session_failure_internal();
     }
 

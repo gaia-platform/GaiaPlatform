@@ -45,11 +45,6 @@ void shutdown()
     logger_manager_t::get().stop_logging();
 }
 
-bool is_initialized()
-{
-    return logger_manager_t::get().is_logging_initialized();
-}
-
 logger_t& sys()
 {
     return logger_manager_t::get().sys_logger();

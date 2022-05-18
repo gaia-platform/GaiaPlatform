@@ -101,47 +101,21 @@ void server_t::handle_connect(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    ++s_open_sessions_count;
-
-    auto decrement_open_session_count = scope_guard::make_scope_guard([] {
-        s_open_sessions_count--;
-    });
-
-    session_event_t response_event = session_event_t::CONNECT;
-
-    // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
+    // Prevent starting a DDL session in parallel with an existing one
     // or after a regular session has already been started.
-    // Note: a lock is used. The idea is that starting a session is a spurious event, therefore a lock is not
-    // a big deal. This decision can be revisited.
 
     if (s_session_type == session_type_t::ddl)
     {
-        std::unique_lock lock(s_start_session_mutex);
-
-        if (s_open_sessions_count > 1)
-        {
-            std::cerr << "Cannot start a DDL session while other sessions are active." << std::endl;
-            response_event = session_event_t::SESSION_ERROR;
-        }
-        else
-        {
-            s_is_ddl_session_active = true;
-        }
+        s_start_session_mutex.lock();
     }
     else
     {
-        std::shared_lock lock(s_start_session_mutex);
-
-        if (s_is_ddl_session_active)
-        {
-            std::cerr << "Cannot start a session while a DDL session is active." << std::endl;
-            response_event = session_event_t::SESSION_ERROR;
-        }
+        s_start_session_mutex.lock_shared();
     }
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
-    build_server_reply_info(builder, response_event, old_state, new_state);
+    build_server_reply_info(builder, session_event_t::CONNECT, old_state, new_state);
 
     // Collect fds.
     int fd_list[static_cast<size_t>(data_mapping_t::index_t::count_mappings)];
@@ -153,8 +127,6 @@ void server_t::handle_connect(
         static_cast<size_t>(data_mapping_t::index_t::count_mappings),
         builder.GetBufferPointer(),
         builder.GetSize());
-
-    decrement_open_session_count.dismiss();
 }
 
 void server_t::handle_begin_txn(
@@ -426,7 +398,11 @@ void server_t::handle_client_shutdown(
     // Mark the end of an active DDL session.
     if (s_session_context->session_type == session_type_t::ddl)
     {
-        s_is_ddl_session_active = false;
+        s_start_session_mutex.unlock();
+    }
+    else
+    {
+        s_start_session_mutex.unlock_shared();
     }
 
     // If the session had an active txn, clean up all its resources.
@@ -435,8 +411,6 @@ void server_t::handle_client_shutdown(
         bool client_disconnected = true;
         txn_rollback(client_disconnected);
     }
-
-    s_open_sessions_count--;
 }
 
 void server_t::handle_server_shutdown(

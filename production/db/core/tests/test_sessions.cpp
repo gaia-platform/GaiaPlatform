@@ -13,7 +13,7 @@ using namespace std;
 using namespace gaia::db;
 using namespace gaia::common;
 
-static constexpr int64_t c_regular_session_sleep_millis = 10;
+static constexpr int64_t c_session_sleep_millis = 10;
 
 class session_test : public db_test_base_t
 {
@@ -64,7 +64,7 @@ TEST_F(session_test, concurrent_regular_sessions_succeed)
     {
         session_threads.emplace_back([]() {
             begin_session();
-            std::this_thread::sleep_for(std::chrono::milliseconds(c_regular_session_sleep_millis));
+            std::this_thread::sleep_for(std::chrono::milliseconds(c_session_sleep_millis));
             end_session();
         });
     }
@@ -75,97 +75,76 @@ TEST_F(session_test, concurrent_regular_sessions_succeed)
     }
 }
 
-// Tests that we can't start Regular or DDL sessions while a DDL session is already running.
-TEST_F(session_test, concurrent_ddl_sessions_fail)
+TEST_F(session_test, only_one_ddl_session_running)
 {
-    std::mutex main_thread_mutex;
-    std::mutex ddl_thread_mutex;
+    constexpr int c_num_concurrent_sessions = 5;
 
-    std::condition_variable ddl_session_started_cv;
-    std::condition_variable main_assertions_completed_cv;
+    std::vector<std::thread> threads;
+    std::atomic<uint32_t> num_active_sessions{0};
 
-    std::thread ddl_session([&] {
-        gaia::db::begin_ddl_session();
-        // After the DDL session is started we can unlock the main thread.
-        ddl_session_started_cv.notify_one();
+    for (int i = 0; i < c_num_concurrent_sessions; i++)
+    {
+        // NOLINTNEXTLINE(performance-inefficient-vector-operation)
+        threads.emplace_back([&num_active_sessions] {
+            gaia::db::begin_ddl_session();
+            num_active_sessions++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(c_session_sleep_millis));
+            ASSERT_EQ(num_active_sessions, 1);
+            num_active_sessions--;
+            gaia::db::end_session();
+        });
+    }
 
-        // Wait for the assertions in the main thread to be completed.
-        unique_lock lock(ddl_thread_mutex);
-        main_assertions_completed_cv.wait(lock);
-
-        gaia::db::end_session();
-
-        // The main thread is waiting for this DDL session to complete.
-    });
-
-    // Wait for the DDL session to be started.
-    unique_lock lock(main_thread_mutex);
-    ddl_session_started_cv.wait(lock);
-
-    // It should not be possible to open any session (DDL or regular)
-    // while a DDL session is running.
-    ASSERT_THROW(gaia::db::begin_session(), session_failure);
-    ASSERT_THROW(gaia::db::begin_ddl_session(), session_failure);
-
-    // Let the DDL session thread complete the session.
-    main_assertions_completed_cv.notify_one();
-
-    // Wait for the DDL session to be completed.
-    ddl_session.join();
-
-    // Now that the DDL session is completed, ensure we can open new
-    // normal ddl session.
-    gaia::db::begin_ddl_session();
-    gaia::db::end_session();
-
-    // And a regular session.
-    gaia::db::begin_session();
-    gaia::db::end_session();
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
 }
 
-// Tests that we can't start a DDL session while a normal session is already running.
-TEST_F(session_test, concurrent_ddl_regular_sessions_fail)
+TEST_F(session_test, ddl_session_wait_regular_session)
 {
-    std::mutex main_thread_mutex;
-    std::mutex regular_thread_mutex;
 
-    std::condition_variable regular_session_started_cv;
-    std::condition_variable main_assertions_completed_cv;
+    std::atomic<uint32_t> num_active_sessions{0};
 
-    std::thread ddl_session([&] {
+    std::thread regular_session([&num_active_sessions] {
         gaia::db::begin_session();
-        // After the regular session is started we can unlock the main thread.
-        regular_session_started_cv.notify_one();
-
-        // Wait for the assertions in the main thread to be completed.
-        unique_lock lock(regular_thread_mutex);
-        main_assertions_completed_cv.wait(lock);
-
+        num_active_sessions++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(c_session_sleep_millis));
+        ASSERT_EQ(num_active_sessions, 1);
+        num_active_sessions--;
         gaia::db::end_session();
-
-        // The main thread is waiting for this Regular session to complete.
     });
 
-    // Wait for the DDL session to be started.
-    unique_lock lock(main_thread_mutex);
-    regular_session_started_cv.wait(lock);
+    std::thread ddl_session([&num_active_sessions] {
+        gaia::db::begin_ddl_session();
+        ASSERT_EQ(num_active_sessions, 0);
+        gaia::db::end_session();
+    });
 
-    // It should not be possible to open a DDL session while a
-    // regular session is running.
-    ASSERT_THROW(gaia::db::begin_ddl_session(), session_failure);
-
-    // Let the DDL session thread complete the session.
-    main_assertions_completed_cv.notify_one();
-
-    // Wait for the DDL session to be completed.
     ddl_session.join();
+    regular_session.join();
+}
 
-    // Now that the DDL session is completed, ensure we can open new
-    // normal ddl session.
-    gaia::db::begin_ddl_session();
-    gaia::db::end_session();
+TEST_F(session_test, regular_session_wait_for_ddl_session)
+{
 
-    // And a regular session.
-    gaia::db::begin_session();
-    gaia::db::end_session();
+    std::atomic<uint32_t> num_active_sessions{0};
+
+    std::thread ddl_session([&num_active_sessions] {
+        gaia::db::begin_ddl_session();
+        num_active_sessions++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(c_session_sleep_millis));
+        ASSERT_EQ(num_active_sessions, 1);
+        num_active_sessions--;
+        gaia::db::end_session();
+    });
+
+    std::thread regular_session([&num_active_sessions] {
+        gaia::db::begin_session();
+        ASSERT_EQ(num_active_sessions, 0);
+        gaia::db::end_session();
+    });
+
+    ddl_session.join();
+    regular_session.join();
 }

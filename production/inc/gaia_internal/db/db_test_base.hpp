@@ -85,11 +85,6 @@ protected:
         s_server_instance.start();
     }
 
-    static void TearDownTestSuite()
-    {
-        gaia_log::shutdown();
-    }
-
     // Since ctest always launches each gtest in a new process, there is no point
     // to defining separate SetUpTestSuite/TearDownTestSuite methods.  However, tests
     // that need to do one-time initialization when running outside ctest

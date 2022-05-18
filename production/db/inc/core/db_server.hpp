@@ -140,12 +140,9 @@ private:
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
 
-    // These are global server flags.
-    static inline std::atomic<bool> s_is_ddl_session_active{false};
-
-    // This counter gives a more accurate view of the open sessions than
-    // s_session_threads.size(). See reap_exited_threads().
-    static inline std::atomic<uint32_t> s_open_sessions_count{0};
+    // Ensures that only one DDL session can run at any given point.
+    // Other sessions, DDL or Regular, will wait the DDL sessions to complete.
+    // Likewise, DDL session wait for current running session to complete.
     static inline std::shared_mutex s_start_session_mutex;
 
     // These thread objects are owned by the client dispatch thread.

@@ -87,11 +87,6 @@ bool logger_manager_t::stop_logging()
     return true;
 }
 
-bool logger_manager_t::is_logging_initialized()
-{
-    return m_is_log_initialized;
-}
-
 void logger_manager_t::create_log_dir_if_not_exists(const char* log_file_path)
 {
     fs::path path(log_file_path);
