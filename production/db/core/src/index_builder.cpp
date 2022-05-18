@@ -474,9 +474,8 @@ void index_builder_t::update_indexes_from_txn_log(
 
             auto index_list = catalog_core::list_indexes(table_id);
             std::vector<catalog_core::index_view_t> indexes;
-            // REVIEW [GAIAPLAT-2116]: We can't use std::copy() because
-            // index_list_t.begin() and index_list_t.end() are of different
-            // types.
+            // REVIEW: We can't use std::copy() because index_list_t.begin() and
+            // index_list_t.end() are of different types.
             for (auto& index : index_list)
             {
                 indexes.push_back(index);

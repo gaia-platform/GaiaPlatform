@@ -39,7 +39,7 @@ void gaia_ptr_t::reset()
     locators_t* locators = get_locators();
     log_txn_operation(m_locator, to_offset(), c_invalid_gaia_offset);
 
-    // TODO[GAIAPLAT-445]:  We don't expose delete events.
+    // TODO: Uncomment this code when we expose delete events.
     // if (client_t::is_valid_event(to_ptr()->type))
     // {
     //     client_t::s_events.emplace_back(event_type_t::row_delete, to_ptr()->type, to_ptr()->id, empty_position_list, get_txn_id());

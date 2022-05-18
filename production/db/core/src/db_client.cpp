@@ -314,13 +314,12 @@ void client_t::begin_transaction()
     const auto transaction_logs_to_apply = txn_info->transaction_logs_to_apply();
     for (const auto txn_log_info : *transaction_logs_to_apply)
     {
-        // REVIEW: After snapshot reuse (GAIAPLAT-2068) is enabled, skip applying logs with
+        // REVIEW: After snapshot reuse is enabled, skip applying logs with
         // txn_log_info.commit_timestamp <= s_latest_applied_commit_ts.
         apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
     }
 
-    // TODO: Re-enable these caches once we complete handling of DDL updates.
-    // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2160
+    // REVIEW: Re-enable these caches once we complete handling of DDL updates.
 
     // // We need to perform this initialization in the context of a transaction,
     // // so we'll just piggyback on the first transaction started by the client
@@ -422,13 +421,12 @@ void client_t::commit_transaction()
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in
     // transaction_update_conflict_internal
-    // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
         throw transaction_update_conflict_internal();
     }
-    // Improving the communication of such errors to the client is tracked by:
-    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232
+    // TODO: Server should communicate specific errors to the client to allow
+    // throwing specific exceptions.
     else if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
         // Get error information from server.

@@ -131,12 +131,11 @@ private:
     // and that would add overhead to the TLS implementation.
     thread_local static inline gaia::db::caches::db_caches_t* s_db_caches_ptr{nullptr};
 
-    // REVIEW [GAIAPLAT-2068]: When we enable snapshot reuse across txns (by
-    // applying the undo log from the previous txn to the existing snapshot and
-    // then applying redo logs from txns committed after the last shared
-    // locators view update), we need to track the last commit_ts whose log was
-    // applied to the snapshot, so we can ignore any logs committed at or before
-    // that commit_ts.
+    // REVIEW: When we enable snapshot reuse across txns (by applying the undo
+    // log from the previous txn to the existing snapshot and then applying redo
+    // logs from txns committed after the last shared locators view update), we
+    // need to track the last commit_ts whose log was applied to the snapshot,
+    // so we can ignore any logs committed at or before that commit_ts.
     thread_local static inline gaia_txn_id_t s_latest_applied_commit_ts = c_invalid_gaia_txn_id;
 
     thread_local static inline int s_fd_locators = -1;

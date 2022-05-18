@@ -126,9 +126,6 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
                 // This early close is also an optimization to allow the server to close
                 // its cursor socket and terminate its cursor thread immediately
                 // after the client detects the end of iteration.
-                //
-                // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2056
-                // for additional discussion of this code.
                 common::close_fd(*stream_socket_ptr);
                 return std::nullopt;
             }
@@ -164,7 +161,7 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         T_element_type next_value = batch_buffer.back();
         batch_buffer.pop_back();
 
-        // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2001
+        // REVIEW: uncomment this assert after index iterators no longer send invalid records.
         // ASSERT_POSTCONDITION(next_value.is_valid(), "The stream generator has produced an invalid element value!");
 
         return next_value;
