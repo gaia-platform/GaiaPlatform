@@ -101,9 +101,9 @@ void server_t::handle_connect(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    s_open_sessions_count++;
+    ++s_open_sessions_count;
 
-    auto clean_open_session = scope_guard::make_scope_guard([] {
+    auto decrement_open_session_count = scope_guard::make_scope_guard([] {
         s_open_sessions_count--;
     });
 
@@ -116,23 +116,25 @@ void server_t::handle_connect(
 
     if (s_session_type == session_type_t::ddl)
     {
-        std::unique_lock lock(m_start_session_mutex);
+        std::unique_lock lock(s_start_session_mutex);
 
-        bool expected_value = false;
-        bool has_succeeded = s_is_ddl_session_active.compare_exchange_strong(expected_value, true);
-        if (!has_succeeded || s_open_sessions_count > 1)
+        if (s_open_sessions_count > 1)
         {
-            std::cerr << "Impossible to start a DDL session while other sessions are active." << std::endl;
+            std::cerr << "Cannot start a DDL session while other sessions are active." << std::endl;
             response_event = session_event_t::SESSION_ERROR;
+        }
+        else
+        {
+            s_is_ddl_session_active = true;
         }
     }
     else
     {
-        std::shared_lock lock(m_start_session_mutex);
+        std::shared_lock lock(s_start_session_mutex);
 
         if (s_is_ddl_session_active)
         {
-            std::cerr << "Impossible to start a session while a DDL session is active." << std::endl;
+            std::cerr << "Cannot start a session while a DDL session is active." << std::endl;
             response_event = session_event_t::SESSION_ERROR;
         }
     }
@@ -152,7 +154,7 @@ void server_t::handle_connect(
         builder.GetBufferPointer(),
         builder.GetSize());
 
-    clean_open_session.dismiss();
+    decrement_open_session_count.dismiss();
 }
 
 void server_t::handle_begin_txn(
@@ -1097,7 +1099,7 @@ bool server_t::authenticate_client_socket(int socket)
     return true;
 }
 
-bool server_t::can_start_session(int socket)
+bool server_t::can_start_session(int socket_fd)
 {
     if (s_session_threads.size() >= c_session_limit)
     {
@@ -1107,7 +1109,7 @@ bool server_t::can_start_session(int socket)
         return false;
     }
 
-    if (!authenticate_client_socket(socket))
+    if (!authenticate_client_socket(socket_fd))
     {
         std::cerr << "Disconnecting new session because authentication failed" << std::endl;
         return false;

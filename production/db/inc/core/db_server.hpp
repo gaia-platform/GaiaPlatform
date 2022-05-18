@@ -146,7 +146,7 @@ private:
     // This counter gives a more accurate view of the open sessions than
     // s_session_threads.size(). See reap_exited_threads().
     static inline std::atomic<uint32_t> s_open_sessions_count{0};
-    static inline std::shared_mutex m_start_session_mutex;
+    static inline std::shared_mutex s_start_session_mutex;
 
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};
@@ -446,7 +446,7 @@ private:
 
     static bool authenticate_client_socket(int socket);
 
-    static bool can_start_session(int socket);
+    static bool can_start_session(int socket_fd);
 
     static void client_dispatch_handler(const std::string& socket_name);
 

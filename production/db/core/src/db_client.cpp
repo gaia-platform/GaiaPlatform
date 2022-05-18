@@ -309,7 +309,7 @@ void client_t::rollback_transaction()
     verify_txn_active();
 
     // Clean up all transaction-local session state.
-    [[maybe_unused]] auto cleanup = make_scope_guard(txn_cleanup);
+    auto cleanup = make_scope_guard(txn_cleanup);
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
@@ -355,7 +355,7 @@ void client_t::commit_transaction()
     }
 
     // Clean up all transaction-local session state when we exit.
-    [[maybe_unused]] auto cleanup = make_scope_guard(txn_cleanup);
+    auto cleanup = make_scope_guard(txn_cleanup);
 
     // Send the server the commit message.
     FlatBufferBuilder builder;
