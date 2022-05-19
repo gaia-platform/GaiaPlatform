@@ -79,7 +79,7 @@ void server_t::handle_connect_ping(
 {
     ASSERT_PRECONDITION(event == session_event_t::CONNECT_PING, c_message_unexpected_event_received);
 
-    s_session_type = session_type_t::ping;
+    s_session_context->session_type = session_type_t::ping;
 
     handle_connect(session_event_t::CONNECT, nullptr, old_state, new_state);
 }
@@ -89,7 +89,7 @@ void server_t::handle_connect_ddl(
 {
     ASSERT_PRECONDITION(event == session_event_t::CONNECT_DDL, c_message_unexpected_event_received);
 
-    s_session_type = session_type_t::ddl;
+    s_session_context->session_type = session_type_t::ddl;
 
     handle_connect(session_event_t::CONNECT, nullptr, old_state, new_state);
 }
@@ -144,7 +144,7 @@ void server_t::handle_connect(
     data_mapping_t::collect_fds(c_data_mappings, fd_list);
 
     send_msg_with_fds(
-        s_session_socket,
+        s_session_context->session_socket,
         &fd_list[0],
         static_cast<size_t>(data_mapping_t::index_t::count_mappings),
         builder.GetBufferPointer(),
@@ -161,43 +161,56 @@ void server_t::handle_begin_txn(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    ASSERT_PRECONDITION(!s_txn_id.is_valid(), "Transaction begin timestamp should be uninitialized!");
-    ASSERT_PRECONDITION(!s_txn_log_offset.is_valid(), "Transaction log offset should be invalid!");
-
     txn_begin();
 
-    ASSERT_POSTCONDITION(s_txn_log_offset.is_valid(), "Transaction log offset should be valid!");
+    ASSERT_POSTCONDITION(
+        s_session_context->txn_context->txn_log_offset.is_valid(),
+        "Transaction log offset should be valid!");
 
     FlatBufferBuilder builder;
     build_server_reply_info(
-        builder, session_event_t::BEGIN_TXN, old_state, new_state,
-        s_txn_id, s_txn_log_offset, s_txn_logs_for_snapshot);
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+        builder,
+        session_event_t::BEGIN_TXN,
+        old_state,
+        new_state,
+        s_session_context->txn_context->txn_id,
+        s_session_context->txn_context->txn_log_offset,
+        s_session_context->txn_context->txn_logs_for_snapshot);
+    send_msg_with_fds(s_session_context->session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server_t::txn_begin()
 {
+    s_session_context->txn_context = std::make_shared<server_transaction_context_t>();
+
+    auto cleanup_txn_context = make_scope_guard([&] {
+        s_session_context->txn_context.reset();
+    });
+
     // Allocate a new begin_ts for this txn and initialize its metadata in the txn table.
-    s_txn_id = txn_metadata_t::register_begin_ts();
+    s_session_context->txn_context->txn_id = txn_metadata_t::register_begin_ts();
+    gaia_txn_id_t txn_id = s_session_context->txn_context->txn_id;
 
     // The begin_ts returned by register_begin_ts() should always be valid because it
     // retries if it is concurrently sealed.
-    ASSERT_INVARIANT(s_txn_id.is_valid(), "Begin timestamp is invalid!");
+    ASSERT_INVARIANT(txn_id.is_valid(), "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
     safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
-    validate_txns_in_range(static_cast<gaia_txn_id_t>(pre_apply_watermark) + 1, s_txn_id);
+    validate_txns_in_range(static_cast<gaia_txn_id_t>(pre_apply_watermark) + 1, txn_id);
 
-    get_txn_log_offsets_for_snapshot(s_txn_id, s_txn_logs_for_snapshot);
+    get_txn_log_offsets_for_snapshot(txn_id, s_session_context->txn_context->txn_logs_for_snapshot);
 
     // Allocate the txn log offset on the server, for rollback-safety if the client session crashes.
-    s_txn_log_offset = allocate_log_offset();
+    s_session_context->txn_context->txn_log_offset = allocate_log_offset();
 
     // REVIEW: This exception needs to be thrown on the client!
-    if (!s_txn_log_offset.is_valid())
+    if (!!s_session_context->txn_context->txn_log_offset.is_valid())
     {
         throw transaction_log_allocation_failure_internal();
     }
+
+    cleanup_txn_context.dismiss();
 }
 
 void server_t::get_txn_log_offsets_for_snapshot(
@@ -268,28 +281,37 @@ void server_t::get_txn_log_offsets_for_snapshot(
 // snapshot on the client.
 void server_t::release_txn_log_offsets_for_snapshot()
 {
-    for (const auto& [txn_id, log_offset] : s_txn_logs_for_snapshot)
+    for (const auto& [txn_id, log_offset] : s_session_context->txn_context->txn_logs_for_snapshot)
     {
         get_txn_log_from_offset(log_offset)->release_reference(txn_id);
     }
 
-    s_txn_logs_for_snapshot.clear();
+    s_session_context->txn_context->txn_logs_for_snapshot.clear();
 }
 
 void server_t::release_transaction_resources()
 {
-    // This session now has no active txn.
-    s_txn_id = c_invalid_gaia_txn_id;
-    s_txn_log_offset = c_invalid_log_offset;
+    // Ensure the cleaning of the txn context.
+    // Also ensure the cleaning of the session context
+    // if it was specifically created for this transaction.
+    auto cleanup_contexts = make_scope_guard([&] {
+        s_session_context->txn_context.reset();
+
+        if (s_session_context->has_been_created_for_txn)
+        {
+            delete s_session_context;
+            s_session_context = nullptr;
+        }
+    });
 
     // Release all references to txn logs applied to our snapshot.
+    //
     // NB: this must be called before calling perform_maintenance(), because
     // otherwise we cannot GC the referenced txn logs!
-    release_txn_log_offsets_for_snapshot();
-
-    // Clear local snapshot information.
-    s_local_snapshot_locators.close();
-    s_last_snapshot_processed_log_record_count = 0;
+    if (s_session_context->txn_context)
+    {
+        release_txn_log_offsets_for_snapshot();
+    }
 
     // Update watermarks and perform associated maintenance tasks. This will
     // block new transactions on this session thread, but that is a feature, not
@@ -314,7 +336,7 @@ void server_t::handle_rollback_txn(
         c_message_current_event_is_inconsistent_with_state_transition);
 
     ASSERT_PRECONDITION(
-        s_txn_id.is_valid(),
+        s_session_context->txn_context->txn_id.is_valid(),
         "No active transaction to roll back!");
 
     // Release all txn resources and mark the txn's begin_ts metadata as terminated.
@@ -378,9 +400,11 @@ void server_t::handle_decide_txn(
     }
     else
     {
-        build_server_reply_info(builder, event, old_state, new_state, s_txn_id, s_txn_log_offset);
+        build_server_reply_info(
+            builder, event, old_state, new_state,
+            s_session_context->txn_context->txn_id, s_session_context->txn_context->txn_log_offset);
     }
-    send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(s_session_context->session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server_t::handle_client_shutdown(
@@ -401,16 +425,16 @@ void server_t::handle_client_shutdown(
     // loop and immediately close the socket. (If we received EOF from the client after
     // we closed our write end, then we would be calling shutdown(SHUT_WR) twice, which
     // is another reason to just close the socket.)
-    s_session_shutdown = true;
+    s_session_context->session_shutdown = true;
 
     // Mark the end of an active DDL session.
-    if (s_session_type == session_type_t::ddl)
+    if (s_session_context->session_type == session_type_t::ddl)
     {
         s_is_ddl_session_active = false;
     }
 
     // If the session had an active txn, clean up all its resources.
-    if (s_txn_id.is_valid())
+    if (s_session_context->txn_context && s_session_context->txn_context->txn_id.is_valid())
     {
         bool client_disconnected = true;
         txn_rollback(client_disconnected);
@@ -432,7 +456,7 @@ void server_t::handle_server_shutdown(
     // Because we are about to shut down, we can't wait for acknowledgment from the client and
     // should just close the session socket. As noted above, setting the shutdown flag will
     // immediately break out of the poll loop and close the session socket.
-    s_session_shutdown = true;
+    s_session_context->session_shutdown = true;
 }
 
 std::pair<int, int> server_t::get_stream_socket_pair()
@@ -551,7 +575,7 @@ void server_t::handle_request_stream(
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
     build_server_reply_info(builder, event, old_state, new_state);
-    send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(s_session_context->session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server_t::apply_transition(session_event_t event, const void* event_data)
@@ -561,24 +585,26 @@ void server_t::apply_transition(session_event_t event, const void* event_data)
         return;
     }
 
+    messages::session_state_t& session_state = s_session_context->session_state;
+
     for (auto t : c_valid_transitions)
     {
-        if (t.event == event && (t.state == s_session_state || t.state == session_state_t::ANY))
+        if (t.event == event && (t.state == session_state || t.state == session_state_t::ANY))
         {
             session_state_t new_state = t.transition.new_state;
 
             // If the transition's new state is ANY, then keep the state the same.
             if (new_state == session_state_t::ANY)
             {
-                new_state = s_session_state;
+                new_state = session_state;
             }
 
-            session_state_t old_state = s_session_state;
-            s_session_state = new_state;
+            session_state_t old_state = session_state;
+            session_state = new_state;
 
             if (t.transition.handler)
             {
-                t.transition.handler(event, event_data, old_state, s_session_state);
+                t.transition.handler(event, event_data, old_state, session_state);
             }
 
             return;
@@ -589,7 +615,7 @@ void server_t::apply_transition(session_event_t event, const void* event_data)
     // TODO: consider propagating exception back to client?
     throw invalid_session_transition(
         "No allowed state transition from state '"
-        + std::string(EnumNamesession_state_t(s_session_state))
+        + std::string(EnumNamesession_state_t(session_state))
         + "' with event '"
         + std::string(EnumNamesession_event_t(event))
         + "'.");
@@ -639,17 +665,14 @@ void server_t::build_server_reply_error(
 void server_t::clear_server_state()
 {
     data_mapping_t::close(c_data_mappings);
-    s_local_snapshot_locators.close();
-    s_last_snapshot_processed_log_record_count = 0;
-    s_chunk_manager.release();
 }
 
 // To avoid synchronization, we assume that this method is only called when
 // no sessions exist and the server is not accepting any new connections.
 void server_t::init_shared_memory()
 {
-    // The listening socket must not be open.
     ASSERT_PRECONDITION(s_listening_socket == -1, "Listening socket should not be open!");
+    ASSERT_PRECONDITION(!s_session_context, "init_shared_memory() should not be called within a database session!");
 
     // Initialize global data structures.
     txn_metadata_t::init_txn_metadata_map();
@@ -688,6 +711,13 @@ void server_t::init_shared_memory()
     // s_shared_type_index uses (8B) * c_max_locators = 32GB of virtual address space.
     data_mapping_t::create(c_data_mappings, s_server_conf.instance_name().c_str());
 
+    // We don't execute within a session, so we need to create our own session context.
+    s_session_context = new server_session_context_t();
+    auto cleanup_session_context = make_scope_guard([&] {
+        delete s_session_context;
+        s_session_context = nullptr;
+    });
+
     bool initializing = true;
     init_memory_manager(initializing);
 
@@ -706,9 +736,6 @@ void server_t::init_shared_memory()
     // Initialize indexes.
     init_indexes();
 
-    // Done with local snapshot.
-    s_local_snapshot_locators.close();
-
     cleanup_memory.dismiss();
 }
 
@@ -717,23 +744,23 @@ void server_t::init_memory_manager(bool initializing)
     if (initializing)
     {
         // This is only called by the main thread, to prepare for recovery.
-        s_memory_manager.initialize(
+        s_session_context->memory_manager.initialize(
             reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
             sizeof(s_shared_data.data()->objects));
 
-        chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
+        chunk_offset_t chunk_offset = s_session_context->memory_manager.allocate_chunk();
         if (!chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();
         }
-        s_chunk_manager.initialize(chunk_offset);
+        s_session_context->chunk_manager.initialize(chunk_offset);
     }
     else
     {
         // This is called by server-side session threads, to use in GC.
         // These threads perform no allocations, so they do not need to
         // initialize their chunk manager with an allocated chunk.
-        s_memory_manager.load(
+        s_session_context->memory_manager.load(
             reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
             sizeof(s_shared_data.data()->objects));
     }
@@ -755,14 +782,14 @@ void server_t::deallocate_object(gaia_offset_t offset)
 
     // Cache this chunk and its current version for later deallocation.
     // REVIEW: This could be changed to use contains() after C++20.
-    if (s_map_gc_chunks_to_versions.count(chunk_offset) == 0)
+    if (s_session_context->map_gc_chunks_to_versions.count(chunk_offset) == 0)
     {
-        s_map_gc_chunks_to_versions.insert({chunk_offset, version});
+        s_session_context->map_gc_chunks_to_versions.insert({chunk_offset, version});
     }
     else
     {
         // If this GC task already cached this chunk, then the versions must match!
-        chunk_version_t cached_version = s_map_gc_chunks_to_versions[chunk_offset];
+        chunk_version_t cached_version = s_session_context->map_gc_chunks_to_versions[chunk_offset];
         ASSERT_INVARIANT(version == cached_version, "Chunk version must match cached chunk version!");
     }
 
@@ -877,14 +904,14 @@ gaia_txn_id_t server_t::begin_startup_txn()
 
     // Allocate begin timestamp and txn log offset.
     txn_begin();
-    ASSERT_POSTCONDITION(s_txn_id.is_valid(), "Transaction begin timestamp should be valid!");
-    ASSERT_POSTCONDITION(s_txn_log_offset.is_valid(), "Transaction log offset should be valid!");
+    ASSERT_POSTCONDITION(s_session_context->txn_context->txn_id.is_valid(), "Transaction begin timestamp should be valid!");
+    ASSERT_POSTCONDITION(s_session_context->txn_context->txn_log_offset.is_valid(), "Transaction log offset should be valid!");
 
     // Create snapshot for db recovery and index population.
     bool apply_logs = false;
     create_or_refresh_local_snapshot(apply_logs);
 
-    return s_txn_id;
+    return s_session_context->txn_context->txn_id;
 }
 
 void server_t::end_startup_txn()
@@ -894,9 +921,10 @@ void server_t::end_startup_txn()
     auto cleanup_safe_ts_index = make_scope_guard([&] { release_safe_ts_index(); });
 
     // Register this txn under a new commit timestamp.
-    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, s_txn_log_offset);
+    gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(
+        s_session_context->txn_context->txn_id, s_session_context->txn_context->txn_log_offset);
     // Mark this txn as submitted.
-    txn_metadata_t::set_active_txn_submitted(s_txn_id, commit_ts);
+    txn_metadata_t::set_active_txn_submitted(s_session_context->txn_context->txn_id, commit_ts);
     // Mark this txn as committed.
     txn_metadata_t::update_txn_decision(commit_ts, true);
     // Mark this txn durable if persistence is enabled.
@@ -916,20 +944,20 @@ void server_t::end_startup_txn()
 // Create a thread-local snapshot from the shared locators.
 void server_t::create_or_refresh_local_snapshot(bool apply_logs)
 {
-    ASSERT_PRECONDITION(apply_logs || !s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
+    ASSERT_PRECONDITION(apply_logs || !s_session_context->txn_context->local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
 
-    bool was_snapshot_already_created = s_local_snapshot_locators.is_set();
+    bool was_snapshot_already_created = s_session_context->txn_context->local_snapshot_locators.is_set();
 
     if (!was_snapshot_already_created)
     {
         ASSERT_PRECONDITION(
-            s_last_snapshot_processed_log_record_count == 0,
-            "'s_last_snapshot_processed_log_record_count' is set without the local snapshot being created!");
+            s_session_context->txn_context->last_snapshot_processed_log_record_count == 0,
+            "'last_snapshot_processed_log_record_count' is set without the local snapshot being created!");
 
         // Open a private locator mapping for the current thread.
         bool manage_fd = false;
         bool is_shared = false;
-        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+        s_session_context->txn_context->local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
     }
 
     if (apply_logs)
@@ -938,13 +966,13 @@ void server_t::create_or_refresh_local_snapshot(bool apply_logs)
         if (!was_snapshot_already_created)
         {
             ASSERT_PRECONDITION(
-                s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
+                s_session_context->txn_context->txn_id.is_valid() && txn_metadata_t::is_txn_active(s_session_context->txn_context->txn_id),
                 "To apply logs, create_or_refresh_local_snapshot() must be called from within an active transaction!");
 
             // Apply txn_logs for the snapshot.
-            for (const auto& [txn_id, log_offset] : s_txn_logs_for_snapshot)
+            for (const auto& [txn_id, log_offset] : s_session_context->txn_context->txn_logs_for_snapshot)
             {
-                apply_log_from_offset(s_local_snapshot_locators.data(), log_offset);
+                apply_log_from_offset(s_session_context->txn_context->local_snapshot_locators.data(), log_offset);
             }
         }
 
@@ -955,11 +983,13 @@ void server_t::create_or_refresh_local_snapshot(bool apply_logs)
 
         // Apply current txn log to the local snapshot starting from the last processed log record count.
         apply_log_from_offset(
-            s_local_snapshot_locators.data(), s_txn_log_offset, s_last_snapshot_processed_log_record_count);
+            s_session_context->txn_context->local_snapshot_locators.data(),
+            s_session_context->txn_context->txn_log_offset,
+            s_session_context->txn_context->last_snapshot_processed_log_record_count);
 
         // Update our log record count watermark.
-        txn_log_t* txn_log = get_txn_log_from_offset(s_txn_log_offset);
-        s_last_snapshot_processed_log_record_count = txn_log->record_count;
+        txn_log_t* txn_log = get_txn_log_from_offset(s_session_context->txn_context->txn_log_offset);
+        s_session_context->txn_context->last_snapshot_processed_log_record_count = txn_log->record_count;
     }
 }
 
@@ -1264,19 +1294,14 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
 
 void server_t::session_handler(int session_socket)
 {
-    // Set up session socket.
-    s_session_shutdown = false;
-    s_session_socket = session_socket;
-    auto socket_cleanup = make_scope_guard([&] {
-        // We can rely on close_fd() to perform the equivalent of
-        // shutdown(SHUT_RDWR), because we hold the only fd pointing to this
-        // socket. That should allow the client to read EOF if they're in a
-        // blocking read and exit gracefully. (If they try to write to the
-        // socket after we've closed our end, they'll receive EPIPE.) We don't
-        // want to try to read any pending data from the client, because we're
-        // trying to shut down as quickly as possible.
-        close_fd(s_session_socket);
+    s_session_context = new server_session_context_t();
+    auto cleanup_session_context = make_scope_guard([&] {
+        delete s_session_context;
+        s_session_context = nullptr;
     });
+
+    // Set up session socket.
+    s_session_context->session_socket = session_socket;
 
     // Initialize this thread's memory manager.
     bool initializing = false;
@@ -1310,7 +1335,7 @@ void server_t::session_handler(int session_socket)
     }
     auto epoll_cleanup = make_scope_guard([&epoll_fd] { close_fd(epoll_fd); });
 
-    int fds[] = {s_session_socket, s_server_shutdown_eventfd};
+    int fds[] = {s_session_context->session_socket, s_server_shutdown_eventfd};
     for (int fd : fds)
     {
         // We should only get EPOLLRDHUP from the client socket, but oh well.
@@ -1325,10 +1350,10 @@ void server_t::session_handler(int session_socket)
     epoll_event events[std::size(fds)];
 
     // Event to signal session-owned threads to terminate.
-    s_session_shutdown_eventfd = make_eventfd();
+    s_session_context->session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([] {
         // Signal all session-owned threads to terminate.
-        signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
+        signal_eventfd_multiple_threads(s_session_context->session_shutdown_eventfd);
 
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)
@@ -1342,11 +1367,11 @@ void server_t::session_handler(int session_socket)
 
         // All session-owned threads have received the session shutdown
         // notification, so we can close the eventfd.
-        close_fd(s_session_shutdown_eventfd);
+        close_fd(s_session_context->session_shutdown_eventfd);
     });
 
     // Enter epoll loop.
-    while (!s_session_shutdown)
+    while (!s_session_context->session_shutdown)
     {
         // Block forever (we will be notified of shutdown).
         int ready_fd_count = ::epoll_wait(epoll_fd, events, std::size(events), -1);
@@ -1375,10 +1400,10 @@ void server_t::session_handler(int session_socket)
 
         // If the shutdown flag is set, we need to exit immediately before
         // processing the next ready fd.
-        for (int i = 0; i < ready_fd_count && !s_session_shutdown; ++i)
+        for (int i = 0; i < ready_fd_count && !s_session_context->session_shutdown; ++i)
         {
             epoll_event ev = events[i];
-            if (ev.data.fd == s_session_socket)
+            if (ev.data.fd == s_session_context->session_socket)
             {
                 // NB: Because many event flags are set in combination with others, the
                 // order we test them in matters! E.g., EPOLLIN seems to always be set
@@ -1390,7 +1415,7 @@ void server_t::session_handler(int session_socket)
                     int error = 0;
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
-                    ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
+                    ::getsockopt(s_session_context->session_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
                     std::cerr << "Client socket error: " << ::strerror(error) << std::endl;
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
@@ -1418,7 +1443,7 @@ void server_t::session_handler(int session_socket)
 
                     // Read client message with possible file descriptors.
                     size_t bytes_read = recv_msg_with_fds(
-                        s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
+                        s_session_context->session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
                     // after we have already woken up on EPOLLIN, in which case we would
@@ -1460,7 +1485,7 @@ void server_t::session_handler(int session_socket)
             catch (const peer_disconnected& e)
             {
                 std::cerr << "Client socket error: " << e.what() << std::endl;
-                s_session_shutdown = true;
+                s_session_context->session_shutdown = true;
             }
         }
     }
@@ -1696,7 +1721,7 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
 
     // Create stream producer thread.
     s_session_owned_threads.emplace_back(
-        stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, generator_fn);
+        stream_producer_handler<T_element>, stream_socket, s_session_context->session_shutdown_eventfd, generator_fn);
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
@@ -1936,7 +1961,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
                 // By hypothesis, there are no undecided txns with commit timestamps
                 // preceding the committing txn's begin timestamp.
                 ASSERT_INVARIANT(
-                    ts > s_txn_id,
+                    ts > s_session_context->txn_context->txn_id,
                     c_message_preceding_txn_should_have_been_validated);
 
                 // Recursively validate the current undecided txn.
@@ -2370,7 +2395,7 @@ void server_t::apply_txn_logs_to_shared_view()
 void server_t::gc_applied_txn_logs()
 {
     // Ensure we clean up our cached chunk IDs when we exit this task.
-    auto cleanup_fd = make_scope_guard([&] { s_map_gc_chunks_to_versions.clear(); });
+    auto cleanup_fd = make_scope_guard([&] { s_session_context->map_gc_chunks_to_versions.clear(); });
 
     // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
@@ -2454,8 +2479,13 @@ void server_t::gc_applied_txn_logs()
     }
 
     // Now deallocate any unused chunks that have already been retired.
+<<<<<<< HEAD
     // TODO: decommit unused pages in used chunks.
     for (auto& entry : s_map_gc_chunks_to_versions)
+=======
+    // TODO: decommit unused pages (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1446)
+    for (auto& entry : s_session_context->map_gc_chunks_to_versions)
+>>>>>>> Add server session and txn contexts
     {
         chunk_offset_t chunk_offset = entry.first;
         chunk_version_t chunk_version = entry.second;
@@ -2645,19 +2675,19 @@ void server_t::txn_rollback(bool client_disconnected)
     txn_log_t* txn_log = get_txn_log();
 
     // Release ownership as precondition for GC.
-    bool success = txn_log->invalidate(s_txn_id);
+    bool success = txn_log->invalidate(s_session_context->txn_context->txn_id);
     ASSERT_POSTCONDITION(success, "Unsubmitted txn log cannot have any shared references!");
 
     // We don't need to go through the full GC path because this txn log was never submitted.
     bool is_committed = false;
-    gc_txn_log_from_offset(s_txn_log_offset, is_committed);
+    gc_txn_log_from_offset(s_session_context->txn_context->txn_log_offset, is_committed);
 
     // Make txn log offset available for reuse.
-    deallocate_log_offset(s_txn_log_offset);
+    deallocate_log_offset(s_session_context->txn_context->txn_log_offset);
 
     // Set our txn status to TXN_TERMINATED.
     // This allows GC to proceed past this txn's begin_ts.
-    txn_metadata_t::set_active_txn_terminated(s_txn_id);
+    txn_metadata_t::set_active_txn_terminated(s_session_context->txn_context->txn_id);
 }
 
 void server_t::perform_pre_commit_work_for_txn()
@@ -2669,14 +2699,15 @@ void server_t::perform_pre_commit_work_for_txn()
     // without initializing the catalog, so there will be no system indexes at all.
     // In all other cases, we should find at least the number of system indexes.
     ASSERT_INVARIANT(
-        (s_session_type == session_type_t::ddl)
+        (s_session_context->session_type == session_type_t::ddl)
             || get_indexes()->size() == 0
             || get_indexes()->size() >= gaia::catalog::c_system_index_count,
         "Fewer indexes than expected were found during perform_pre_commit_work_for_txn()!");
 
     // Only update indexes in DDL sessions (when new ones could be created)
     // or if we see that user indexes were created in addition to the catalog ones.
-    if ((s_session_type == session_type_t::ddl) || get_indexes()->size() > gaia::catalog::c_system_index_count)
+    if ((s_session_context->session_type == session_type_t::ddl)
+        || get_indexes()->size() > gaia::catalog::c_system_index_count)
     {
         update_indexes_from_txn_log();
     }
@@ -2714,17 +2745,18 @@ bool server_t::txn_commit()
     // validators) can safely read any txn metadata within the conflict window
     // of this txn, until the commit decision is returned to the client.
     // NB: This MUST be done before obtaining a commit_ts!
-    safe_ts_t safe_begin_ts(s_txn_id);
+    safe_ts_t safe_begin_ts(s_session_context->txn_context->txn_id);
 
     // Register the committing txn under a new commit timestamp.
-    gaia_txn_id_t commit_ts = submit_txn(s_txn_id, s_txn_log_offset);
+    gaia_txn_id_t commit_ts = submit_txn(
+        s_session_context->txn_context->txn_id, s_session_context->txn_context->txn_log_offset);
 
     // This is only used for persistence.
     std::string txn_name;
 
     if (s_persistent_store)
     {
-        txn_name = s_persistent_store->begin_txn(s_txn_id);
+        txn_name = s_persistent_store->begin_txn(s_session_context->txn_context->txn_id);
         // Prepare log for transaction.
         // This is effectively asynchronous with validation, because if it takes
         // too long, then another thread may recursively validate this txn,
@@ -3196,14 +3228,14 @@ log_offset_t server_t::allocate_log_offset()
     // so this function is only responsible for allocating the offset.
     if (allocated_offset.is_valid())
     {
-        ASSERT_INVARIANT(s_txn_id.is_valid(), "Cannot allocate a txn log without a valid txn ID!");
+        ASSERT_INVARIANT(s_session_context->txn_context->txn_id.is_valid(), "Cannot allocate a txn log without a valid txn ID!");
         txn_log_t* txn_log = get_txn_log_from_offset(allocated_offset);
         // If we allocated an unallocated or deallocated offset, its log header must be uninitialized.
         ASSERT_INVARIANT(txn_log->begin_ts() == 0, "Cannot allocate a txn log with a valid txn ID!");
         ASSERT_INVARIANT(txn_log->reference_count() == 0, "Cannot allocate a txn log with a nonzero reference count!");
         // Update the log header with our begin timestamp.
         // (We don't initialize the refcount because that only tracks readers, not owners.)
-        txn_log->set_begin_ts(s_txn_id);
+        txn_log->set_begin_ts(s_session_context->txn_context->txn_id);
     }
 
     return allocated_offset;

@@ -152,6 +152,7 @@ set(GAIA_DB_SERVER_SOURCES
   src/gaia_ptr.cpp
   src/index_builder.cpp
   src/memory_manager.cpp
+  src/server_contexts.cpp
   src/system_checks.cpp
   src/txn_metadata.cpp
   src/type_id_mapping.cpp
