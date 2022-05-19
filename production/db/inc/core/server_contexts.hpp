@@ -47,8 +47,6 @@ struct server_session_context_t
     // The transaction context.
     std::shared_ptr<server_transaction_context_t> txn_context;
 
-    bool has_been_created_for_txn{false};
-
     int session_socket{-1};
     messages::session_state_t session_state{messages::session_state_t::DISCONNECTED};
     gaia::db::session_type_t session_type{gaia::db::session_type_t::regular};

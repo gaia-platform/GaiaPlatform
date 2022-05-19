@@ -182,7 +182,6 @@ void server_t::handle_begin_txn(
 void server_t::txn_begin()
 {
     s_session_context->txn_context = std::make_shared<server_transaction_context_t>();
-
     auto cleanup_txn_context = make_scope_guard([&] {
         s_session_context->txn_context.reset();
     });
@@ -292,16 +291,8 @@ void server_t::release_txn_log_offsets_for_snapshot()
 void server_t::release_transaction_resources()
 {
     // Ensure the cleaning of the txn context.
-    // Also ensure the cleaning of the session context
-    // if it was specifically created for this transaction.
-    auto cleanup_contexts = make_scope_guard([&] {
+    auto cleanup_txn_context = make_scope_guard([&] {
         s_session_context->txn_context.reset();
-
-        if (s_session_context->has_been_created_for_txn)
-        {
-            delete s_session_context;
-            s_session_context = nullptr;
-        }
     });
 
     // Release all references to txn logs applied to our snapshot.
