@@ -2479,13 +2479,8 @@ void server_t::gc_applied_txn_logs()
     }
 
     // Now deallocate any unused chunks that have already been retired.
-<<<<<<< HEAD
     // TODO: decommit unused pages in used chunks.
-    for (auto& entry : s_map_gc_chunks_to_versions)
-=======
-    // TODO: decommit unused pages (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1446)
     for (auto& entry : s_session_context->map_gc_chunks_to_versions)
->>>>>>> Add server session and txn contexts
     {
         chunk_offset_t chunk_offset = entry.first;
         chunk_version_t chunk_version = entry.second;

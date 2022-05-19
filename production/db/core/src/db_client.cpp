@@ -278,15 +278,9 @@ void client_t::begin_transaction()
     const auto transaction_logs_to_apply = txn_info->transaction_logs_to_apply();
     for (const auto txn_log_info : *transaction_logs_to_apply)
     {
-<<<<<<< HEAD
         // REVIEW: After snapshot reuse is enabled, skip applying logs with
         // txn_log_info.commit_timestamp <= s_latest_applied_commit_ts.
-        apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
-=======
-        // REVIEW: After snapshot reuse (GAIAPLAT-2068) is enabled, skip applying logs with
-        // txn_log_info.commit_timestamp <= s_session_context->latest_applied_commit_ts.
         apply_log_from_offset(s_session_context->private_locators.data(), txn_log_info->log_offset());
->>>>>>> Move data mappings into session context
     }
 
     // REVIEW: Re-enable these caches once we complete handling of DDL updates.
