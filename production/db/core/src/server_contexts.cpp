@@ -17,10 +17,6 @@ void server_transaction_context_t::clear()
     local_snapshot_locators.close();
 }
 
-server_session_context_t::server_session_context_t()
-{
-}
-
 void server_session_context_t::clear()
 {
     // We can rely on close_fd() to perform the equivalent of

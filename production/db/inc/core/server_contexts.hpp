@@ -66,7 +66,6 @@ struct server_session_context_t
     std::unordered_map<chunk_offset_t, chunk_version_t> map_gc_chunks_to_versions;
 
 public:
-    server_session_context_t();
     inline ~server_session_context_t();
 
     void clear();
