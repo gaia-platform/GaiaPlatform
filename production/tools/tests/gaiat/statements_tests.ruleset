@@ -20,7 +20,6 @@ ruleset test01
     }
 }
 
-// GAIAPLAT-1042 (fixed)
 // TESTCASE: Use for statement to scan a table near the anchor.
 ruleset test02
 {
@@ -45,7 +44,6 @@ ruleset test02
 //       the implicit path may change - that would be bad. By making
 //       this an error, the programmer can correct the code to have
 //       an explicit component to the path.
-// GAIAPLAT-1050 (fixed)
 ruleset test03
 {
     on_insert(incubator)
@@ -72,7 +70,6 @@ ruleset test04
 }
 
 // TESTCASE: Path moves from M to 1 in if with nomatch.
-// GAIAPLAT-1005 (fixed)
 ruleset test05
 {
     on_insert(sensor)
@@ -209,12 +206,10 @@ ruleset test14
         {
             temp += sensor.value;
         }
-// GAIAPLAT-947 (fixed)
         else
         {
             temp -= sensor.value;
         }
-// GAIAPLAT-988 (fixed)
         nomatch
         {
             temp += 10.0;
@@ -340,7 +335,6 @@ ruleset test20
         {
             answer += /feeding.portion;
         }
-// GAIAPLAT-988 (fixed)
         nomatch
         {
             answer = 15;
@@ -390,7 +384,6 @@ ruleset test23
             if (actuator.value < 97.3)
                 if (sensor.value > 82.1)
                     here = true;
-// GAIAPLAT-988 (fixed)
                 nomatch
                     here = false;
             else
@@ -908,7 +901,6 @@ ruleset test57
 }
 
 // TESTCASE: break from within a nested declarative for.
-// GAIAPLAT-1056 (fixed)
 ruleset test58
 {
     on_insert(incubator)
@@ -930,7 +922,6 @@ ruleset test58
 void printf(const char*, unsigned int);
 
 // TESTCASE: mix up declarative for with switch statement
-// GAIAPLAT-1084 (fixed)
 ruleset test59
 {
     on_update(farmer)
@@ -1032,7 +1023,6 @@ ruleset test65
 void printf(const char*, ...);
 
 // check for meta-rule 2 compliance
-// GAIAPLAT-1252
 ruleset test66
 {
     on_update(incubator.min_temp)
@@ -1045,7 +1035,6 @@ ruleset test66
 }
 
 // TESTCASE: support initialization of declared variable with DAC object
-// GAIAPLAT-966 (fixed)
 ruleset test67
 {
     on_insert(incubator)
@@ -1058,7 +1047,6 @@ unsigned int g_timestamp = 5;
 float adjust_temperature(float, float, float, float);
 
 // TESTCASE: expose translation problem that produces uncompilable C++ code
-// GAIAPLAT-1204 (fixed)
 ruleset test68
 {
     on_update(S:sensor.value)
@@ -1085,7 +1073,6 @@ enum class e_timestamp_range_t : unsigned int
 };
 
 // TESTCASE: examine the translation of a switch statement without curly braces
-// GAIAPLAT-1235
 ruleset test69
 {
     on_insert(incubator)
@@ -1100,7 +1087,6 @@ ruleset test69
 }
 
 // TESTCASE: examine the translation of a switch statement without curly braces, no looping
-// GAIAPLAT-1235
 ruleset test70
 {
     on_insert(sensor)
@@ -1115,7 +1101,7 @@ ruleset test70
 }
 
 // TESTCASE: add an outer 'for' making sure it doesn't invalidate an inner 'for'
-// GAIAPLAT-1247
+// Code below should be valid for an anchor row since I is guaranteed to exist.
 #ifdef TEST_FAILURES
 ruleset test71
 {

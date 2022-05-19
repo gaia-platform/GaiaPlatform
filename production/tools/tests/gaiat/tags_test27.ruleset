@@ -20,5 +20,4 @@ ruleset test27
     }
 }
 
-// GAIAPLAT-914 (fixed)
 // CHECK: use of undeclared label 'LABEL'

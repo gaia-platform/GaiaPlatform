@@ -84,8 +84,9 @@ ruleset test101
     }
 }
 
-// GAIAPLAT-913 (V1)
-#ifdef TEST_FAILURES // GAIAPLAT-913 (V1)
+// Incorrect error message below. The verification is correct by the error has an 'expected-note' that is not
+// properly parsed by FileCheck.  The note has no line number and says "(frontend)" instead.
+#ifdef TEST_FAILURES
 ruleset test102
 {
     {
@@ -128,7 +129,6 @@ ruleset test138
     }
 }
 
-// GAIAPLAT-821 (fixed)
 ruleset test130
 {
     {
@@ -144,7 +144,6 @@ ruleset test131
     }
 }
 
-// GAIAPLAT-877 (fixed)
 ruleset test132
 {
     on_insert(animal)
@@ -154,10 +153,7 @@ ruleset test132
     }
 }
 
-// GAIAPLAT-913 (V1)
-// GAIAPLAT-878 (V1)
-#ifdef TEST_FAILURES // GAIAPLAT-913 (V1)
-// GAIAPLAT-878
+#ifdef TEST_FAILURES // Incorrect error message due to 'expected-note' with no line number.
 ruleset test133
 {
     on_insert(animal)
@@ -167,9 +163,6 @@ ruleset test133
 }
 #endif
 
-// GAIAPLAT-821 (fixed)
-// GAIAPLAT-1172 (fixed)
-// GAIAPLAT-1199 (fixed)
 ruleset test129
 {
     on_update(incubator)

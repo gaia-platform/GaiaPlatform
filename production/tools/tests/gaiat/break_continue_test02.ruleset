@@ -18,4 +18,3 @@ ruleset test02
 }
 
 // CHECK: 'break' statement not in loop or switch statement
-// GAIAPLAT-1067 (fixed)

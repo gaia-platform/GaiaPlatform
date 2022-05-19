@@ -15,5 +15,4 @@ ruleset test07 : tables (sensor.value, incubator)
     }
 }
 
-// GAIAPLAT-819 (fixed)
 // CHECK: expected ')'

@@ -58,7 +58,7 @@ void rule_thread_pool_t::wait_for_rules_to_complete()
 
 // NOTE:  Callers must unlock the passed in mutex.
 //
-// TODO[GAIAPLAT-1020]: Add a configuration setting to limit the time
+// TODO: Add a configuration setting to limit the time
 // we will wait for all rules to execute.
 void rule_thread_pool_t::wait_for_rules_to_complete(std::unique_lock<std::mutex>& lock)
 {
@@ -305,9 +305,6 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
     {
         // Always rethrow internal asserts.  Do not eat them and
         // do not pass them along to the user's exception handler.
-        // TODO[GAIAPLAT-446]: Before shipping V1, we need to review
-        // all retail asserts to ensure that they always indicate
-        // an internal error.
         throw;
     }
     catch (const std::exception& e)

@@ -18,4 +18,3 @@ ruleset test01
 }
 
 // CHECK: 'continue' statement not in loop statement
-// GAIAPLAT-1067 (fixed)

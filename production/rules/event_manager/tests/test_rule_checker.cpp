@@ -172,7 +172,7 @@ TEST_F(rules__rule_checker__test, inactive_field)
 
     // The following should not throw because we don't require the field
     // to be marked as 'active' in the schema.  Note that this behavior may
-    // change if a strict mode is enabled as described in GAIAPLAT-622.
+    // change if a strict mode is enabled.
     rule_checker.check_catalog(g_table_type, fields);
 }
 
@@ -222,6 +222,6 @@ TEST_F(rules__rule_checker__test, multiple_fields)
 
     // The following should not throw because we don't require the field
     // to be marked as 'active' in the schema.  Note that this behavior may
-    // change if a strict mode is enabled as described in GAIAPLAT-622.
+    // change if a strict mode is enabled.
     rule_checker.check_catalog(g_table_type, fields);
 }

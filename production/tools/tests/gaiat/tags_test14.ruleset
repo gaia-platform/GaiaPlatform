@@ -14,5 +14,4 @@ ruleset test14
     }
 }
 
-// GAIAPLAT-799 (fixed)
 // CHECK: A rule may not specify multiple tables or active fields from different tables in 'on_' attributes (on_insert, on_change, or on_update). Ensure that all your active field references belong to the same table.

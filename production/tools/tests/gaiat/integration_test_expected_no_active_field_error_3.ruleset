@@ -16,5 +16,3 @@ ruleset test
 }
 
 // CHECK: No active fields were referenced in this rule. Ensure that your rule references at least one active field or table.
-// GAIAPLAT-1172 (fixed)
-// GAIAPLAT-1199 (fixed)

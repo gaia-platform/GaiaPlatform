@@ -138,7 +138,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     # Suppress ASan warnings from exception destructors in libc++.
-    # REVIEW (GAIAPLAT-1828): spdlog and cpptoml show up in the ASan stack
+    # REVIEW: spdlog and cpptoml show up in the ASan stack
     # trace, and both are unconditionally built with libstdc++, so this is
     # likely an ABI incompatibility with libc++.
     # NB: This overwrites any previous value of ENV, but apparently we're not

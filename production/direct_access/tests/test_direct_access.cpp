@@ -960,8 +960,8 @@ TEST_F(direct_access__direct_access__test, list_filter)
 }
 
 // TESTCASE: Delete rows accessed through a list() iterator.
-// GAIAPLAT-1049
-// The delete_row() interferes with iterator.
+// In the direct access API we do not support iterating over rows
+// while we are deleting them. The call to delete_row() interferes with iterator.
 TEST_F(direct_access__direct_access__test, delete_row_in_loop)
 {
     auto_transaction_t txn;

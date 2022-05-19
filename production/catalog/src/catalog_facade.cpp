@@ -212,7 +212,7 @@ std::string field_facade_t::field_type(bool is_function_parameter) const
 
     if (m_field.optional())
     {
-        // This is a temporary limitation. Follow-up task: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1966.
+        // This is a temporary limitation. We should support optional strings.
         ASSERT_PRECONDITION(
             static_cast<data_type_t>(m_field.type()) != data_type_t::e_string
                 && m_field.repeated_count() == 1,

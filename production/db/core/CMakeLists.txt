@@ -240,8 +240,8 @@ if(Python3_FOUND AND pybind11_FOUND)
   endif()
 
   # Python wrapper unit test.
-  # This test is disabled for Debug builds.
-  # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
+  # TODO: This test is disabled for Debug builds.  Need to investigate why we cannot
+  # find libclang_rt.asan-x86_64 in debug builds.
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     configure_file(tests/test_db.py . COPYONLY)
     add_test(

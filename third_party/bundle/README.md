@@ -2,4 +2,4 @@ This folder contains opensource projects that have been modified to meet gaia re
 
 Each project in this folder has a corresponding folder in `third_party/production`. The third party project builds and wrap the bundle project into a cmake library that can be used by other Gaia modules. Eg: `third_party/bundle/gaia_spdlog -> third_party/production/gaia_spdlog`
 
-TODO we need to give proper credit to the used open source software, I created a follow-up task to do so: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-990
+See `production/licenses/LICENSE.third-party.txt` for third party license information.

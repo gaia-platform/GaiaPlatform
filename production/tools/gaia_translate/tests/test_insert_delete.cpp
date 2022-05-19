@@ -253,7 +253,6 @@ TEST_F(tools__gaia_translate__insert_delete__test, implicit_delete)
 }
 
 // TESTCASE: Generate database within rules
-// GAIAPLAT-1250 (fixed)
 TEST_F(tools__gaia_translate__insert_delete__test, build_database)
 {
     // Use the rules for insert & delete.
@@ -280,11 +279,10 @@ TEST_F(tools__gaia_translate__insert_delete__test, build_database)
         {
             row_count++;
             auto course = registration.registered_course();
-            // Enable the following statement when the issue of rule ordering is resolved. The corresponding
+            // Enable the following statement when rule ordering is enforced. The corresponding
             // rule, on_insert(course) in test_insert_delete_2, should be enabled at the same time.
             // Currently when that rule and the on_insert(student) rule execute in different orders, the
             // results change and this test fails.
-            // GAIAPLAT-1422
             // EXPECT_EQ(student.total_hours() * 2, course.hours());
             EXPECT_EQ(student.total_hours(), course.hours());
             EXPECT_STREQ(student.surname(), registration.status());

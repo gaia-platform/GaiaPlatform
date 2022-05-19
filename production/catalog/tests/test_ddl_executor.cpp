@@ -343,7 +343,8 @@ TEST_F(catalog__ddl_executor__test, drop_table_with_data)
     // access API to access the table records. We still use the old direct
     // access API here only for testing purposes (to verify the data records are
     // indeed erased).
-    // TODO: Switch to other methods for testing after GAIAPLAT-1623.
+    // TODO: After we start enforcing that generated DAC layer must match the schema then
+    // we need to update this test as the customer_t class will no longer be available.
     begin_transaction();
     EXPECT_EQ(gaia::addr_book::customer_t::list().size(), 0);
     commit_transaction();
@@ -668,7 +669,8 @@ TEST_F(catalog__ddl_executor__test, drop_relationship_with_data)
     // direct access API to access the links between tables. We still use the
     // old direct access API here only for testing purposes (to verify the links
     // are indeed erased).
-    // TODO: Switch to other methods for testing after GAIAPLAT-1623.
+    // TODO: After we enforce that the DAC and schema are in sync, we will need to change this
+    // verification method.
     begin_transaction();
 
     EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).manager().gaia_id(), c_invalid_gaia_id);

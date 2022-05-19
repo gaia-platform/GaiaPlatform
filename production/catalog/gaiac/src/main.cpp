@@ -390,12 +390,9 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    // If an output path is not provided we generate one.
+    // If an output path is not provided we generate one but issue a warning.
     if (mode == operate_mode_t::generation && output_path.empty())
     {
-        // TODO: in the spec https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1240?focusedCommentId=11101
-        //  we decided to fail here, but at one day from Preview release this could be dangerous. I decided
-        //  to print this warning instead.
         output_path = filesystem::current_path() / filesystem::path(ddl_filename).stem();
         cerr << c_warning_prompt
              << "Output directory (--output) not specified, using default: '" << output_path << "'"

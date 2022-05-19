@@ -111,7 +111,7 @@ set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPAC
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # We only link libc++ in Debug builds.
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "debconf, libc++-10-dev, libc++abi-10-dev")
-  # REVIEW (GAIAPLAT-1474): When CPack correctly applies
+  # REVIEW: When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
   # set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc++1-10,libc++abi1-10")
@@ -128,7 +128,7 @@ else()
   # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
   # package, so we try to be compatible with that.
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "debconf, libstdc++-9-dev")
-  # REVIEW (GAIAPLAT-1474): When CPack correctly applies
+  # REVIEW: When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
   # set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6")

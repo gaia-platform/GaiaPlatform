@@ -17,4 +17,3 @@ ruleset test58
 }
 
 // CHECK: error: Invalid explicit path.
-// GAIAPLAT-1273

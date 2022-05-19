@@ -23,4 +23,3 @@ BREAK_TARGET:
 }
 
 // CHECK: 'break' statement not in loop or switch statement
-// GAIAPLAT-1088 (fixed)

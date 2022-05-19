@@ -19,6 +19,4 @@ ruleset test11
     }
 }
 
-// GAIAPLAT-794
-// GAIAPLAT-1194
 // CHECK: Local variable 'a' hides a tag defined with the same name. Rename your local variable or tag so that their names do not conflict.

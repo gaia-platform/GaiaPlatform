@@ -730,7 +730,7 @@ bool validate_and_add_active_field(StringRef table_name, StringRef field_name, b
         return false;
     }
 
-    // TODO[GAIAPLAT-622] If we ever add a "strict" mode to the database, then we
+    // TODO: If we ever add a "strict" mode to the database, then we
     // should reinstate checking for active fields.
 
     g_active_fields[table_name].insert(field_name);
@@ -1320,7 +1320,7 @@ void optimize_subscription(StringRef table, int rule_count)
     }
 }
 
-// [GAIAPLAT-799]:  For the preview release we do not allow a rule to have
+// For the preview release we do not allow a rule to have
 // multiple anchor rows. They are not allowed to reference more than a single table or
 // reference fields from multiple tables.  Note that the g_active_fields map is a
 // map of <table, field_list> so the number of entries in the map is the number of unique

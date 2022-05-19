@@ -11,6 +11,5 @@ ruleset test1
     actuator.value += @sensor.value;
 }
 
-// GAIAPLAT-886
 // recommended message:
 // CHECK: illegal rule syntax - must be inside a code block

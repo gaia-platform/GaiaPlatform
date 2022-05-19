@@ -184,7 +184,7 @@ void event_manager_t::commit_trigger(const trigger_event_list_t& trigger_event_l
 
     auto start_time = gaia::common::timer_t::get_time_point();
 
-    // TODO[GAIAPLAT-308]: Event logging is only half the story. We
+    // TODO: Event logging is only half the story. We
     // also need to do rule logging and the correlate the event instance
     // to the rules that it causes to fire. We also do not support trimming
     // tables yet so we are not going to insert rows into the event log here.
@@ -242,7 +242,7 @@ void event_manager_t::enqueue_invocation(
 
 void event_manager_t::check_subscription(event_type_t event_type, const field_position_list_t& fields)
 {
-    // TODO[GAIAPLAT-445] We don't expose deleted row events
+    // TODO: We don't expose deleted row events
     // if (event_type == event_t::row_delete || event_type == event_type_t::row_insert)
     if (event_type == event_type_t::row_insert)
     {
@@ -696,7 +696,7 @@ last_operation_t gaia::rules::rule_context_t::last_operation(gaia_type_t other_g
 
     switch (event_type)
     {
-    // TODO[GAIAPLAT-445] We don't expose deleted row events
+    // TODO: We don't expose deleted row events
     // case db::triggers::event_type_t::row_delete:
     //     operation = last_operation_t::row_delete;
     //     break;

@@ -156,7 +156,6 @@ ruleset test18
     }
 }
 
-// GAIAPLAT-806 (fixed)
 // fails to find path from sensor to incubator.
 ruleset test19
 {
@@ -168,7 +167,6 @@ ruleset test19
     }
 }
 
-// GAIAPLAT-872 (fixed)
 // In this test, the navigation fans out in the 1:M direction.
 ruleset test20
 {
@@ -179,7 +177,6 @@ ruleset test20
     }
 }
 
-// GAIAPLAT-872 (fixed)
 // In this test, the navigation is in the M:1 direction.
 ruleset test21
 {
@@ -189,7 +186,6 @@ ruleset test21
     }
 }
 
-// GAIAPLAT-915 (fixed)
 ruleset test22
 {
     on_insert(yield)
@@ -199,8 +195,6 @@ ruleset test22
     }
 }
 
-// GAIAPLAT-807 (fixed)
-// GAIAPLAT-892 (fixed)
 ruleset test23
 {
     on_insert(S:sensor)
@@ -217,7 +211,6 @@ ruleset test24
     }
 }
 
-// GAIAPLAT-803 (fixed)
 // This should be identical to test1 above.
 ruleset test25
 {
@@ -226,7 +219,6 @@ ruleset test25
     }
 }
 
-// GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset test26
 {
@@ -250,7 +242,6 @@ ruleset test27
     }
 }
 
-// GAIAPLAT-809 (fixed)
 ruleset test28
 {
     on_change(actuator)
@@ -262,7 +253,6 @@ ruleset test28
     }
 }
 
-// GAIAPLAT-825 (fixed)
 ruleset test29
 {
     on_insert(sensor)
@@ -272,7 +262,6 @@ ruleset test29
     }
 }
 
-// GAIAPLAT-827 (fixed)
 ruleset test30
 {
     on_change(sensor.value)
@@ -284,7 +273,6 @@ ruleset test30
     }
 }
 
-// GAIAPLAT-828 (fixed)
 ruleset test31
 {
     on_change(incubator)
@@ -293,7 +281,6 @@ ruleset test31
     }
 }
 
-// GAIAPLAT-839 (fixed)
 ruleset test32
 {
     on_change(yield.bushels)
@@ -303,7 +290,6 @@ ruleset test32
     }
 }
 
-// GAIAPLAT-832 (fixed)
 // TESTCASE: Ternary operator with implicit navigation
 ruleset test33
 {
@@ -348,7 +334,6 @@ ruleset test36
     }
 }
 
-// GAIAPLAT-945 (fixed)
 ruleset test37
 {
     on_update(min_temp)
@@ -357,8 +342,6 @@ ruleset test37
     }
 }
 
-// GAIAPLAT-1043 (fixed)
-// GAIAPLAT-1044 (fixed)
 // TESTCASE: Use a long explicit path in a for statement.
 ruleset test38
 {
@@ -374,7 +357,6 @@ ruleset test38
     }
 }
 
-// GAIAPLAT-1045 (fixed)
 // TESTCASE: No row references inside for loop
 ruleset test39
 {
@@ -422,7 +404,6 @@ ruleset test42
 }
 
 // TESTCASE: observe scope of a declared variable assigned from field
-// GAIAPLAT-1119 (fixed)
 ruleset test43
 {
     on_update(crop)
@@ -453,7 +434,6 @@ ruleset test45
 }
 
 // TESTCASE: expect navigation from anchor
-// GAIAPLAT-1191 (fixed)
 ruleset test46
 {
     on_update(farmer)

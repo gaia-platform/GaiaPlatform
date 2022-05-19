@@ -13,5 +13,4 @@ ruleset test17
     }
 }
 
-// GAIAPLAT-820 (fixed)
 // CHECK: Tag 'I' is already defined.

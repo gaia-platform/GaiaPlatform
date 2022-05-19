@@ -22,7 +22,7 @@ namespace rules
 
 // Calculates statistics over a user-specified time interval (10s if not defined) and lazily writes them to a
 // stats log file.
-// TODO[GAIAPLAT-431] Consider gathering more useful statistics like median and percentile instead of just
+// TODO: Consider gathering more useful statistics like median and percentile instead of just
 // average and max calculations.
 class rule_stats_manager_t
 {

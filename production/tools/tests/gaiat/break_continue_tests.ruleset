@@ -72,7 +72,6 @@ CONTINUE_TARGET:
 int strcmp(const char*, const char*);
 
 // TESTCASE: break to multiple labels
-// GAIAPLAT-1074 (fixed)
 ruleset test13
 {
     on_update(raised)
@@ -105,7 +104,6 @@ BREAK4_TARGET:
 }
 
 // TESTCASE: continue to multiple labels
-// GAIAPLAT-1074 (fixed)
 ruleset test14
 {
     on_update(raised)
@@ -186,8 +184,7 @@ BREAK_TARGET:
 }
 
 // TESTCASE: break from non-declarative if within declarative while
-// GAIAPLAT-1140 (V1)
-#ifdef TEST_FAILURES // GAIAPLAT-1140 (V1)
+#ifdef TEST_FAILURES
 ruleset test17
 {
     on_update(crop)
@@ -202,8 +199,6 @@ BREAK_TARGET:
 #endif
 
 // TESTCASE: break from an if condition with two navigations
-// GAIAPLAT-1141 (fixed)
-// GAIAPLAT-1164 (fixed)
 ruleset test18
 {
     on_update(crop)
@@ -216,7 +211,6 @@ BREAK_TARGET:
     }
 }
 
-// GAIAPLAT-1151 (fixed)
 ruleset test19
 {
 #ifdef TEST_IFDEF
@@ -227,7 +221,6 @@ ruleset test19
     }
 }
 
-//GAIAPLAT-1083
 ruleset test20
 {
     on_update(crop)

@@ -90,8 +90,8 @@ if(JAVA_FOUND AND JNI_FOUND)
   # get_target_property(GAIA_TESTS_JAR GaiaTests JAR_FILE)
 
   # Add JNI test.
-  # This test is disabled for Debug builds.
-  # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
+  # This test is disabled for Debug builds because we could not find
+  # libclang_rt.asan-x86.64.so.
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_test(
       NAME test_db_jni

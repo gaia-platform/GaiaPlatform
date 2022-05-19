@@ -411,7 +411,6 @@ TEST_F(direct_access__perf_expressions__test, mixed_bool_op)
     txn.commit();
 }
 
-// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
 TEST_F(direct_access__perf_expressions__test, container_contains)
 {
     auto_transaction_t txn;
@@ -444,7 +443,6 @@ TEST_F(direct_access__perf_expressions__test, container_contains)
     txn.commit();
 }
 
-// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
 TEST_F(direct_access__perf_expressions__test, container_contains_lambda)
 {
     auto_transaction_t txn;
@@ -476,7 +474,6 @@ TEST_F(direct_access__perf_expressions__test, container_contains_lambda)
     txn.commit();
 }
 
-// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
 TEST_F(direct_access__perf_expressions__test, container_count)
 {
     auto_transaction_t txn;
@@ -507,7 +504,6 @@ TEST_F(direct_access__perf_expressions__test, container_count)
     txn.commit();
 }
 
-// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
 TEST_F(direct_access__perf_expressions__test, container_empty)
 {
     auto_transaction_t txn;

@@ -135,8 +135,6 @@ ruleset testE21
     }
 }
 
-// GAIAPLAT-1274
-// [WLW] Note: not sure this test relates to GAIAPLAT-1274
 ruleset testE22
 {
     on_update(incubator)
@@ -152,7 +150,6 @@ ruleset testE22
     }
 }
 
-// GAIAPLAT-1269 (fixed)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused"
 ruleset testE23
@@ -175,7 +172,6 @@ void use_id(unsigned int)
 {
 }
 
-// GAIAPLAT-1314 (fixed)
 ruleset testE24
 {
     on_update(incubator)
@@ -185,7 +181,6 @@ ruleset testE24
     }
 }
 
-//GAIAPLAT-1367 (fixed)
 ruleset testE25
 {
      on_update(sensor)
@@ -197,7 +192,6 @@ ruleset testE25
      }
 }
 
-//GAIAPLAT-1388 (fixed)
 ruleset testE26
 {
      on_update(incubator)
@@ -209,7 +203,6 @@ ruleset testE26
      }
 }
 
-//GAIAPLAT-1326 (fixed)
 ruleset testE27
 {
      on_update(sensor)
@@ -221,7 +214,6 @@ ruleset testE27
      }
 }
 
-//GAIAPLAT-1375 (fixed)
 ruleset testE28
 {
     on_insert(incubator)
@@ -246,7 +238,6 @@ namespace test_test{
     };
 }
 
-//GAIAPLAT-1235 (fixed)
 ruleset testE29
 {
     on_insert(sensor)
@@ -261,7 +252,6 @@ ruleset testE29
     }
 }
 
-// GAIAPLAT-1259 (fixed)
 const char* generate_error_message(double)
 {
     return "test";
@@ -278,7 +268,6 @@ ruleset testE30
     }
 }
 
-// GAIAPLAT-1025 (fixed)
 ruleset test_comment
 {
     /* COMMENT
@@ -302,7 +291,6 @@ ruleset test_comment_rule
     }
 }
 
-// GAIAPLAT-1432
 ruleset testE31
 {
     on_update(incubator.max_temp, incubator.min_temp)
@@ -317,7 +305,6 @@ ruleset testE31
     }
 }
 
-// GAIAPLAT-1428
 ruleset testE32
 {
     on_update(I:incubator.max_temp)
@@ -337,7 +324,6 @@ ruleset testE32
     }
 }
 
-// GAIAPLAT-1241
 // Make event_type field to be an actual event_type_t type when needed.
 ruleset testE33
 {
@@ -351,7 +337,6 @@ ruleset testE33
     }
 }
 
-// GAIAPLAT-1730
 #define TEST 5.0
 ruleset test_define
 {
@@ -379,7 +364,6 @@ ruleset test16
     }
 }
 
-// GAIAPLAT-2094
 ruleset test17
 {
     on_update(sensor.name)

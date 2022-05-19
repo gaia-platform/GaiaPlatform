@@ -15,5 +15,4 @@ ruleset test02
     }
 }
 
-// GAIAPLAT-823 (fixed)
 // CHECK: Tag 'S' cannot be used in this context.

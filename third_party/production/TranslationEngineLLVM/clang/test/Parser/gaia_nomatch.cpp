@@ -1,6 +1,5 @@
 // RUN: %clang_cc1  -fsyntax-only -verify -fgaia-extensions %s
 
-// GAIAPLAT-947 (fixed)
 ruleset test123
 {
     on_insert(incubator)
@@ -37,7 +36,6 @@ ruleset test124
     }
 }
 
-// GAIAPLAT-948 (fixed)
 ruleset test125
 {
     on_insert(incubator)

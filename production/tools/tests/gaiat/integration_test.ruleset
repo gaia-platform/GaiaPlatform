@@ -78,7 +78,6 @@ public:
     }
 };
 
-// GAIAPLAT-911 (fixed)
 ruleset test7
 {
     on_change(sensor)
@@ -127,8 +126,6 @@ ruleset test10
     }
 }
 
-// This is legal? But has error (duplicate 'name' fields).
-// GAIAPLAT-796 (fixed)
 ruleset test11 : tables(sensor)
 {
     on_update(name)
@@ -146,7 +143,6 @@ ruleset test12
         {
             i = 1;
         }
-// GAIAPLAT-988 (fixed)
         nomatch
         {
             i = 2;
@@ -190,7 +186,6 @@ ruleset test13
     }
 }
 
-// GAIAPLAT-1179 (fixed)
 ruleset testE31
 {
     on_update(incubator)
@@ -206,7 +201,6 @@ ruleset testE31
     }
 }
 
-//GAIAPLAT-1565
 ruleset testE32
 {
     on_insert(detection)
