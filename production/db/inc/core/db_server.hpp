@@ -106,6 +106,18 @@ public:
     static void run(server_config_t server_conf);
 
 private:
+    // Context getters.
+    static inline gaia_txn_id_t txn_id();
+    static inline log_offset_t txn_log_offset();
+    static inline std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_logs_for_snapshot();
+    static inline mapped_data_t<locators_t>& local_snapshot_locators();
+    static inline size_t last_snapshot_processed_log_record_count();
+
+    static inline int session_socket();
+    static inline std::vector<std::thread>& session_owned_threads();
+    static inline std::unordered_map<chunk_offset_t, chunk_version_t>& map_gc_chunks_to_versions();
+
+private:
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1UL << 10};
 

@@ -3,52 +3,52 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-inline bool client_t::is_session_open()
+bool client_t::is_session_open()
 {
-    return (s_session_context != nullptr && s_session_context->session_socket != -1);
+    return (s_session_context != nullptr && session_socket() != -1);
 }
 
-inline bool client_t::is_ping_session_open()
+bool client_t::is_ping_session_open()
 {
-    return is_session_open() && s_session_context->session_options.session_type == session_type_t::ping;
+    return is_session_open() && session_options().session_type == session_type_t::ping;
 }
 
-inline bool client_t::is_ddl_session_open()
+bool client_t::is_ddl_session_open()
 {
-    return is_session_open() && s_session_context->session_options.session_type == session_type_t::ddl;
+    return is_session_open() && session_options().session_type == session_type_t::ddl;
 }
 
-inline bool client_t::is_transaction_open()
+bool client_t::is_transaction_open()
 {
     return (s_session_context && s_session_context->private_locators.is_set());
 }
 
-inline gaia_txn_id_t client_t::get_current_txn_id()
+gaia_txn_id_t client_t::get_current_txn_id()
 {
-    return s_session_context->txn_context->txn_id;
+    return txn_id();
 }
 
-inline void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
+void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
 {
     s_txn_commit_trigger = trigger_fn;
 }
 
-inline bool client_t::has_commit_trigger()
+bool client_t::has_commit_trigger()
 {
     return (s_txn_commit_trigger != nullptr);
 }
 
-inline int client_t::get_session_socket_for_txn()
+int client_t::get_session_socket_for_txn()
 {
-    return s_session_context->session_socket;
+    return session_socket();
 }
 
-inline bool client_t::is_valid_event(common::gaia_type_t type)
+bool client_t::is_valid_event(common::gaia_type_t type)
 {
     return (s_txn_commit_trigger && !is_system_object(type));
 }
 
-inline void client_t::verify_txn_active()
+void client_t::verify_txn_active()
 {
     if (!is_transaction_open())
     {
@@ -56,7 +56,7 @@ inline void client_t::verify_txn_active()
     }
 }
 
-inline void client_t::verify_no_txn()
+void client_t::verify_no_txn()
 {
     if (is_transaction_open())
     {
@@ -64,17 +64,17 @@ inline void client_t::verify_no_txn()
     }
 }
 
-inline void client_t::verify_session_active()
+void client_t::verify_session_active()
 {
-    if (s_session_context == nullptr || s_session_context->session_socket == -1)
+    if (s_session_context == nullptr || session_socket() == -1)
     {
         throw no_open_session_internal();
     }
 }
 
-inline void client_t::verify_no_session()
+void client_t::verify_no_session()
 {
-    if (s_session_context != nullptr && s_session_context->session_socket != -1)
+    if (s_session_context != nullptr && session_socket() != -1)
     {
         throw session_exists_internal();
     }
@@ -90,7 +90,7 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
     // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
     verify_txn_active();
-    gaia_txn_id_t owning_txn_id = s_session_context->txn_context->txn_id;
+    gaia_txn_id_t owning_txn_id = txn_id();
 
     // The userspace buffer that we use to receive a batch datagram message.
     std::vector<T_element_type> batch_buffer;
@@ -102,7 +102,7 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
         // The cursor should only be called from within the scope of its owning transaction.
         ASSERT_INVARIANT(
-            s_session_context->txn_context->txn_id == owning_txn_id,
+            txn_id() == owning_txn_id,
             "Cursor was not called from the scope of its own transaction!");
 
         // If buffer is empty, block until a new batch is available.
@@ -170,12 +170,51 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
     };
 }
 
-inline void client_t::log_event(
+void client_t::log_event(
     triggers::event_type_t event_type, common::gaia_type_t type,
     common::gaia_id_t id, common::field_position_list_t changed_fields)
 {
     DEBUG_ASSERT_PRECONDITION(
-        s_session_context->txn_context->txn_id.is_valid(), "Event can only be logged in a transaction!");
-    s_session_context->txn_context->events.emplace_back(
-        event_type, type, id, changed_fields, s_session_context->txn_context->txn_id);
+        txn_id().is_valid(), "Event can only be logged in a transaction!");
+    events().emplace_back(event_type, type, id, changed_fields, txn_id());
+}
+
+gaia_txn_id_t client_t::txn_id()
+{
+    return s_session_context->txn_context->txn_id;
+}
+
+log_offset_t client_t::txn_log_offset()
+{
+    return s_session_context->txn_context->txn_log_offset;
+}
+
+std::vector<gaia::db::triggers::trigger_event_t>& client_t::events()
+{
+    return s_session_context->txn_context->events;
+}
+
+config::session_options_t& client_t::session_options()
+{
+    return s_session_context->session_options;
+}
+
+int client_t::session_socket()
+{
+    return s_session_context->session_socket;
+}
+
+mapped_data_t<locators_t>& client_t::private_locators()
+{
+    return s_session_context->private_locators;
+}
+
+mapped_data_t<data_t>& client_t::shared_data()
+{
+    return s_session_context->shared_data;
+}
+
+std::vector<data_mapping_t>& client_t::data_mappings()
+{
+    return s_session_context->data_mappings;
 }
