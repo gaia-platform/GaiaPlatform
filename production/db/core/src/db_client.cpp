@@ -53,7 +53,7 @@ void client_t::txn_cleanup()
     });
 
     // Destroy the locator mapping.
-    s_session_context->private_locators.close();
+    private_locators().close();
 }
 
 int client_t::get_session_socket(const std::string& socket_name)
@@ -107,7 +107,7 @@ int client_t::get_session_socket(const std::string& socket_name)
 // and would be difficult to handle properly even if it were possible.
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throws a
 // peer_disconnected exception when the other end of the socket is closed.
-void client_t::begin_session(config::session_options_t session_options)
+void client_t::begin_session(config::session_options_t options)
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
@@ -123,19 +123,19 @@ void client_t::begin_session(config::session_options_t session_options)
     });
 
     // Validate shared memory mapping definitions and assert that mappings are not made yet.
-    data_mapping_t::validate(s_session_context->data_mappings);
-    for (const auto& data_mapping : s_session_context->data_mappings)
+    data_mapping_t::validate(data_mappings());
+    for (const auto& data_mapping : data_mappings())
     {
         ASSERT_INVARIANT(!data_mapping.is_set(), "Segment is already mapped!");
     }
 
-    s_session_context->session_options = session_options;
+    s_session_context->session_options = options;
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
     try
     {
-        s_session_context->session_socket = get_session_socket(s_session_context->session_options.db_instance_name);
+        s_session_context->session_socket = get_session_socket(session_options().db_instance_name);
     }
     catch (const system_error& e)
     {
@@ -144,11 +144,11 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Determine the type of session event based on the session type specified in the session options.
     session_event_t session_event = session_event_t::CONNECT;
-    if (s_session_context->session_options.session_type == session_type_t::ping)
+    if (session_options().session_type == session_type_t::ping)
     {
         session_event = session_event_t::CONNECT_PING;
     }
-    else if (s_session_context->session_options.session_type == session_type_t::ddl)
+    else if (session_options().session_type == session_type_t::ddl)
     {
         session_event = session_event_t::CONNECT_DDL;
     }
@@ -167,7 +167,7 @@ void client_t::begin_session(config::session_options_t session_options)
     try
     {
         client_messenger.send_and_receive(
-            s_session_context->session_socket, nullptr, 0, builder,
+            session_socket(), nullptr, 0, builder,
             static_cast<size_t>(data_mapping_t::index_t::count_mappings));
     }
     catch (const gaia::common::peer_disconnected&)
@@ -181,7 +181,7 @@ void client_t::begin_session(config::session_options_t session_options)
     int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
     auto cleanup_fd_locators = make_scope_guard([&fd_locators] { close_fd(fd_locators); });
     auto cleanup_fd_others = make_scope_guard([&] {
-        for (const auto& data_mapping : s_session_context->data_mappings)
+        for (const auto& data_mapping : data_mappings())
         {
             if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
             {
@@ -195,7 +195,7 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Set up the shared-memory mappings.
     // The locators mapping will be performed manually, so skip its information in the mapping table.
-    for (const auto& data_mapping : s_session_context->data_mappings)
+    for (const auto& data_mapping : data_mappings())
     {
         if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
         {
@@ -239,7 +239,7 @@ void client_t::begin_transaction()
         "Transaction context should not be initialized already at the start of a new transaction!");
 
     ASSERT_PRECONDITION(
-        s_session_context->session_options.session_type != session_type_t::ping,
+        session_options().session_type != session_type_t::ping,
         "Ping sessions should not be starting transactions");
 
     s_session_context->txn_context = std::make_shared<client_transaction_context_t>();
@@ -248,11 +248,11 @@ void client_t::begin_transaction()
     });
 
     // Map a private COW view of the locator shared memory segment.
-    ASSERT_PRECONDITION(!s_session_context->private_locators.is_set(), "Locators segment is already mapped!");
+    ASSERT_PRECONDITION(!private_locators().is_set(), "Locators segment is already mapped!");
     bool manage_fd = false;
     bool is_shared = false;
-    s_session_context->private_locators.open(s_session_context->fd_locators, manage_fd, is_shared);
-    auto cleanup_private_locators = make_scope_guard([&] { s_session_context->private_locators.close(); });
+    private_locators().open(s_session_context->fd_locators, manage_fd, is_shared);
+    auto cleanup_private_locators = make_scope_guard([&] { private_locators().close(); });
 
     // Send a TXN_BEGIN request to the server and receive a new txn ID, the
     // offset of a new txn log, and txn log offsets for all committed txns
@@ -261,17 +261,17 @@ void client_t::begin_transaction()
     build_client_request(builder, session_event_t::BEGIN_TXN);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_context->session_socket, nullptr, 0, builder);
+    client_messenger.send_and_receive(session_socket(), nullptr, 0, builder);
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_session_context->txn_context->txn_id = txn_info->transaction_id();
     s_session_context->txn_context->txn_log_offset = txn_info->transaction_log_offset();
     ASSERT_INVARIANT(
-        s_session_context->txn_context->txn_id.is_valid(),
+        txn_id().is_valid(),
         "Begin timestamp should not be invalid!");
     ASSERT_INVARIANT(
-        s_session_context->txn_context->txn_log_offset.is_valid(),
+        txn_log_offset().is_valid(),
         "Txn log offset should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.
@@ -280,7 +280,7 @@ void client_t::begin_transaction()
     {
         // REVIEW: After snapshot reuse is enabled, skip applying logs with
         // txn_log_info.commit_timestamp <= s_latest_applied_commit_ts.
-        apply_log_from_offset(s_session_context->private_locators.data(), txn_log_info->log_offset());
+        apply_log_from_offset(private_locators().data(), txn_log_info->log_offset());
     }
 
     // REVIEW: Re-enable these caches once we complete handling of DDL updates.
@@ -288,7 +288,7 @@ void client_t::begin_transaction()
     // // We need to perform this initialization in the context of a transaction,
     // // so we'll just piggyback on the first transaction started by the client
     // // under a regular session.
-    // if (s_session_context->session_options.session_type == session_type_t::regular
+    // if (session_options().session_type == session_type_t::regular
     //     && !s_session_context->db_caches)
     // {
     //     s_session_context->db_caches.reset(init_db_caches());
@@ -307,7 +307,7 @@ void client_t::rollback_transaction()
 
     FlatBufferBuilder builder;
     build_client_request(builder, session_event_t::ROLLBACK_TXN);
-    send_msg_with_fds(s_session_context->session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
+    send_msg_with_fds(session_socket(), nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
 // This method needs to be updated whenever a new pre_commit_validation_failure exception
@@ -356,7 +356,7 @@ void client_t::commit_transaction()
     build_client_request(builder, session_event_t::COMMIT_TXN);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_context->session_socket, nullptr, 0, builder);
+    client_messenger.send_and_receive(session_socket(), nullptr, 0, builder);
 
     // Extract the commit decision from the server's reply and return it.
     session_event_t event = client_messenger.server_reply()->event();
@@ -373,15 +373,15 @@ void client_t::commit_transaction()
     {
         const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
         ASSERT_INVARIANT(
-            txn_info->transaction_id() == s_session_context->txn_context->txn_id, "Unexpected transaction id!");
+            txn_info->transaction_id() == txn_id(), "Unexpected transaction id!");
     }
 
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger
         && event == session_event_t::DECIDE_TXN_COMMIT
-        && s_session_context->txn_context->events.size() > 0)
+        && events().size() > 0)
     {
-        s_txn_commit_trigger(s_session_context->txn_context->events);
+        s_txn_commit_trigger(events());
     }
 
     // Throw an exception on server-side abort.
@@ -410,8 +410,8 @@ void client_t::commit_transaction()
 void client_t::init_memory_manager()
 {
     s_session_context->memory_manager.load(
-        reinterpret_cast<uint8_t*>(s_session_context->shared_data.data()->objects),
-        sizeof(s_session_context->shared_data.data()->objects));
+        reinterpret_cast<uint8_t*>(shared_data().data()->objects),
+        sizeof(shared_data().data()->objects));
 }
 
 caches::db_caches_t* client_t::init_db_caches()

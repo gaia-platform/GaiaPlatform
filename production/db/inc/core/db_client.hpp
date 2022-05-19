@@ -107,6 +107,18 @@ public:
         common::gaia_id_t id, common::field_position_list_t changed_fields);
 
 private:
+    // Context getters.
+    static inline gaia_txn_id_t txn_id();
+    static inline log_offset_t txn_log_offset();
+    static inline std::vector<gaia::db::triggers::trigger_event_t>& events();
+
+    static inline config::session_options_t& session_options();
+    static inline int session_socket();
+    static inline mapped_data_t<locators_t>& private_locators();
+    static inline mapped_data_t<data_t>& shared_data();
+    static inline std::vector<data_mapping_t>& data_mappings();
+
+private:
     // We don't use an auto-pointer because its destructor is "non-trivial"
     // and that would add overhead to the TLS implementation.
     thread_local static inline client_session_context_t* s_session_context{nullptr};

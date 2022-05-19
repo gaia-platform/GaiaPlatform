@@ -23,6 +23,46 @@ bool server_config_t::skip_catalog_integrity_checks()
     return m_skip_catalog_integrity_checks;
 }
 
+gaia_txn_id_t server_t::txn_id()
+{
+    return s_session_context->txn_context->txn_id;
+}
+
+log_offset_t server_t::txn_log_offset()
+{
+    return s_session_context->txn_context->txn_log_offset;
+}
+
+std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& server_t::txn_logs_for_snapshot()
+{
+    return s_session_context->txn_context->txn_logs_for_snapshot;
+}
+
+mapped_data_t<locators_t>& server_t::local_snapshot_locators()
+{
+    return s_session_context->txn_context->local_snapshot_locators;
+}
+
+size_t server_t::last_snapshot_processed_log_record_count()
+{
+    return s_session_context->txn_context->last_snapshot_processed_log_record_count;
+}
+
+int server_t::session_socket()
+{
+    return s_session_context->session_socket;
+}
+
+std::vector<std::thread>& server_t::session_owned_threads()
+{
+    return s_session_context->session_owned_threads;
+}
+
+std::unordered_map<chunk_offset_t, chunk_version_t>& server_t::map_gc_chunks_to_versions()
+{
+    return s_session_context->map_gc_chunks_to_versions;
+}
+
 server_t::safe_ts_t::safe_ts_t(gaia_txn_id_t safe_ts)
     : m_ts(safe_ts)
 {
