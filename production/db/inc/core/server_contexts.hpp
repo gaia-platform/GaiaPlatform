@@ -6,6 +6,7 @@
 #pragma once
 
 #include <memory>
+#include <thread>
 #include <unordered_map>
 
 #include "gaia_internal/db/db.hpp"
@@ -55,6 +56,11 @@ struct server_session_context_t
 
     gaia::db::memory_manager::memory_manager_t memory_manager;
     gaia::db::memory_manager::chunk_manager_t chunk_manager;
+
+    std::string error_message;
+
+    // These thread objects are owned by the session thread that created them.
+    std::vector<std::thread> session_owned_threads;
 
     // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
     std::unordered_map<chunk_offset_t, chunk_version_t> map_gc_chunks_to_versions;

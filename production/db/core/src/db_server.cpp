@@ -357,7 +357,7 @@ void server_t::handle_commit_txn(
         txn_rollback();
 
         // Save the error message so we can transmit it to the client.
-        s_error_message = e.what();
+        s_session_context->error_message = e.what();
 
         decision = session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR;
     }
@@ -384,10 +384,10 @@ void server_t::handle_decide_txn(
     FlatBufferBuilder builder;
     if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
-        build_server_reply_error(builder, event, old_state, new_state, s_error_message.c_str());
+        build_server_reply_error(builder, event, old_state, new_state, s_session_context->error_message.c_str());
 
         // Clear error information.
-        s_error_message = c_empty_string;
+        s_session_context->error_message.clear();
     }
     else
     {
@@ -1347,14 +1347,14 @@ void server_t::session_handler(int session_socket)
         signal_eventfd_multiple_threads(s_session_context->session_shutdown_eventfd);
 
         // Wait for all session-owned threads to terminate.
-        for (auto& thread : s_session_owned_threads)
+        for (auto& thread : s_session_context->session_owned_threads)
         {
             ASSERT_INVARIANT(thread.joinable(), c_message_thread_must_be_joinable);
             thread.join();
         }
 
         // All session-owned threads have been joined, so they can be destroyed.
-        s_session_owned_threads.clear();
+        s_session_context->session_owned_threads.clear();
 
         // All session-owned threads have received the session shutdown
         // notification, so we can close the eventfd.
@@ -1708,10 +1708,10 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
 {
     // First reap any owned threads that have terminated (to avoid memory and
     // system resource leaks).
-    reap_exited_threads(s_session_owned_threads);
+    reap_exited_threads(s_session_context->session_owned_threads);
 
     // Create stream producer thread.
-    s_session_owned_threads.emplace_back(
+    s_session_context->session_owned_threads.emplace_back(
         stream_producer_handler<T_element>, stream_socket, s_session_context->session_shutdown_eventfd, generator_fn);
 }
 

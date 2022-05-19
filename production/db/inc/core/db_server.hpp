@@ -11,7 +11,6 @@
 #include <functional>
 #include <optional>
 #include <shared_mutex>
-#include <thread>
 #include <utility>
 
 #include <flatbuffers/flatbuffers.h>
@@ -161,13 +160,6 @@ private:
     // overflow. A 64-bit atomically incremented counter cannot overflow in any
     // reasonable time.
     static inline std::atomic<size_t> s_next_unused_log_offset{1};
-
-    // These fields have session lifetime.
-
-    // These thread objects are owned by the session thread that created them.
-    thread_local static inline std::vector<std::thread> s_session_owned_threads{};
-
-    thread_local static inline std::string s_error_message = common::c_empty_string;
 
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
