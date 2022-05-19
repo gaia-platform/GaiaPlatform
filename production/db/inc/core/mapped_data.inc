@@ -220,3 +220,45 @@ void data_mapping_t::collect_fds(
         fd_list[i] = mappings[i].fd();
     }
 }
+
+void data_mapping_t::validate(
+    const std::vector<data_mapping_t>& mappings)
+{
+    ASSERT_INVARIANT(
+        mappings.size() == static_cast<size_t>(index_t::count_mappings),
+        "Mappings count does not match expected value!");
+
+    for (size_t i = 0; i < mappings.size(); ++i)
+    {
+        ASSERT_INVARIANT(
+            i == static_cast<size_t>(mappings[i].mapping_index),
+            "Mapping definitions are not in the expected order!");
+    }
+}
+
+void data_mapping_t::create(
+    const std::vector<data_mapping_t>& mappings, const char* server_instance_name)
+{
+    for (data_mapping_t mapping : mappings)
+    {
+        mapping.create(server_instance_name);
+    }
+}
+
+void data_mapping_t::close(
+    const std::vector<data_mapping_t>& mappings)
+{
+    for (data_mapping_t mapping : mappings)
+    {
+        mapping.close();
+    }
+}
+
+void data_mapping_t::collect_fds(
+    const std::vector<data_mapping_t>& mappings, int fd_list[])
+{
+    for (size_t i = 0; i < mappings.size(); ++i)
+    {
+        fd_list[i] = mappings[i].fd();
+    }
+}

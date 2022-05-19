@@ -11,7 +11,6 @@
 #include <functional>
 #include <optional>
 #include <shared_mutex>
-#include <thread>
 #include <utility>
 
 #include <flatbuffers/flatbuffers.h>
@@ -19,15 +18,10 @@
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
-#include "gaia_internal/db/db.hpp"
 
-#include "chunk_manager.hpp"
 #include "db_caches.hpp"
-#include "db_internal_types.hpp"
-#include "mapped_data.hpp"
-#include "memory_manager.hpp"
-#include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "server_contexts.hpp"
 #include "txn_metadata.hpp"
 #include "type_index.hpp"
 
@@ -112,8 +106,6 @@ public:
     static void run(server_config_t server_conf);
 
 private:
-    static inline server_config_t s_server_conf{};
-
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1UL << 10};
 
@@ -126,6 +118,12 @@ private:
     // REVIEW: How much could we relax this limit if we revert to per-process
     // mappings of the data segment?
     static constexpr size_t c_session_limit{1UL << 7};
+
+    // We don't use an auto-pointer because its destructor is "non-trivial"
+    // and that would add overhead to the TLS implementation.
+    thread_local static inline server_session_context_t* s_session_context{nullptr};
+
+    static inline server_config_t s_server_conf{};
 
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
@@ -143,22 +141,10 @@ private:
     static inline mapped_data_t<logs_t> s_shared_logs{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
     static inline mapped_data_t<type_index_t> s_shared_type_index{};
+
     static inline index::indexes_t s_global_indexes{};
+
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
-
-    // These fields have transaction lifetime.
-    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
-    thread_local static inline std::vector<std::pair<gaia_txn_id_t, log_offset_t>> s_txn_logs_for_snapshot{};
-
-    // Local snapshot for server-side transactions.
-    // NB: We need to use the (nonstandard) __thread attribute rather than
-    // thread_local to ensure that a minimal TLS implementation is used.
-    __thread static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
-
-    // Watermark that tracks how many log records have been used for the current snapshot instance.
-    // This is used to permit the incremental updating of the snapshot.
-    thread_local static inline size_t s_last_snapshot_processed_log_record_count{0};
 
     // The allocated status of each log offset is tracked in this bitmap. When
     // opening a new txn, each session thread must allocate an offset for its txn
@@ -174,27 +160,6 @@ private:
     // overflow. A 64-bit atomically incremented counter cannot overflow in any
     // reasonable time.
     static inline std::atomic<size_t> s_next_unused_log_offset{1};
-
-    // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
-    thread_local static inline std::unordered_map<
-        chunk_offset_t, chunk_version_t>
-        s_map_gc_chunks_to_versions{};
-
-    // These fields have session lifetime.
-    thread_local static inline int s_session_socket = -1;
-    thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
-    thread_local static inline bool s_session_shutdown = false;
-    thread_local static inline int s_session_shutdown_eventfd = -1;
-
-    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
-
-    thread_local static inline gaia::db::session_type_t s_session_type{gaia::db::session_type_t::regular};
-
-    // These thread objects are owned by the session thread that created them.
-    thread_local static inline std::vector<std::thread> s_session_owned_threads{};
-
-    thread_local static inline std::string s_error_message = common::c_empty_string;
 
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
@@ -264,6 +229,8 @@ private:
     static inline std::array<std::array<std::atomic<gaia_txn_id_t::value_type>, 2>, c_session_limit>
         s_safe_ts_per_thread_entries{};
 
+    static constexpr size_t c_invalid_safe_ts_index{s_safe_ts_per_thread_entries.size()};
+
     // The reserved status of each index into `s_safe_ts_per_thread_entries` is
     // tracked in this bitmap. Before calling any safe_ts API functions, each
     // thread must reserve an index by setting a cleared bit in this bitmap.
@@ -272,8 +239,6 @@ private:
     static inline std::array<
         std::atomic<uint64_t>, s_safe_ts_per_thread_entries.size() / common::c_uint64_bit_count>
         s_safe_ts_reserved_indexes_bitmap{};
-
-    static constexpr size_t c_invalid_safe_ts_index{s_safe_ts_per_thread_entries.size()};
 
     // The current thread's index in `s_safe_ts_per_thread_entries`.
     thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};

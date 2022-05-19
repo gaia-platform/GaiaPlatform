@@ -62,6 +62,7 @@ endforeach(FBS_SOURCE)
 add_library(gaia_db_client STATIC
   src/catalog_core.cpp
   src/chunk_manager.cpp
+  src/client_contexts.cpp
   src/client_messenger.cpp
   src/db_caches.cpp
   src/db_client_api.cpp
@@ -151,6 +152,7 @@ set(GAIA_DB_SERVER_SOURCES
   src/gaia_ptr.cpp
   src/index_builder.cpp
   src/memory_manager.cpp
+  src/server_contexts.cpp
   src/system_checks.cpp
   src/txn_metadata.cpp
   src/type_id_mapping.cpp

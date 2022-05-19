@@ -10,8 +10,10 @@ static gaia::db::locators_t* get_locators()
 {
     // The local snapshot segment should always be mapped whenever any callers
     // of this method are able to observe it.
-    DEBUG_ASSERT_PRECONDITION(gaia::db::server_t::s_local_snapshot_locators.is_set(), "Invalid local snapshot!");
-    return gaia::db::server_t::s_local_snapshot_locators.data();
+    DEBUG_ASSERT_PRECONDITION(
+        gaia::db::server_t::s_session_context->txn_context->local_snapshot_locators.is_set(), "Invalid local snapshot!");
+
+    return gaia::db::server_t::s_session_context->txn_context->local_snapshot_locators.data();
 }
 
 static gaia::db::locators_t* get_locators_for_allocator()
@@ -74,12 +76,12 @@ static gaia::db::index::indexes_t* get_indexes()
 
 static gaia::db::memory_manager::memory_manager_t* get_memory_manager()
 {
-    return &gaia::db::server_t::s_memory_manager;
+    return &gaia::db::server_t::s_session_context->memory_manager;
 }
 
 static gaia::db::memory_manager::chunk_manager_t* get_chunk_manager()
 {
-    return &gaia::db::server_t::s_chunk_manager;
+    return &gaia::db::server_t::s_session_context->chunk_manager;
 }
 
 static gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offset)
@@ -92,12 +94,21 @@ static gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offse
 
 static gaia::db::txn_log_t* get_txn_log()
 {
-    return get_txn_log_from_offset(gaia::db::server_t::s_txn_log_offset);
+    log_offset_t txn_log_offset;
+    if (gaia::db::server_t::s_session_context && gaia::db::server_t::s_session_context->txn_context)
+    {
+        txn_log_offset = gaia::db::server_t::s_session_context->txn_context->txn_log_offset;
+    }
+    return get_txn_log_from_offset(txn_log_offset);
 }
 
 static gaia::db::gaia_txn_id_t get_txn_id()
 {
-    return gaia::db::server_t::s_txn_id;
+    if (gaia::db::server_t::s_session_context && gaia::db::server_t::s_session_context->txn_context)
+    {
+        return gaia::db::server_t::s_session_context->txn_context->txn_id;
+    }
+    return c_invalid_gaia_txn_id;
 }
 
 static const gaia::db::caches::db_caches_t* get_db_caches()
