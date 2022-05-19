@@ -15,7 +15,6 @@
 #include <memory>
 #include <ostream>
 #include <string>
-#include <thread>
 #include <unordered_set>
 
 #include <sys/epoll.h>
@@ -30,7 +29,6 @@
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
-#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/index_builder.hpp"
 
@@ -38,7 +36,6 @@
 
 #include "db_helpers.hpp"
 #include "memory_helpers.hpp"
-#include "memory_types.hpp"
 #include "system_checks.hpp"
 #include "type_id_mapping.hpp"
 
@@ -1341,24 +1338,6 @@ void server_t::session_handler(int socket)
 
     // Event to signal session-owned threads to terminate.
     s_session_context->session_shutdown_eventfd = make_eventfd();
-    auto owned_threads_cleanup = make_scope_guard([] {
-        // Signal all session-owned threads to terminate.
-        signal_eventfd_multiple_threads(s_session_context->session_shutdown_eventfd);
-
-        // Wait for all session-owned threads to terminate.
-        for (auto& thread : session_owned_threads())
-        {
-            ASSERT_INVARIANT(thread.joinable(), c_message_thread_must_be_joinable);
-            thread.join();
-        }
-
-        // All session-owned threads have been joined, so they can be destroyed.
-        session_owned_threads().clear();
-
-        // All session-owned threads have received the session shutdown
-        // notification, so we can close the eventfd.
-        close_fd(s_session_context->session_shutdown_eventfd);
-    });
 
     // Enter epoll loop.
     while (!s_session_context->session_shutdown)
