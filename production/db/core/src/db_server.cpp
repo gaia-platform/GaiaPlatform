@@ -204,7 +204,7 @@ void server_t::txn_begin()
     s_session_context->txn_context->txn_log_offset = allocate_log_offset();
 
     // REVIEW: This exception needs to be thrown on the client!
-    if (!!s_session_context->txn_context->txn_log_offset.is_valid())
+    if (!s_session_context->txn_context->txn_log_offset.is_valid())
     {
         throw transaction_log_allocation_failure_internal();
     }
