@@ -270,7 +270,7 @@ void rule5(const rule_context_t* context)
     trigger_event_t trigger_events[]
         = {// Allow same event, we should not be re-entrant cause rules are only fired
            // after the rule invocation returns
-           // TODO: Determine whether/how the rule schedule deals with cycles
+           // TODO: Determine whether/how the rule schedule deals with cycles.
            //{context->event_type, context->gaia_type, context->record, nullptr, 0},
            // Allow event call on different gaia_type.
            {context->event_type, test_gaia_other_t::s_gaia_type, context->record, c_empty_position_list, dummy_txn_id},
@@ -333,7 +333,7 @@ void rule8(const rule_context_t* context)
  * Attempts to forward chain to
  * [Rule 10] test_gaia_t.timestamp write
  *
- * TODO: forward chaining to self should be disallowed
+ * TODO: Forward chaining to self should be disallowed.
  */
 void rule9(const rule_context_t* context)
 {
@@ -387,13 +387,13 @@ struct rule_decl_t
  * field_write [first_name(3), last_name(4)]: rule1, rule2
  * row_insert: rule3, rule4
  *
- * TODO: Transaction Events are out of scope for Q2
+ * TODO: Transaction Events are out of scope for Q2.
  * transaction_begin: rule3
  * transaction_commit: rule3, rule4
  * transaction_rollback: rule3, rule4
  */
 static const rule_decl_t c_rule_decl[] = {
-    // TODO: We don't expose deleted row events
+    // TODO: We don't expose deleted row events.
     // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 1}, rule1},
     // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 2}, rule2},
     {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 2}, rule2},
@@ -610,7 +610,7 @@ TEST_F(rules__event_manager__test, invalid_subscription)
     field_position_list_t fields;
     fields.emplace_back(1);
 
-    // TODO: Transaction Events are out of scope for Q2
+    // TODO: Transaction Events are out of scope for Q2.
 
     // Transaction event subscriptions can't specify a gaia type
     // EXPECT_THROW(subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::transaction_begin, empty_fields,
@@ -625,7 +625,7 @@ TEST_F(rules__event_manager__test, invalid_subscription)
     // EXPECT_THROW(subscribe_rule(0, event_type_t::transaction_rollback, fields, m_rule1), invalid_subscription);
 
     // Table delete event cannot specify any fields
-    // TODO: We don't expose deleted row events
+    // TODO: We don't expose deleted row events.
     // EXPECT_THROW(
     //     subscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_delete, fields, m_rule1),
     //     invalid_subscription);
@@ -636,7 +636,7 @@ TEST_F(rules__event_manager__test, invalid_subscription)
         invalid_subscription);
 }
 
-// TODO: We don't expose deleted row events
+// TODO: We don't expose deleted row events.
 // TEST_F(rules__event_manager__test, log_event_no_rules)
 // {
 //     // An empty sequence will verify that the rule was not called.
@@ -765,7 +765,7 @@ TEST_F(rules__event_manager__test, log_database_event_single_rule_multi_event)
     // Log update, and insert.  Sequence should be update followed by insert
     // because we didn't bind a rule to delete.
     trigger_event_t events[] = {
-        // TODO: We don't expose deleted row events
+        // TODO: We don't expose deleted row events.
         //{event_type_t::row_delete, test_gaia_t::s_gaia_type, record, empty_position_list, dummy_txn_id},
         {event_type_t::row_update, test_gaia_t::s_gaia_type, record + 1, c_empty_position_list, dummy_txn_id},
         {event_type_t::row_insert, test_gaia_t::s_gaia_type, record + 2, c_empty_position_list, dummy_txn_id}};
@@ -812,7 +812,7 @@ TEST_F(rules__event_manager__test, log_event_multi_rule_multi_event)
     add_context_sequence(sequence, test_gaia_other_t::s_gaia_type, event_type_t::row_insert);
     add_context_sequence(sequence, test_gaia_other_t::s_gaia_type, event_type_t::row_insert);
 
-    // TODO: Transaction Events are out of scope for Q2
+    // TODO: Transaction Events are out of scope for Q2.
     // add_context_sequence(sequence, 0, event_type_t::transaction_commit);
     // add_context_sequence(sequence, 0, event_type_t::transaction_commit);
     const gaia_id_t record = 100;
@@ -854,7 +854,7 @@ TEST_F(rules__event_manager__test, log_event_multi_rule_multi_event)
     validate_rule_sequence(sequence);
     validate_rule(event_type_t::row_update, test_gaia_t::s_gaia_type, record + 1);
 
-    // TODO: Transaction Events are out of scope for Q2
+    // TODO: Transaction Events are out of scope for Q2.
 
     // Rollback should invoke rule3, rule4.
     // add_context_sequence(sequence, 0, event_type_t::transaction_rollback);
@@ -948,7 +948,7 @@ TEST_F(rules__event_manager__test, unsubscribe_rule_not_found)
 
     // Try to remove the rule from the other table events that we didn't register the rule on.
     EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_insert, empty_fields, rb));
-    // TODO: We don't expose deleted row events
+    // TODO: We don't expose deleted row events.
     // EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb));
 
     // Try to remove the rule from a type that we didn't register the rule on
@@ -1008,7 +1008,7 @@ TEST_F(rules__event_manager__test, list_rules_event_type_filter)
     subscription_list_t rules;
     setup_all_rules();
 
-    // TODO: Transaction Events are out of scope for Q2
+    // TODO: Transaction Events are out of scope for Q2.
     // event_type_t event_filter = event_type_t::transaction_begin;
     // list_subscribed_rules(nullptr, nullptr, &event_filter, nullptr, rules);
     // validate_rule_list(rules, get_expected_subscriptions(nullptr, nullptr, &event_filter));
@@ -1040,7 +1040,7 @@ TEST_F(rules__event_manager__test, list_rules_all_filters)
     const char* ruleset_filter = c_ruleset1_name;
     gaia_type_t gaia_type_filter = test_gaia_t::s_gaia_type;
 
-    // TODO: We don't expose deleted row events
+    // TODO: We don't expose deleted row events.
     // event_type_t event_filter = event_type_t::row_delete;
     // list_subscribed_rules(ruleset_filter, &gaia_type_filter, &event_filter, nullptr, rules);
     // validate_rule_list(rules, get_expected_subscriptions(ruleset_filter, &gaia_type_filter, &event_filter));
@@ -1052,7 +1052,7 @@ TEST_F(rules__event_manager__test, list_rules_all_filters)
     validate_rule_list(rules, get_expected_subscriptions(ruleset_filter, &gaia_type_filter, &event_filter));
 }
 
-// TODO: Transaction Events are out of scope for Q2
+// TODO: Transaction Events are out of scope for Q2.
 
 /*
 TEST_F(rules__event_manager__test, forward_chain_not_subscribed)

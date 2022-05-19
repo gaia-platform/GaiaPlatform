@@ -223,7 +223,7 @@ public:
         subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
 
-    // TODO: We don't expose deleted row events
+    // TODO: We don't expose deleted row events.
     // void subscribe_delete()
     // {
     //     rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
@@ -348,7 +348,7 @@ TEST_F(rules__rule_integration__test, insert)
     }
 }
 
-// TODO: We don't expose deleted row events
+// TODO: We don't expose deleted row events.
 // TEST_F(rules__rule_integration__test, delete)
 // {
 //     subscribe_delete();
