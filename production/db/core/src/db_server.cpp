@@ -103,11 +103,11 @@ void server_t::handle_connect(
 
     // Prevent starting a DDL session in parallel with an existing one
     // or after a regular session has already been started.
-    if (s_session_contxt->session_type == session_type_t::ddl)
+    if (s_session_context->session_type == session_type_t::ddl)
     {
         s_start_session_mutex.lock();
     }
-    else if (s_session_contxt->session_type == session_type_t::regular)
+    else if (s_session_context->session_type == session_type_t::regular)
     {
         s_start_session_mutex.lock_shared();
     }
@@ -399,7 +399,7 @@ void server_t::handle_client_shutdown(
     {
         s_start_session_mutex.unlock();
     }
-    else if (s_session_contxt->session_type == session_type_t::regular)
+    else if (s_session_context->session_type == session_type_t::regular)
     {
         s_start_session_mutex.unlock_shared();
     }
