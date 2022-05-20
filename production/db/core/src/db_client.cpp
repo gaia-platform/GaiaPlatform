@@ -283,16 +283,14 @@ void client_t::begin_transaction()
         apply_log_from_offset(private_locators().data(), txn_log_info->log_offset());
     }
 
-    // REVIEW: Re-enable these caches once we complete handling of DDL updates.
-
-    // // We need to perform this initialization in the context of a transaction,
-    // // so we'll just piggyback on the first transaction started by the client
-    // // under a regular session.
-    // if (session_options().session_type == session_type_t::regular
-    //     && !s_session_context->db_caches)
-    // {
-    //     s_session_context->db_caches.reset(init_db_caches());
-    // }
+    // We need to perform this initialization in the context of a transaction,
+    // so we'll just piggyback on the first transaction started by the client
+    // under a regular session.
+    if (session_options().session_type == session_type_t::regular
+        && !s_session_context->db_caches)
+    {
+        s_session_context->db_caches.reset(init_db_caches());
+    }
 
     cleanup_private_locators.dismiss();
     cleanup_txn_context.dismiss();
