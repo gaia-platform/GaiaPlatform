@@ -10,7 +10,7 @@ env:
 jobs:
 
   Documentation:
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:

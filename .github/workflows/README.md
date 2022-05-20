@@ -125,7 +125,7 @@ Each of our jobs is built on a standard Ubuntu:20.04 system.
 To keep things simple, any specialization of jobs for different environments is done within the docker builds.
 
 ```YAML
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
 ```
 
 ### Environment Variables

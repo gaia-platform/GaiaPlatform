@@ -9,7 +9,7 @@ env:
 
 jobs:
   Core:
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -29,7 +29,7 @@ jobs:
           build-type: Release
 
   Debug_Core:
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
