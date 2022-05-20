@@ -98,7 +98,7 @@ class GenCustomDockerfile(GenAbcDockerfile):
             login = os.getlogin()
             text_parts.append(
                 dedent(
-                    fr"""
+                    rf"""
                 RUN groupadd -r -o -g {gid} {login} \
                     && useradd {login} -l -r -o -u {uid} -g {gid} -G sudo \
                     && mkdir -p {home} \
