@@ -31,7 +31,6 @@ jobs:
   Core:
     needs:
       - Lint
-    if: ${{false}}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -103,8 +102,7 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    #if: github.event_name != 'pull_request'
-    if: ${{false}}
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -172,8 +170,7 @@ jobs:
   Integration_Tests:
     needs:
       - SDK
-    # if: github.event_name != 'pull_request'
-    if: ${{false}}
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 7
     env:
