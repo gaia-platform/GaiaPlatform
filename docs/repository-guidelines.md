@@ -81,6 +81,8 @@ Furthermore, because the failure report started with `Fixing`, it can be inferre
 
 ### General File Guidelines
 
+Also see [Coding Guidelines Principles](coding-guidelines-principles.md).
+
 #### Lines Should Not Have Trailing Whitespace
 
 | Pre-Commit Hook | Hook Id |
@@ -240,6 +242,8 @@ This is the prefix that all `*.ddl` and `*.sql` files are checked against.
 This is the prefix that all `*.cpp`, `*.hpp`, and `*.inc` files are checked against.
 
 ### C++ File Guidelines
+
+Also see [C++ Coding Guidelines Principles](coding-guidelines-c++.md).
 
 #### Consistent File Formatting Using Clang-Format
 
