@@ -31,6 +31,7 @@ jobs:
   Core:
     needs:
       - Lint
+    if: ${{false}}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -103,6 +104,7 @@ jobs:
     needs:
       - Core
     if: github.event_name != 'pull_request'
+    if: ${{false}}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -314,6 +316,8 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
+          if pgrep ssh-agent; then pkill ssh-agent;fi
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
             --verbose \
             --job-name $GITHUB_JOB \
