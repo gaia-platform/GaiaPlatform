@@ -21,7 +21,7 @@ To better separate declarations from definitions, inline method definitions and 
 `inc` files **should not**:
 1. use `pragma once`.
 2. include any files of their own.
-  1. any required headers should be included by the parent header file.
+    1. any required headers should be included by the parent header file.
 3. declare any namespaces.
 `inc` files **should always**:
 1. be included in a single header file.
@@ -39,6 +39,7 @@ All code should be under a `gaia` namespace with major components having their o
 The following prefixes should be used to indicate the type of variables:
 
 | Prefix | Description |
+| --- |  --- |
 | c_ | Constant |
 | g_ | Global |
 | s_ | Static |
@@ -53,6 +54,7 @@ The following prefixes should be used to indicate the type of variables:
 The following suffixes are optional but can be used to provide extra clarity:
 
 | Suffix | Description |
+| --- |  --- |
 | _ptr | Pointer type |
 | _fn | Function type |
 
@@ -71,7 +73,7 @@ For classes, the following ordering rules have to be applied and their order als
 
 Furthermore, the public/private specifiers should be repeated at the beginning of each new category of declarations, to help as delimiters of these sections.
 
-##Example:##
+**Example:**
 ```
 class some_class_t
 {
@@ -109,11 +111,11 @@ This enables easier code reviewing because the implementation can be reviewed bo
 1. For a given header file `XYZ.cpp`, declare its interface in `XYZ.hpp`.
 2. The `XYZ.hpp` file should only include the headers needed for the interface declarations, so that its users don’t have to take unnecessary dependencies.
 3. Include headers in the following order:
-  1. associated file header (XYZ.hpp)
-  2. C system headers
-  3. C++ standard library headers
-  4. third party library headers
-  5. your other project headers.
+    1. associated file header (XYZ.hpp)
+    2. C system headers
+    3. C++ standard library headers
+    4. third party library headers
+    5. your other project headers.
 4. Do not use “using namespace” declarations in header files. Only use them in cpp files, if at all.
 
 ### Indentation and formatting
@@ -170,7 +172,6 @@ int* some_function(
 
 #### Line breaking
 1. Avoid long lines, but if they cannot be avoided, then break them before operators, so that the continuation lines start with an operator.
-
 **Example:**
 ```
 // Good:
@@ -179,7 +180,6 @@ int complex_result = (parameter_one + parameter_two)
 ```
 
 2. When breaking the arguments of a call over multiple lines, start with the first argument so that the continuation lines use the default 1-TAB indentation.
-
 **Example:**
 ```
 // Good:
@@ -189,7 +189,6 @@ bool result = function_call(
 ```
 
 3. Avoid formatting that can be easily disturbed by name changes or additions of expressions.
-
 **Example:**
 ```
 // Bad:
@@ -240,6 +239,7 @@ Use explicit integer size types: `int32_t` instead of `long`.
 This list is provided to avoid getting multiple types of abbreviations or acronyms for common terms. The recommendation is to either use the full term or the abbreviation or acronym listed in this table.
 
 | Term | Abbreviation or acronym |
+| --- |  --- |
 | Database | db |
 | File descriptor | fd |
 | Iterator | it |
