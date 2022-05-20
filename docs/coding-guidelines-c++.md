@@ -172,6 +172,7 @@ int* some_function(
 
 #### Line breaking
 1. Avoid long lines, but if they cannot be avoided, then break them before operators, so that the continuation lines start with an operator.
+
 **Example:**
 ```
 // Good:
@@ -180,6 +181,7 @@ int complex_result = (parameter_one + parameter_two)
 ```
 
 2. When breaking the arguments of a call over multiple lines, start with the first argument so that the continuation lines use the default 1-TAB indentation.
+
 **Example:**
 ```
 // Good:
@@ -189,6 +191,7 @@ bool result = function_call(
 ```
 
 3. Avoid formatting that can be easily disturbed by name changes or additions of expressions.
+
 **Example:**
 ```
 // Bad:
