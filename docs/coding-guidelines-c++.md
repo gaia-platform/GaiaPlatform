@@ -16,13 +16,17 @@ However, they should be well-justified exceptions, not habits.
 
 ### File extensions
 C++ code files should use a `.cpp` extension.
+
 C++ header files should use an `.hpp` extension.
+
 To better separate declarations from definitions, inline method definitions and template definitions should be placed in an `.inc` file that should be included at the end of the header file using, after all declarations.
+
 `inc` files **should not**:
 1. use `pragma once`.
 2. include any files of their own.
     1. any required headers should be included by the parent header file.
 3. declare any namespaces.
+
 `inc` files **should always**:
 1. be included in a single header file.
 2. be included using `include "XYZ.inc"` syntax instead of `include <XYZ.inc>` syntax.
