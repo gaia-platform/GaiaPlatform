@@ -40,11 +40,11 @@ The following prefixes should be used to indicate the type of variables:
 
 | Prefix | Description |
 | --- |  --- |
-| c_ | Constant |
-| g_ | Global |
-| s_ | Static |
-| m_ | Class member |
-| e_ | Enum value (see use note below) |
+| `c_` | Constant |
+| `g_` | Global |
+| `s_` | Static |
+| `m_` | Class member |
+| `e_` | Enum value (see use note below) |
 
 **Note:** these prefixes do not combine. Their order also indicates the order of preference in which they should be applied. I.e. a global constant should be prefixed with `c_`, not `g_`.
 
@@ -55,8 +55,8 @@ The following suffixes are optional but can be used to provide extra clarity:
 
 | Suffix | Description |
 | --- |  --- |
-| _ptr | Pointer type |
-| _fn | Function type |
+| `_ptr` | Pointer type |
+| `_fn` | Function type |
 
 ## Structure
 
@@ -243,10 +243,10 @@ This list is provided to avoid getting multiple types of abbreviations or acrony
 
 | Term | Abbreviation or acronym |
 | --- |  --- |
-| Database | db |
-| File descriptor | fd |
-| Iterator | it |
-| Transaction | txn |
+| Database | `db` |
+| File descriptor | `fd` |
+| Iterator | `it` |
+| Transaction | `txn` |
 
 ## Code Review Checklist
 
