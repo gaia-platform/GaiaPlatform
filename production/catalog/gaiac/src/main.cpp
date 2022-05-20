@@ -65,7 +65,7 @@ string trim(const string& s)
     return rtrim(ltrim(s));
 }
 
-void start_repl(parser_t& parser)
+void start_repl()
 {
     const auto prompt = "gaiac> ";
     const auto wait_for_more_prompt = "> ";
@@ -448,7 +448,7 @@ int main(int argc, char* argv[])
             gaia::db::end_session();
             gaia::db::begin_session();
 
-            start_repl(parser);
+            start_repl();
         }
         else
         {
