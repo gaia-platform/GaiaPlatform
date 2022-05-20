@@ -140,9 +140,10 @@ private:
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
 
-    // These are global server flags.
-    static inline std::atomic<bool> s_is_ddl_session_active{false};
-    static inline std::atomic<bool> s_can_ddl_sessions_still_be_started{true};
+    // Ensures that only one DDL session can run at any given point.
+    // Other sessions, DDL or Regular, will wait the DDL sessions to complete.
+    // Likewise, DDL session wait for current running session to complete.
+    static inline std::shared_mutex s_start_session_mutex;
 
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};
@@ -441,6 +442,8 @@ private:
     static void init_listening_socket(const std::string& socket_name);
 
     static bool authenticate_client_socket(int socket);
+
+    static bool can_start_session(int socket_fd);
 
     static void client_dispatch_handler(const std::string& socket_name);
 

@@ -101,36 +101,16 @@ void server_t::handle_connect(
         old_state == session_state_t::DISCONNECTED && new_state == session_state_t::CONNECTED,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    // TODO: Restore these checks once test issues are addressed.
-    //
-    // // These checks are meant to prevent accidental starting of a DDL session in parallel with an existing one
-    // // or after a regular session has already been started.
-    // if (s_session_type == session_type_t::ddl)
-    // {
-    //     ASSERT_INVARIANT(
-    //         s_can_ddl_sessions_still_be_started,
-    //         "Attempting to start a DDL session after a regular session was started!");
-
-    //     bool expected_value = false;
-    //     bool has_succeeded = s_is_ddl_session_active.compare_exchange_strong(expected_value, true);
-    //     ASSERT_INVARIANT(
-    //         has_succeeded,
-    //         "Attempting to start a DDL session while another one has already been started!");
-
-    //     // Double-check, in case a concurrent regular session has set the flag after our initial check.
-    //     ASSERT_INVARIANT(
-    //         s_can_ddl_sessions_still_be_started,
-    //         "Attempting to start a DDL session after a regular session was started!");
-    // }
-    // else if (s_session_type == session_type_t::regular)
-    // {
-    //     // Once a regular session was started, no more DDL sessions can be started.
-    //     s_can_ddl_sessions_still_be_started = false;
-
-    //     ASSERT_INVARIANT(
-    //         !s_is_ddl_session_active,
-    //         "Attempting to start a regular session while a DDL session is still active!");
-    // }
+    // Prevent starting a DDL session in parallel with an existing one
+    // or after a regular session has already been started.
+    if (s_session_context->session_type == session_type_t::ddl)
+    {
+        s_start_session_mutex.lock();
+    }
+    else if (s_session_context->session_type == session_type_t::regular)
+    {
+        s_start_session_mutex.lock_shared();
+    }
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
@@ -417,7 +397,11 @@ void server_t::handle_client_shutdown(
     // Mark the end of an active DDL session.
     if (s_session_context->session_type == session_type_t::ddl)
     {
-        s_is_ddl_session_active = false;
+        s_start_session_mutex.unlock();
+    }
+    else if (s_session_context->session_type == session_type_t::regular)
+    {
+        s_start_session_mutex.unlock_shared();
     }
 
     // If the session had an active txn, clean up all its resources.
@@ -1088,6 +1072,23 @@ bool server_t::authenticate_client_socket(int socket)
     return true;
 }
 
+bool server_t::can_start_session(int socket_fd)
+{
+    if (s_session_threads.size() >= c_session_limit)
+    {
+        std::cerr << "Disconnecting new session because session limit has been exceeded." << std::endl;
+        return false;
+    }
+
+    if (!authenticate_client_socket(socket_fd))
+    {
+        std::cerr << "Disconnecting new session because authentication failed" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 // We adopt a lazy GC approach to freeing thread resources, rather than having
 // each thread clean up after itself on exit. This approach allows us to avoid
 // any synchronization between the exiting thread and its owning thread, as well
@@ -1248,12 +1249,10 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
                     throw_system_error("accept() failed!");
                 }
 
-                if (s_session_threads.size() >= c_session_limit
-                    || !authenticate_client_socket(session_socket))
+                // The connecting client will get ECONNRESET on their first
+                // read from this socket.
+                if (!can_start_session(session_socket))
                 {
-                    // The connecting client will get ECONNRESET on their first
-                    // read from this socket.
-                    std::cerr << "Disconnecting new session because authentication failed or session limit has been exceeded." << std::endl;
                     close_fd(session_socket);
                     continue;
                 }
