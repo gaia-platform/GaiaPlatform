@@ -299,7 +299,7 @@ This is required to pull the latest version from GitHub's image store:
 ```YAML
       - name: Pull Latest Dev-Core Image
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null 2>&1
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull ghcr.io/gaia-platform/dev-base:latest
 ```

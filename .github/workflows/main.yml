@@ -313,8 +313,8 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          if pgrep ssh-agent; then pkill ssh-agent;fi
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          if pgrep ssh-agent; then pkill ssh-agent; fi
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null 2>&1
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
             --verbose \
             --job-name $GITHUB_JOB \
