@@ -202,19 +202,19 @@ bool result = function_call(argument_one,
 ### Folder structure
 The following folder structure will be used for C++ code:
 
-* /inc/gaia (public facing interfaces)
-  * /component_name
-* /inc/gaia_internal (internal facing interfaces)
-  * /component_name
-* /component_name
-  * /inc (interfaces that are external for subcomponents, but not for component)
-    * /sub_component_name
-  * /sub_component_name
-    * /inc (internal interfaces of subcomponent)
-    * /src
-    * /tests
-  * /tests
-* /tests
+* `/inc/gaia` (public facing interfaces)
+  * `/component_name`
+* `/inc/gaia_internal` (internal facing interfaces)
+  * `/component_name`
+* `/component_name`
+  * `/inc` (interfaces that are external for subcomponents, but not for component)
+    * `/sub_component_name`
+  * `/sub_component_name`
+    * `/inc` (internal interfaces of subcomponent)
+    * `/src`
+    * `/tests`
+  * `/tests`
+* `/tests`
 
 The top-level inc folder will contain global public and internal interfaces.
 Our build system should be set up to include only this top folder in its search path, so that any header file under it will have to be included with the folder structure leading to it.
