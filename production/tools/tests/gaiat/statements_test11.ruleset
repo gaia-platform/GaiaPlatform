@@ -6,7 +6,6 @@
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 // TESTCASE: break from within a declarative if.
-// GAIAPLAT-1053 (fixed)
 ruleset test55
 {
     on_insert(incubator)

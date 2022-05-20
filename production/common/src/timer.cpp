@@ -36,8 +36,7 @@ int64_t gaia::common::timer_t::get_function_duration(std::function<void()> fn)
     return duration_cast<nanoseconds>(finish_time - start_time).count();
 }
 
-// TODO[GAIAPLAT-318] Use an actual logging library when available and replace
-// the console output below with actual log calls.
+// TODO: Consider using a logging library to replace the printf statements below.
 void gaia::common::timer_t::log_duration(steady_clock::time_point& start_time, const char* message)
 {
     int64_t duration = get_duration(start_time);

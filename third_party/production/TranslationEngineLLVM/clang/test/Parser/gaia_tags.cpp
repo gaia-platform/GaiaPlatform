@@ -72,7 +72,6 @@ ruleset test89 : tables(actuator)
     }
 }
 
-// GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset test126
 {
@@ -86,7 +85,6 @@ ruleset test126
     }
 }
 
-// GAIAPLAT-922 (fixed)
 ruleset test127
 {
     on_change(actuator)
@@ -99,7 +97,6 @@ ruleset test127
     }
 }
 
-// GAIAPLAT-808 (fixed)
 ruleset test128
 {
     on_change(actuator)
@@ -113,7 +110,6 @@ ruleset test128
     }
 }
 
-// GAIAPLAT-827 (fixed)
 ruleset test122
 {
     on_change(sensor.value)

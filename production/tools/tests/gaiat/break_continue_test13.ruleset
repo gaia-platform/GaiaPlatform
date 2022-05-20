@@ -22,4 +22,3 @@ ruleset test19
 }
 
 // CHECK: 'continue' statement not in loop statement
-// GAIAPLAT-1087 (fixed)

@@ -252,7 +252,7 @@ TEST_F(direct_access__auto_connect__test, delete_parent)
 
 TEST_F(direct_access__auto_connect__test, disconnect_delete)
 {
-    // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2138
+    // Test to ensure that we can find the size of a container that has been emptied.
     gaia::db::begin_transaction();
     flight_t flight = flight_t::get(flight_t::insert_row(1, {}));
     passenger_t passenger_1 = passenger_t::get(passenger_t::insert_row("Nicola", "Franco", 1));

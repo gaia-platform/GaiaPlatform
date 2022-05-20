@@ -22,4 +22,3 @@ ruleset test17
 }
 
 // CHECK: 'break' statement not in loop or switch statement
-// GAIAPLAT-1087 (fixed)

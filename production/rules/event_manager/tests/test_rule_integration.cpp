@@ -131,7 +131,7 @@ void rule_field_phone_type(const rule_context_t* context)
     g_wait_for_count--;
 }
 
-// TODO[GAIAPLAT-445]: When we determine how we want to surface the deleted
+// TODO: When we determine how we want to surface the deleted
 // row event then we can re-instate these tests
 // void rule_delete(const rule_context_t* context)
 // {
@@ -223,7 +223,7 @@ public:
         subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
 
-    // TODO[GAIAPLAT-445] We don't expose deleted row events
+    // TODO: We don't expose deleted row events.
     // void subscribe_delete()
     // {
     //     rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
@@ -348,7 +348,7 @@ TEST_F(rules__rule_integration__test, insert)
     }
 }
 
-// TODO[GAIAPLAT-445] We don't expose deleted row events
+// TODO: We don't expose deleted row events.
 // TEST_F(rules__rule_integration__test, delete)
 // {
 //     subscribe_delete();
@@ -476,7 +476,6 @@ TEST_F(rules__rule_integration__test, update_field_single_rule)
     }
 }
 
-// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1781
 TEST_F(rules__rule_integration__test, two_rules)
 {
     subscribe_update();

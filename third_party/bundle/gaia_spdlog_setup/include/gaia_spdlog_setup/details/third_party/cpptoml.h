@@ -1156,7 +1156,6 @@ class table : public base {
 //             return {};
 //         }
         // The code above makes ASAN complain. This workaround fixes it.
-        // Fixes https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2142
         if (contains(key))
         {
             return get_impl<T>(get(key));

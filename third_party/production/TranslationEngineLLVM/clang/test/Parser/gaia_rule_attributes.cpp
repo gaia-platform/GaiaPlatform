@@ -68,7 +68,6 @@ ruleset test38
     }
 }
 
-// GAIAPLAT-1425 (fixed)
 ruleset test39
 {
     on_update(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}

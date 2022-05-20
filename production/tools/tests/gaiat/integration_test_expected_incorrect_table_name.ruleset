@@ -13,5 +13,4 @@ ruleset test109
     }
 }
 
-// GAIAPLAT-1396 (fixed)
 // CHECK: A field may not be referenced in the 'on_insert' statement. The 'on_insert' attribute only accepts a table.

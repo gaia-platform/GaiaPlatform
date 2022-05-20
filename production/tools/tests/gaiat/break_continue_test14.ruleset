@@ -23,4 +23,3 @@ CONTINUE_TARGET:
 }
 
 // CHECK: 'continue' statement not in loop statement
-// GAIAPLAT-1088 (fixed)

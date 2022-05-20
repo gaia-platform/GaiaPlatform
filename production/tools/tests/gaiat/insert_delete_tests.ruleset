@@ -47,7 +47,6 @@ ruleset test04
 }
 
 // TESTCASE: Delete rows selected by field content, through a tag.
-// GAIAPLAT-1041 (fixed)
 ruleset test05
 {
     on_insert(I:incubator)
@@ -73,7 +72,6 @@ ruleset test06
 }
 
 // TESTCASE: Assign an Insert value from an anchor's field
-// GAIAPLAT-1113 (fixed)
 ruleset test07
 {
     on_insert(incubator)
@@ -83,7 +81,6 @@ ruleset test07
 }
 
 // TESTCASE: Perform Inserts in a navigational loop
-// GAIAPLAT-1110 (fixed)
 ruleset test08
 {
     on_insert(incubator)
@@ -105,7 +102,6 @@ ruleset test09
 }
 
 // TESTCASE: Perform Inserts with multiple fields from implicit navigation
-// GAIAPLAT-1112 (fixed)
 ruleset test10
 {
     on_insert(farmer)
@@ -115,7 +111,6 @@ ruleset test10
 }
 
 // TESTCASE: Perform Inserts with multiple fields from multiple implicit navigations
-// GAIAPLAT-1117 (fixed)
 ruleset test11
 {
     on_insert(raised)

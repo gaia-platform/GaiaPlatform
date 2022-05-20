@@ -57,13 +57,12 @@ protected:
     {
         begin_transaction();
 
-        // GAIAPLAT-1673 is a bug issue discovered by the 'true' section of the folloging ifdef.
         // Every time .begin() is called, a new server thread is created, plus new sockets on
         // client and server. Not only is this slower, but after 1024 rows, the following loop
         // causes the warning "Stream socket error: 'Connection reset by peer'" to be printed
-        // for each deleted row. If this issue is corrected, define GAIAPLAT_1673 to run this
-        // test and verify the correction.
-#ifdef GAIAPLAT_1673
+        // for each deleted row. If this issue is corrected, define FIXED_ITERATOR_SOCKET_DISCONNECTS
+        // to run this test and verify the correction.
+#ifdef FIXED_ITERATOR_SOCKET_DISCONNECTS
         // Clear out any existing rows.
         for (auto employee = *employee_t::list().begin();
              employee;

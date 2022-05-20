@@ -203,7 +203,7 @@ void GaiaCatalog::fillTableData()
     }
     catch (const ::gaia::common::system_error& e)
     {
-        // [GAIAPLAT-1725] Mark a system error as a fatal error.  For example, if we can't connect
+        // Mark a system error as a fatal error.  For example, if we can't connect
         // to the database, then there is no point in continuing to emit other errors that are
         // caused by this. Fatal errors suppress subsequent diagnostic messages.
         m_diags.Report(diag::err_catalog_exception_fatal) << e.what();

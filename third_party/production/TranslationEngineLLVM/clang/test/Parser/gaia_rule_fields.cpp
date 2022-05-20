@@ -54,7 +54,6 @@ ruleset test22
     }
 }
 
-// GAIAPLAT-803 (fixed)
 ruleset test134
 {
     {

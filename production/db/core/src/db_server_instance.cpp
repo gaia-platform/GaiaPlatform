@@ -79,7 +79,6 @@ fs::path server_instance_config_t::find_server_path()
         //  when the server_instance_t is used outside of test scope (eg. gaiac).
         //  This logic (find_server_path) is only for testing and should be decoupled from
         //  the server_instance_t.
-        //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-960
         return {};
     }
 

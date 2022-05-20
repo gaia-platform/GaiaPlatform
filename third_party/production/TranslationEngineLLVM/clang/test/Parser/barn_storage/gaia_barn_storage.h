@@ -16,7 +16,7 @@
 //  - -I/home/simone/repos/GaiaPlatform/third_party/production/flatbuffers/include
 //  - -I/home/simone/repos/GaiaPlatform/production/inc/
 //  - -I/home/simone/repos/GaiaPlatform/production/cmake-build-gaiarelease-release-llvmtests/gaia_generated/barn_storage
-//   Note: many of the import problems comes from the "flatbuffers" import... If only we could get rid of them... (GAIAPLAT-681)
+//   Note: many of the import problems comes from the "flatbuffers" import.
 
 namespace gaia {
 namespace barn_storage {

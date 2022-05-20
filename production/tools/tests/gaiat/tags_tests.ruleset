@@ -32,7 +32,6 @@ ruleset test3
     }
 }
 
-// GAIAPLAT-855 (fixed)
 ruleset test4 : tables(actuator, incubator)
 {
     on_insert(I:incubator)
@@ -55,7 +54,6 @@ ruleset test5
     }
 }
 
-// GAIAPLAT-855 (fixed)
 ruleset test6 : tables(actuator)
 {
     // One field.
@@ -96,7 +94,6 @@ ruleset test9
     }
 }
 
-// GAIAPLAT-855 (fixed)
 ruleset test10 : tables(sensor)
 {
     on_update(S:sensor)
@@ -141,7 +138,6 @@ ruleset test14
     }
 }
 
-// GAIAPLAT-829 (fixed)
 ruleset test16
 {
     on_update(animal)
@@ -158,7 +154,6 @@ ruleset test16
     }
 }
 
-// GAIAPLAT-829 (fixed)
 ruleset test17
 {
     on_update(raised)
@@ -172,7 +167,6 @@ ruleset test17
     }
 }
 
-// GAIAPLAT-829 (fixed)
 ruleset test18
 {
     on_update(raised)
@@ -188,7 +182,6 @@ ruleset test18
     }
 }
 
-// GAIAPLAT-829 (fixed)
 ruleset test19
 {
     on_update(raised)
@@ -205,7 +198,6 @@ ruleset test19
     }
 }
 
-// GAIAPLAT-829 (fixed)
 ruleset test20
 {
     on_update(incubator)
@@ -219,7 +211,6 @@ ruleset test20
     }
 }
 
-// GAIAPLAT-829 (fixed)
 ruleset test21
 {
     on_update(incubator)
@@ -246,7 +237,7 @@ ruleset test23
 
 ruleset test24
 {
-    // GAIAPLAT-921 (fixed)
+    // Test that C-style comments do not confuse the translation engine.
     /*
     on_update(incubator)
     {

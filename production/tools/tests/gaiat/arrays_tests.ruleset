@@ -45,7 +45,6 @@ ruleset test3
     }
 }
 
-// GAIAPLAT-1999
 // TESTCASE: using a field value to index a scalar array field
 ruleset test4
 {

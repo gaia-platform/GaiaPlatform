@@ -7,7 +7,6 @@ project(tools)
 
 if(BUILD_GAIA_SDK)
   # clang-tidy takes 1:10 minutes on gaiat, for this reason, it is disabled for non-Debug builds.
-  # TODO Created this task to find a better solution: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1169
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     unset(CMAKE_CXX_CLANG_TIDY)
   endif()

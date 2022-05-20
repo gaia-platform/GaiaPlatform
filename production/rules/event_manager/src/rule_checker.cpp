@@ -149,8 +149,9 @@ void rule_checker_t::check_fields(const catalog::gaia_table_t& gaia_table, const
             if (gaia_field.position() == requested_position)
             {
                 // If the field is deprecated, then we should not be able to subscribe to it.
-                // TODO[GAIAPLAT-622] If we ever add a "strict" mode to the database, then we
-                // should reinstate checking for active fields.
+                // We also have an "active" attribute for a field that would track whether changes
+                // to that column should be allowed to fire a rule.  If we want to enable a "strict"
+                // mode then we could add that check here.
                 if (gaia_field.deprecated())
                 {
                     throw invalid_subscription_internal(

@@ -194,7 +194,6 @@ protected:
 
 TEST_F(tools__gaia_translate__queries__test, basic_implicit_navigation)
 {
-    // GAIAPLAT-1211
     mini_pop();
     // populate_db();
 

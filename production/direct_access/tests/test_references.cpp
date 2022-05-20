@@ -991,7 +991,6 @@ TEST_F(direct_access__references__test, test_temporary_object)
     employee_t emp = employee_t::get(ew.insert_row());
 
     // Ensure that we can pass a temporary object to the insert method.
-    // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1167
     emp.addresses().insert(address_t::get(address_t::insert_row("", "", "", "", "", "", true)));
 
     commit_transaction();

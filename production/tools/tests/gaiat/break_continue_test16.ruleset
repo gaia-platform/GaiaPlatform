@@ -37,4 +37,3 @@ ruleset test4
 
 // CHECK: Use of non-declarative 'break' in declarative statements may not break out of a declarative loop. Consider adding a label to the declarative loop and using 'break label' instead.
 // CHECK: Use of non-declarative 'continue' in declarative statements may not continue to the next iteration in a declarative loop. Consider adding a label to the declarative loop and using 'continue label' instead
-// GAIAPLAT-1083 (fixed)

@@ -254,8 +254,7 @@ DROP TABLE airports_copy;
 -- We do this in chunks, to avoid hitting the limit on the number of records
 -- that can be updated in a single transaction.
 --
--- Changing this back to a single bulk-insert operation is tracked by:
--- https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2090
+-- Once we have a bulk-insert solution, we won't need to break the inserts into chunks of records.
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
 SELECT

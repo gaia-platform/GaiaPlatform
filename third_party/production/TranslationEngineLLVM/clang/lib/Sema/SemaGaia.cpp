@@ -660,7 +660,6 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
 
     targetTypes.push_back(implicitTargetTypeDecl);
 
-    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, must ask the Catalog for it.
     // Lookup the EDC class type.
     auto edcClassName = table_facade_t::class_name(targetTableName);
     // llvm::SmallString<20> edcTableTypeName = edcClassName;
@@ -891,7 +890,6 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         const auto& linkData = link.second;
 
         // For now, connect/disconnect is supported only from the parent side
-        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1190
         if (linkData.isFromParent)
         {
             QualType type = getLinkType(link.first(), tableName, linkData.targetTable

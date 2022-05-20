@@ -23,5 +23,3 @@ ruleset test58
 }
 
 // CHECK: 'incubator' table in the explicit path has no relationship to 'farmer'
-// GAIAPLAT-1118
-// GAIAPLAT-1199 (fixed)

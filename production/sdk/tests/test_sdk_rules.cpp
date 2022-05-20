@@ -66,7 +66,7 @@ TEST_F(sdk__test, rule_subscribe_unsubscribe)
         w.name_first = "Public";
         w.name_last = "Headers";
         w.insert_row();
-        // [GAIAPLAT-1205]:  We now do not fire an event if
+        // We now do not fire an event if
         // the anchor row has been deleted.
         // employee_t e = employee_t::get(id);
         // e.delete_row();
