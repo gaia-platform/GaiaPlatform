@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 """
 Script to translate a test's output.json file into a output.csv file.
-
-Copyright (c) Gaia Platform LLC
-All rights reserved.
 """
 
 import json

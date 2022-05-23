@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 """
 Script to calculate the test_summary.json file for a suite of tests that were run.
-
-Copyright (c) Gaia Platform LLC
-All rights reserved.
 """
 
 import json

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 # Show how this script can be used.
 show_usage() {

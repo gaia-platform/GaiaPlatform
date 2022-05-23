@@ -1,7 +1,10 @@
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 template <typename T_structure, typename T_index_it>
 index_iterator_t<T_structure, T_index_it>::index_iterator_t(base_index_t* db_idx, T_index_it it, T_index_it end_it)

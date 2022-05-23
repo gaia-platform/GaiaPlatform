@@ -1,7 +1,10 @@
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 # Translation Engine tests.  These tests invoke gaiat on different rulesets
 # to examine multiple corner case scenarios that can't be covered in unittests

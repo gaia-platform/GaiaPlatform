@@ -148,10 +148,13 @@ As script files may also need to start with the [shebang](https://en.wikipedia.o
 ```Python
 #!/usr/bin/env python3
 
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 """
 ```
@@ -165,10 +168,13 @@ This is the prefix that all Python files are checked for, except in the one case
 | https://github.com/pre-commit/pre-commit-hooks | python_non_executable_license_check |
 
 ```Python
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 ```
 
@@ -184,10 +190,13 @@ That file is used to provide configuration for the `lit` testing framework, and 
 ```Python
 #!/usr/bin/env bash
 
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 ```
 
@@ -200,10 +209,13 @@ This is the prefix that all Bash files are checked against.
 | https://github.com/pre-commit/pre-commit-hooks | cmake_license_check |
 
 ```python
-#############################################
+###################################################
 # Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
+#
+# Use of this source code is governed by the MIT
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
+###################################################
 
 ```
 
@@ -216,10 +228,13 @@ This is the prefix that all `*.cmake` and `CMakeLists.txt` files are checked aga
 | https://github.com/pre-commit/pre-commit-hooks | db_license_check |
 
 ```sql
----------------------------------------------
+----------------------------------------------------
 -- Copyright (c) Gaia Platform LLC
--- All rights reserved.
----------------------------------------------
+--
+-- Use of this source code is governed by the MIT
+-- license that can be found in the LICENSE.txt file
+-- or at https://opensource.org/licenses/MIT.
+----------------------------------------------------
 
 ```
 
@@ -232,10 +247,13 @@ This is the prefix that all `*.ddl` and `*.sql` files are checked against.
 | https://github.com/pre-commit/pre-commit-hooks | db_license_check |
 
 ```cpp
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 ```
 
