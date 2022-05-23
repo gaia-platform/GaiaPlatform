@@ -10,9 +10,6 @@
 
 """
 Script to calculate the test_summary.json file for a suite of tests that were run.
-
-Copyright (c) Gaia Platform LLC
-All rights reserved.
 """
 
 import json

@@ -57,7 +57,7 @@ repos:
       language: python
       args:
         - --prefix
-        - "#!/usr/bin/env python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
+        - "#!/usr/bin/env python3\n\n###################################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
       exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))|(^.+\_\_init\_\_\.py)
 
     - id: python_non_executable_license_check
