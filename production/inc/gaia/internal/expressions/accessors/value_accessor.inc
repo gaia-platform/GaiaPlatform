@@ -1,7 +1,10 @@
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 template <typename T_bind, typename T_boxed, typename T_return>
 value_accessor_t<T_bind, T_boxed, T_return>::value_accessor_t(const T_boxed& value)

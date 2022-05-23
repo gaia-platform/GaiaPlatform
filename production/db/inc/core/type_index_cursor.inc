@@ -1,7 +1,10 @@
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 type_index_cursor_t::type_index_cursor_t(type_index_t* type_index, common::gaia_type_t type)
     : m_type_index(type_index), m_prev_node(nullptr), m_type(type)

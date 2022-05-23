@@ -1,7 +1,10 @@
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 template <typename T_bind, typename T_return, typename T_operand, typename T_token>
 unary_expression_t<T_bind, T_return, T_operand, T_token>::unary_expression_t(

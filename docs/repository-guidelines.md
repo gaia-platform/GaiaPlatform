@@ -232,10 +232,13 @@ This is the prefix that all `*.ddl` and `*.sql` files are checked against.
 | https://github.com/pre-commit/pre-commit-hooks | db_license_check |
 
 ```cpp
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 ```
 
