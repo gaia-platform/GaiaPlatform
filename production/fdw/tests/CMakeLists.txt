@@ -39,7 +39,7 @@ if(EXECUTE_FDW_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/airport_setup.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/airport_test.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/airport_expected.txt " "
-        ${GAIA_REPO}/data/internal/airport)
+        ${CMAKE_CURRENT_SOURCE_DIR}/airport)
 
     # Add a test to execute our test scripts.
     # We use the test infrastructure to execute the script
