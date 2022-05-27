@@ -38,7 +38,6 @@
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
 #include "persistence_types.hpp"
-#include "txn_metadata.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
