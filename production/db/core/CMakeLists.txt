@@ -115,6 +115,7 @@ target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
 target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_common)
+add_dependencies(rocks_wrapper ${FBS_SOURCE_FILENAMES})
 
 # Liburing
 # Choose static version of the library.
@@ -144,7 +145,7 @@ target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${GEN_DIR}")
 target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
 # Only need util, not all of rocks.
 target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
-add_dependencies(gaia_db_persistence gaia_common)
+add_dependencies(gaia_db_persistence gaia_common ${FBS_SOURCE_FILENAMES})
 
 set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
