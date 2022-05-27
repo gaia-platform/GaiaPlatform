@@ -148,4 +148,3 @@ Note that Clion expects a `CMakeLists.txt` at the root of the project. We don't 
    - Press the play button on the left of each test.
 4. Modify
    - Add `EXPECT_EQ(true, false)` to any test, press the play button, observe the test being compiled, executed and the obvious failure.
-
