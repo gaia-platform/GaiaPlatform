@@ -535,8 +535,8 @@ void server_t::handle_request_stream(
         case index_query_t::index_range_query_t:
         {
             bool apply_logs = false;
-            create_local_snapshot(apply_logs);
-            auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+            create_or_refresh_local_snapshot(apply_logs);
+            auto cleanup_local_snapshot = make_scope_guard([]() { local_snapshot_locators().close(); });
 
             std::optional<index::index_key_t> lower_bound_key, upper_bound_key;
             auto query = request_data->query_as_index_range_query_t();

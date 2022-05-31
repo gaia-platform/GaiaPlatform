@@ -46,15 +46,7 @@ public:
 
     // flatbuffers query object.
     // By default, returns empty flatbuffers union.
-<<<<<<< HEAD
-    virtual serialized_index_query_t as_query(common::gaia_id_t index_id, flatbuffers::FlatBufferBuilder& fbb) const;
-    const index::index_key_t& key() const;
-
-protected:
-    index::index_key_t m_key;
-=======
     virtual serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& fbb) const;
->>>>>>> INDEX: Internal APIs for range queries on index
 };
 
 // Point read predicate for indexes.
@@ -66,15 +58,11 @@ public:
     ~index_point_read_predicate_t() override = default;
 
     gaia::db::messages::index_query_t query_type() const override;
-<<<<<<< HEAD
-    serialized_index_query_t as_query(common::gaia_id_t index_id, flatbuffers::FlatBufferBuilder& fbb) const override;
-=======
     serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& fbb) const override;
     const index::index_key_t& key() const;
 
 private:
     index::index_key_t m_key;
->>>>>>> INDEX: Internal APIs for range queries on index
 };
 
 // Equal range predicate for indexes.
@@ -86,9 +74,6 @@ public:
     ~index_equal_range_predicate_t() override = default;
 
     gaia::db::messages::index_query_t query_type() const override;
-<<<<<<< HEAD
-    serialized_index_query_t as_query(common::gaia_id_t index_id, flatbuffers::FlatBufferBuilder& builder) const override;
-=======
     serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& builder) const override;
     const index::index_key_t& key() const;
 
@@ -127,7 +112,6 @@ private:
     common::gaia_id_t m_index_id;
     range_bound_t m_lower_bound;
     range_bound_t m_upper_bound;
->>>>>>> INDEX: Internal APIs for range queries on index
 };
 
 } // namespace scan
