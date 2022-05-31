@@ -91,7 +91,7 @@ public:
 
 private:
     std::optional<index::index_key_t> m_key;
-    bool m_inclusive;
+    bool m_is_inclusive;
 };
 
 // Range predicate for indexes.

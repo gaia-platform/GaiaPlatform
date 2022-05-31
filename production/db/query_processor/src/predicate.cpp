@@ -101,7 +101,7 @@ const index::index_key_t& index_point_read_predicate_t::key() const
 }
 
 range_bound_t::range_bound_t(std::optional<index::index_key_t> index_key, bool is_inclusive)
-    : m_key(index_key), m_inclusive(is_inclusive)
+    : m_key(index_key), m_is_inclusive(is_inclusive)
 {
 }
 
@@ -111,7 +111,7 @@ const std::optional<index::index_key_t>& range_bound_t::key() const
 }
 bool range_bound_t::is_inclusive() const
 {
-    return m_inclusive;
+    return m_is_inclusive;
 }
 
 index_range_predicate_t::index_range_predicate_t(gaia_id_t index_id, range_bound_t lower_bound, range_bound_t upper_bound)
