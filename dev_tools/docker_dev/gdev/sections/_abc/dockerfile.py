@@ -61,7 +61,7 @@ class GenAbcDockerfile(GdevAction):
         """
 
         base_stages_text = dedent(
-            fr"""
+            rf"""
             #syntax=docker/dockerfile-upstream:master-experimental
 
             # Static definition of base stages.

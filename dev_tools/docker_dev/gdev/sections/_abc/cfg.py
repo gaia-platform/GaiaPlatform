@@ -50,7 +50,7 @@ class GenAbcCfg(GdevAction):
         Get the regex pattern that identifies the beginning of the section.
         """
 
-        begin_pattern = re.compile(fr"^\[{self.section_name}]$")
+        begin_pattern = re.compile(rf"^\[{self.section_name}]$")
         self.log.debug("begin_pattern = %s", begin_pattern)
         return begin_pattern
 

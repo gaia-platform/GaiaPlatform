@@ -47,6 +47,8 @@ runs:
     - name: Build Docker Image
       shell: bash
       run: |
+        if pgrep ssh-agent; then pkill ssh-agent; fi
+        ssh-agent -a $SSH_AUTH_SOCK > /dev/null 2>&1
         CFG_ENABLES=
         if [ "${{ inputs.build-flavor }}" != "" ] ; then
           CFG_ENABLES="$CFG_ENABLES --cfg-enables ${{ inputs.build-flavor}}"

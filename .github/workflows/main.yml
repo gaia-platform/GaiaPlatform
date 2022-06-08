@@ -16,7 +16,7 @@ env:
 jobs:
 
   Lint:
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -31,7 +31,7 @@ jobs:
   Core:
     needs:
       - Lint
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -55,7 +55,7 @@ jobs:
     needs:
       - Lint
     if: github.event_name != 'pull_request'
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -78,7 +78,7 @@ jobs:
   Debug_Core:
     needs:
       - Core
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     if: ${{ false }}
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -103,7 +103,7 @@ jobs:
     needs:
       - Core
     if: github.event_name != 'pull_request'
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -127,7 +127,7 @@ jobs:
       - Lint
     if: ${{ false }}
     timeout-minutes: 200
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -147,7 +147,7 @@ jobs:
     needs:
       - Lint
     if: ${{ false }}
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -170,9 +170,9 @@ jobs:
   Integration_Tests:
     needs:
       - SDK
-    # if: github.event_name != 'pull_request'
+    #if: github.event_name != 'pull_request'
     if: ${{false}}
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -217,7 +217,7 @@ jobs:
 #    Disabled due to inability to load libunwind.so.1 with Debug SDK.
 #    if: github.event_name != 'pull_request'
     if: ${{ false }}
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -256,7 +256,7 @@ jobs:
       - Integration_Tests
     # if: github.event_name != 'pull_request'
     if: ${{false}}
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -292,7 +292,7 @@ jobs:
 
   Integration_Samples:
     needs: SDK
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -314,6 +314,8 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
+          if pgrep ssh-agent; then pkill ssh-agent; fi
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null 2>&1
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
             --verbose \
             --job-name $GITHUB_JOB \
@@ -332,7 +334,7 @@ jobs:
     needs:
       - Lint
     if: ${{ false }}
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -357,7 +359,7 @@ jobs:
 #      - Performance_Tests
       - Integration_Samples
 #      - Documentation
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     steps:
       - uses: geekyeggo/delete-artifact@v1
         with:

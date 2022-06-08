@@ -125,7 +125,7 @@ Each of our jobs is built on a standard Ubuntu:20.04 system.
 To keep things simple, any specialization of jobs for different environments is done within the docker builds.
 
 ```YAML
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
 ```
 
 ### Environment Variables
@@ -299,7 +299,7 @@ This is required to pull the latest version from GitHub's image store:
 ```YAML
       - name: Pull Latest Dev-Core Image
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null 2>&1
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull ghcr.io/gaia-platform/dev-base:latest
 ```
