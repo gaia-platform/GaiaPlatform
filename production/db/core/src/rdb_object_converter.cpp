@@ -8,10 +8,7 @@
 
 #include "rdb_object_converter.hpp"
 
-#include "db_helpers.hpp"
-#include "db_internal_types.hpp"
 #include "db_object_helpers.hpp"
-#include "persistent_store_manager.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
