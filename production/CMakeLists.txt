@@ -15,7 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 enable_testing()
 
-project(production VERSION 0.5.0)
+project(production VERSION 0.6.0)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.

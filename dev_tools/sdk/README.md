@@ -13,14 +13,14 @@ When we are ready to release a new version of Gaia this is the process to follow
    ```shell
     git checkout -b gaia-release-0.3.0-beta
     ```
-3. Bump the project version in the [production/CMakeLists.txt](production/CMakeLists.txt) according to Semantic Versioning 2.0 spec. Note that Major version bumps should involve consultation with a number of folks across the team.
+3. Bump the project version in the [production/CMakeLists.txt](../../production/CMakeLists.txt) according to Semantic Versioning 2.0 spec. Note that Major version bumps should involve consultation with a number of folks across the team.
    ```cmake
    # From
    project(production VERSION 0.2.5)
    # To
    project(production VERSION 0.3.0)
    ```
-4. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](production/CMakeLists.txt). For GA releases leave the `PRE_RELEASE_IDENTIFIER` empty.
+4. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](../../production/CMakeLists.txt). For GA releases leave the `PRE_RELEASE_IDENTIFIER` empty.
    ```cmake
    # From
    set(PRE_RELEASE_IDENTIFIER "alpha")
