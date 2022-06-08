@@ -36,7 +36,7 @@ class GenAbcDockerfile(Dependency, ABC):
     @memoize
     async def get_base_stages_text(self) -> str:
         base_stages_text = dedent(fr'''
-            #syntax=docker/dockerfile-upstream:main-experimental
+            #syntax=docker/dockerfile-upstream:master-experimental
 
             # Static definition of base stages.
             FROM {self.options.base_image} AS base

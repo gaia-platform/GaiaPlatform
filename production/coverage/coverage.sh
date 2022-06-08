@@ -163,7 +163,7 @@ if ! "${GDEV_WRAPPER}" dockerfile --cfg-enables Coverage > "${REPO_ROOT_DIR}/pro
     complete_process 1 "Unable to generate raw dockerfile for coverage run."
 fi
 
-if ! "$SCRIPTPATH/copy_after_line.py" --input-file "$REPO_ROOT_DIR/production/raw_dockerfile" --output-file "$REPO_ROOT_DIR/production/dockerfile" --start-line "#syntax=docker/dockerfile-upstream:main-experimental" ; then
+if ! "$SCRIPTPATH/copy_after_line.py" --input-file "$REPO_ROOT_DIR/production/raw_dockerfile" --output-file "$REPO_ROOT_DIR/production/dockerfile" --start-line "#syntax=docker/dockerfile-upstream:master-experimental" ; then
     complete_process 1 "Unable to generate dockerfile for coverage run."
 fi
 
