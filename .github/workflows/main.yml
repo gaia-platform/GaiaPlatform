@@ -102,7 +102,9 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    if: github.event_name != 'pull_request'
+    # Re-enable after running a job to clean up disk space.
+    # if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
