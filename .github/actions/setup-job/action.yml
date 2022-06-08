@@ -1,6 +1,6 @@
 # Title:      Setup Action
 # Purpose:    To do the heavy lifting of getting jobs setup that require a developer image.
-# Prereqs:    - `actions/checkout@master`
+# Prereqs:    - `actions/checkout@main`
 # Inputs:     - `docker-user` - docker user to log into the docker repository with
 #             - `docker-password` - docker password corresponding to the `docker-user`
 # Notes:      - if the `docker-user` input is provided, the image will be downloaded from the repository

@@ -48,13 +48,13 @@ std::string gaia_full_version(bool include_git)
     // TODO: ATM this is never true, we need to decide how/when to expose the git hash.
     if (include_git)
     {
-        if (strcmp(c_gaia_local_git_hash, c_gaia_master_git_hash) == 0)
+        if (strcmp(c_gaia_local_git_hash, c_gaia_main_git_hash) == 0)
         {
-            version += "(" + std::string(c_gaia_master_git_hash) + ")";
+            version += "(" + std::string(c_gaia_main_git_hash) + ")";
         }
         else
         {
-            version += " (master:" + std::string(c_gaia_master_git_hash) + " local:" + std::string(c_gaia_local_git_hash) + ")";
+            version += " (main:" + std::string(c_gaia_main_git_hash) + " local:" + std::string(c_gaia_local_git_hash) + ")";
         }
     }
 

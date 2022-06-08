@@ -351,14 +351,14 @@ Once any changes have been verified locally, passing local tests and verifying t
 
 The repository's GitHub workflows can be leveraged for these three main usage patterns:
 
-1. before a *Pull Request* is created, using a manual workflow trigger on a non-`master` branch
-1. as part of a *Pull Request* against the `master` branch
-1. as part of merging a *Pull Request* against the `master` branch
+1. before a *Pull Request* is created, using a manual workflow trigger on a non-`main` branch
+1. as part of a *Pull Request* against the `main` branch
+1. as part of merging a *Pull Request* against the `main` branch
 
 #### Before a Pull Request
 
 Some developers have expressed a need to externally verify that their changes work properly and do not have unintended side effects.
-While our configuration does not automatically kick off GitHub workflows when changes are pushed to non-`master` branches of the main repository, they can be started using the process described on [this GitHub webpage](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow).
+While our configuration does not automatically kick off GitHub workflows when changes are pushed to non-`main` branches of the main repository, they can be started using the process described on [this GitHub webpage](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow).
 When executed in this fashion, the workflow will execute all jobs contained within the workflow.
 While this may be overkill in some cases, the developer may cancel the workflow at any time during its execution.
 In this way, developers can execute as many or as few of the extra checks as they require for their particular situation.
@@ -375,7 +375,7 @@ As a reviewer, it is at your discretion as to whether you approve a Pull Request
 #### Part of Merging a Pull Request
 
 Once the merging conditions for the repository are met, the `Squash and Merge` button will be enabled and the branch that is under review will be merged.
-That merge action triggers the execution of the full workflow against the `master` branch with the new changes applied to it.
+That merge action triggers the execution of the full workflow against the `main` branch with the new changes applied to it.
 
 #### Looking at the GitHub Workflow in Action
 

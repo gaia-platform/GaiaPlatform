@@ -21,7 +21,7 @@ jobs:
         suite-name: [mink-perf,pingpong-perf,marcopolo-perf,palletbox-perf]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Create Directory To Host Install Package Cache
         shell: bash

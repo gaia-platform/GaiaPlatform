@@ -27,11 +27,11 @@ constexpr char c_gaia_pre_release[] = "@PRE_RELEASE_IDENTIFIER@";
 constexpr char c_gaia_build_number[] = "@BUILD_NUMBER@";
 
 // Tracks both the tip of the local branch and the latest
-// commit from master because the tip of the local branch
+// commit from main because the tip of the local branch
 // may not be pushed to remote. Only commits that are
 // pushed to remote are useful for tracking purposes.
 constexpr char c_gaia_local_git_hash[] = "@GIT_HEAD_HASH@";
-constexpr char c_gaia_master_git_hash[] = "@GIT_MASTER_HASH@";
+constexpr char c_gaia_main_git_hash[] = "@GIT_MAIN_HASH@";
 
 // True if this is a CI build (eg. TeamCity).
 constexpr bool c_is_ci_build = @IS_CI_BUILD@;
@@ -51,12 +51,12 @@ std::string gaia_version();
  * - pre_release is absent for GA release.
  * - The build format is different for CI builds and local builds.
  * - The git_commit may be two different commits if
- *   local_commit != master_commit.
+ *   local_commit != main_commit.
  *
  * Eg:
  * - 0.1.0-beta+123
  * - 0.1.0-beta+123 (bb5e5e574)
- * - 0.1.0-beta+simone.20210902102212 (master:bb5e5e574 local:3e70ddea7)
+ * - 0.1.0-beta+simone.20210902102212 (main:bb5e5e574 local:3e70ddea7)
  */
 std::string gaia_full_version(bool include_git = !c_is_ci_build);
 

@@ -1,5 +1,5 @@
 # SDK Sanity Test
-This contents of this folder run a sanity check on the SDK debian package built from the *master* branch.
+This contents of this folder run a sanity check on the SDK debian package built from the *main* branch.
 
 The check is done by creating a clean `Ubuntu 20.04` image, installing the SDK, building the samples, and running them.  If any step fails in this process then Teamcity will flag the job as failed.
 
@@ -16,5 +16,5 @@ docker build --no-cache -t gaia_sdk_20 -f Dockerfile_gaia_sdk_20 .
 ```
 In the above job, two docker images are created:
 
-1. We are building a base `Ubuntu 20.04` image and then installing base requirements no top of that. See [Dockerfile_gaia_ubuntu_20](https://github.com/gaia-platform/GaiaPlatform/blob/master/dev_tools/sdk/test/Dockerfile_gaia_ubuntu_20).
-1. We are then installing our SDK on top of this image, building the samples, and executing them. See [Dockerfile_gaia_sdk_20](https://github.com/gaia-platform/GaiaPlatform/blob/master/dev_tools/sdk/test/Dockerfile_gaia_sdk_20).
+1. We are building a base `Ubuntu 20.04` image and then installing base requirements no top of that. See [Dockerfile_gaia_ubuntu_20](https://github.com/gaia-platform/GaiaPlatform/blob/main/dev_tools/sdk/test/Dockerfile_gaia_ubuntu_20).
+1. We are then installing our SDK on top of this image, building the samples, and executing them. See [Dockerfile_gaia_sdk_20](https://github.com/gaia-platform/GaiaPlatform/blob/main/dev_tools/sdk/test/Dockerfile_gaia_sdk_20).
