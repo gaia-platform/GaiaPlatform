@@ -13,7 +13,7 @@ We have two ways to build the configurations listed above:
 1. Using docker and our `gdev` tool: this is what our TeamCity Continuous Integration servers use to build and run tests in a consistent "approved" environment.
 1. Using your own local environment:  this enables you to build outside of docker using your own environment and tools.
 
-The remainder of this document will focus on #2:  building in your own local environment outside of a docker container.  For instructions on how to use `gdev` on your local machine, please see: [gdev docker build CLI README](https://github.com/gaia-platform/GaiaPlatform/blob/main/dev_tools/gdev/README.md).
+The remainder of this document will focus on #2:  building in your own local environment outside of a docker container.  For instructions on how to use `gdev` on your local machine, please see: [gdev docker build CLI README](../dev_tools/gdev/README.md).
 
 For instructions on how to setup your environment, please see our *New Hire Guidelines* document on our GaiaPlatform wiki.
 
@@ -32,7 +32,7 @@ If `CMAKE_BUILD_TYPE` is not specified on the command line, then by default we a
 cmake -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_SDK=ON ..
 make -j<number of CPUs>
 ```
-To install CPackDebHelper, you can follow the steps in the CPackDebHelper [gdev.cfg](https://github.com/gaia-platform/GaiaPlatform/blob/main/third_party/production/CPackDebHelper/gdev.cfg) file. Note that you can specify your own path to the CPackDebHelper `cmake` module depending upon where you install it.
+To install CPackDebHelper, you can follow the steps in the CPackDebHelper [gdev.cfg](../third_party/production/CPackDebHelper/gdev.cfg) file. Note that you can specify your own path to the CPackDebHelper `cmake` module depending upon where you install it.
 
 If `BUILD_GAIA_SDK` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `Release`. This is done by default because debug builds of LLVM take much longer than retail builds.  We've also seen some of our local dev machines run out of memory when attempting to do debug LLVM builds.
 

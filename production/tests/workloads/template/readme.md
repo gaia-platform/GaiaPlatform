@@ -49,7 +49,7 @@ That input assumes that the `template` workload will specify a `smoke` mode and 
 
 There are four files that are usually found in each test directory, two are mandatory and two are optional.
 
-The required `test.properties` file, as documented in the [Barebones workload](https://github.com/gaia-platform/GaiaPlatform/blob/main/production/tests/workloads/barebones/readme.md#test-properties-file), describes the test being executed. Also required, the `commands.txt` file provides for a file that is provided by standard input to the application.  This is allows for a single application to alter its behavior based on input that it defines.  This also keeps the specification of "what should my test do" as generic as possible.  It works, because it is up to the application to determine what the contents passed through to standard input mean.
+The required `test.properties` file, as documented in the [Barebones workload](../barebones/readme.md#test-properties-file), describes the test being executed. Also required, the `commands.txt` file provides for a file that is provided by standard input to the application.  This is allows for a single application to alter its behavior based on input that it defines.  This also keeps the specification of "what should my test do" as generic as possible.  It works, because it is up to the application to determine what the contents passed through to standard input mean.
 
 Not required, but highly recommended, is an optional `readme.md` file, providing:
 
@@ -146,7 +146,7 @@ It is within this function that any generation of results outside of the appplic
 
 ### Test Results Directory
 
-The contract for the contents of the `test-results` directory for this workload are the same as they are for the[Barebones workload](https://github.com/gaia-platform/GaiaPlatform/blob/main/production/tests/workloads/barebones/readme.md#workload-output).  The main difference is that the contents of this workload do a certain amount of the heavy lifting to produce the required end results.
+The contract for the contents of the `test-results` directory for this workload are the same as they are for the [Barebones workload](../barebones/readme.md#workload-output).  The main difference is that the contents of this workload do a certain amount of the heavy lifting to produce the required end results.
 
 To start with, the `test.properties` and `workload.properties` files are automatically copied into the `test-results` directory.  The `test.properties` file is copied from the `tests` directory and the `workload.properties` is copied from the root workload directory. No extra effort is required.
 
