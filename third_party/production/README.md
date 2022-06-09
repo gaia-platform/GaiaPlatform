@@ -1,5 +1,5 @@
 # third_party/production
-This is third-party code that is approved for production use.
+This is third-party code that is used by Gaia Platform.
 
 ## flatbuffers
 
@@ -7,7 +7,7 @@ Last pulled on 02/27/2020, hash c9a30c9c.
 
 This is the google flatbuffers serialization library.
 
-No install is needed because we user our cmake process to build flatbuffers when needed.
+No install is needed because we use our cmake process to build flatbuffers when needed.
 
 For installing the python libraries, go to python subfolder and execute ```sudo python setup.py install```.
 
