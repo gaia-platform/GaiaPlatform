@@ -1,11 +1,11 @@
 # licenses
 This is a folder for collecting license information for third-party code that is used by the shipped production code. Each instance should be documented in this file.
 
-The license notices that have to be distributed with our code are collected in [LICENSE.third-party.txt](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/licenses/LICENSE.third-party.txt).
+The license notices that have to be distributed with our code are collected in [LICENSE.third-party.txt](LICENSE.third-party.txt).
 
 Hence, whenever a dependency on a new third-party component is added, you should do the following:
 * Add an entry to the list in this file.
-* If necessary, update [LICENSE.third-party.txt](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/licenses/LICENSE.third-party.txt) to add a new license text.
+* If necessary, update [LICENSE.third-party.txt](LICENSE.third-party.txt) to add a new license text.
 
 # Third-party Components
 

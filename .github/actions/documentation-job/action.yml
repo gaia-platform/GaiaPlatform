@@ -44,7 +44,7 @@ runs:
         destination-github-username: gaia-platform
         destination-repository-name: test
         user-email: jack@gaiaplatform.io
-        target-branch: master
+        target-branch: main
 
     - name: Upload Output Files
       if: ${{ false }}

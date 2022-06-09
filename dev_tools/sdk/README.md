@@ -4,9 +4,9 @@
 
 When we are ready to release a new version of Gaia this is the process to follow:
 
-1. Ensure you are on `master` and have the latest changed:
+1. Ensure you are on `main` and have the latest changed:
    ```shell
-   git checkout master
+   git checkout main
    git pull
    ```
 2. Create a branch for the version to release:
@@ -32,12 +32,12 @@ When we are ready to release a new version of Gaia this is the process to follow
    git add -u
    git commit -m "Bump Gaia version to 0.3.0-beta"
    git push --set-upstream origin gaia-release-0.3.0-beta
-   # Create a PR to push the change into master.
+   # Create a PR to push the change into main.
    ```
 6. Create a tag reflecting the new version:
    ```shell
    # Pull the version change after the PR is approved and merged.
-   git checkout master
+   git checkout main
    git pull
    # Create and push the version tag.
    git tag v0.3.0-beta

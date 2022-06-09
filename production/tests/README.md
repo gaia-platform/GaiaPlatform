@@ -21,7 +21,7 @@ focus on one of those four goals.
 
 This framework provides performance and integration tests that can be
 part of a CI/CD pipeline.  It is a version of the
-[Incubator example](https://github.com/gaia-platform/GaiaPlatform/tree/master/production/examples/incubator)
+[Incubator example](https://github.com/gaia-platform/GaiaPlatform/tree/main/production/examples/incubator)
 altered for testing purposes.  Because of the multithreaded nature of
 the product, a lot of the testing centers on performance
 testing, and that is a big concern.  However, in cases where correctness

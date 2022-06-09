@@ -7,7 +7,7 @@
 ###################################################
 
 option(GIT_HEAD_HASH "Hash of the current commit.")
-option(GIT_MASTER_HASH "Hash of the latests origin/master commit.")
+option(GIT_MAIN_HASH "Hash of the latests origin/main commit.")
 
 # CI builds will not be able to produce the git hash because
 # the source is copied without the Git info.
@@ -32,24 +32,24 @@ if (NOT GIT_HEAD_HASH)
     endif()
 endif()
 
-if (NOT GIT_MASTER_HASH)
+if (NOT GIT_MAIN_HASH)
 
     find_package(Git)
 
-    # Get the latest git hash from master merged into the current branch.
+    # Get the latest git hash from main merged into the current branch.
     execute_process(
     COMMAND
-        ${GIT_EXECUTABLE} rev-parse --short origin/master
+        ${GIT_EXECUTABLE} rev-parse --short origin/main
     RESULT_VARIABLE
         STATUS
     OUTPUT_VARIABLE
-        GIT_MASTER_HASH
+        GIT_MAIN_HASH
     )
 
     if (NOT ${STATUS} EQUAL 0)
-        set(GIT_MASTER_HASH "not-found")
+        set(GIT_MAIN_HASH "not-found")
     else()
-        string(REGEX REPLACE "\n" "" GIT_MASTER_HASH "${GIT_MASTER_HASH}")
+        string(REGEX REPLACE "\n" "" GIT_MAIN_HASH "${GIT_MAIN_HASH}")
     endif()
 endif()
 

@@ -3,10 +3,10 @@ name: Main
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 env:
@@ -21,7 +21,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Execute Static Analysis Checks
         uses: ./.github/actions/lint-job
@@ -36,7 +36,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Setup Action
         uses: ./.github/actions/setup-job
@@ -60,7 +60,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Setup Action
         uses: ./.github/actions/setup-job
@@ -84,7 +84,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Setup Action
         uses: ./.github/actions/setup-job
@@ -102,13 +102,15 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    if: github.event_name != 'pull_request'
+    # Re-enable after running a job to clean up disk space.
+    # if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
       - name: Setup Action
         uses: ./.github/actions/setup-job
 
@@ -132,7 +134,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Setup Action
         uses: ./.github/actions/setup-job
@@ -152,7 +154,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Setup Action
         uses: ./.github/actions/setup-job
@@ -183,7 +185,7 @@ jobs:
         suite-name: [smoke,marcopolo,pingpong,palletbox]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Create Directory To Host Install Package Cache
         shell: bash
@@ -228,7 +230,7 @@ jobs:
         suite-name: [smoke,marcopolo,pingpong]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Create Directory To Host Install Package Cache
         shell: bash
@@ -267,7 +269,7 @@ jobs:
         suite-name: [mink-perf,pingpong-perf,marcopolo-perf,palletbox-perf]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Create Directory To Host Install Package Cache
         shell: bash
@@ -298,7 +300,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Setup Python 3.8
         uses: actions/setup-python@v2
@@ -339,7 +341,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Build Documentation
         uses: ./.github/actions/documentation-job

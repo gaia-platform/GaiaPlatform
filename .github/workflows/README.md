@@ -31,9 +31,9 @@ The other half of that statement is based on experience and observation that mos
 
 Based on experience, there are three main usage patterns for executing the main workflow:
 
-1. A manually triggered build against a non-`master` branch, to verify that a change works properly and does not have unintended side effects.
-1. As part of a *Pull Request* against `master`, to assure the reviewer that (at the very least) basic steps have been undertaken to verify that the code is correct.
-1. As part of a *Push* against `master`, to verify that the change works properly once combined with everyone else's work.
+1. A manually triggered build against a non-`main` branch, to verify that a change works properly and does not have unintended side effects.
+1. As part of a *Pull Request* against `main`, to assure the reviewer that (at the very least) basic steps have been undertaken to verify that the code is correct.
+1. As part of a *Push* against `main`, to verify that the change works properly once combined with everyone else's work.
 
 These usage patterns are supported in the `main.yml` file by the trigger specification at the top of the workflow:
 
@@ -41,10 +41,10 @@ These usage patterns are supported in the `main.yml` file by the trigger specifi
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
   workflow_dispatch:
 ```
 
@@ -63,7 +63,7 @@ As the main focus of this usage pattern is to verify a code change, the full set
 To enable the developer to have more confidence in their proposed changes before a *Pull Request*, they can decide to use one of the manually executed workflows to verify their changes.
 The currently available manual workflows are:
 
-- `Main` - Same workflow that is used when changes are pushed to the `master` branch
+- `Main` - Same workflow that is used when changes are pushed to the `main` branch
 - `Core` - Specifically the `Lint` job and the `Core` and `Debug_Core` jobs
 - `Core and SDK Jobs` - Reduced set of jobs, only those necessary to build the `Core` and `SDK` jobs and their variations
 - `LLVM Tests` - Only the `LLVM_Tests` job
@@ -88,7 +88,7 @@ Jobs that are not in that short list include the above `if` conditional at the s
 
 ### Merging a Pull Request
 
-This usage pattern is a usage pattern to verify that the reviewed changes are still viable after those changes are merged into the `master` branch.
+This usage pattern is a usage pattern to verify that the reviewed changes are still viable after those changes are merged into the `main` branch.
 Like the scenario for **Before Full Request**, this usage pattern is about verification, executing the full set of jobs to achieve that goal.
 
 #### References
@@ -159,7 +159,7 @@ Therefore, the `steps` section for each job always starts with the following pre
 ```YAML
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
 
       - name: Setup Python 3.8
         uses: actions/setup-python@v2

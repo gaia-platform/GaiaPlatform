@@ -15,7 +15,7 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@main
       - name: Setup Action
         uses: ./.github/actions/setup-job
 
