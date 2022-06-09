@@ -1,9 +1,9 @@
 # third_party
-This is third-party code that is approved for internal use for either production or evaluation.
+This is third-party code that is used by Gaia Platform.
 
 ## Add dependencies
 1. Add the dependency and keep the information updated in
-[the open source software tracking spreadsheets](https://docs.google.com/spreadsheets/d/1xmSwPZsEAb50zUDuABF3JKRbJk_tNeBsVAndtTmKBLM/edit#gid=0).
+[LICENSE.third-party.txt](production/licenses/LICENSE.third-party.txt).
 
 2. Create the corresponding gdev entry for the build target and add the gdev
 configuration file for the dependency. For more details, check out
@@ -18,5 +18,3 @@ build. Examples can be found in the following dependencies:
     - [spdlog](production/spdlog/CMakeLists.txt)
     - [spdlog_setup](production/spdlog_setup/CMakeLists.txt)
     - [tabulate](production/tabulate/CMakeLists.txt)
-
-
