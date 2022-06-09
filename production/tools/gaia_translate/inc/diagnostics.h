@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
+// Copyright (c) Gaia Platform Authors
 //
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE.txt file
@@ -48,7 +48,7 @@ namespace translation
 
 // Strings used to build the version string
 static const char c_gaiat[] = "Gaia Translation Engine";
-static const char c_copyright[] = "Copyright (c) Gaia Platform LLC";
+static const char c_copyright[] = "Copyright (c) Gaia Platform Authors";
 
 // This is a command line error that can occur before we even get the
 // LLVM diagnostic sub-system.

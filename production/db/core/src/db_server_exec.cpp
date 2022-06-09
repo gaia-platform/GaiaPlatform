@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
+// Copyright (c) Gaia Platform Authors
 //
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE.txt file
@@ -66,7 +66,7 @@ static void usage()
 
 static void version()
 {
-    std::cerr << "Gaia DB Server " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+    std::cerr << "Gaia DB Server " << gaia_full_version() << "\nCopyright (c) Gaia Platform Authors\n";
 }
 
 // Replaces the tilde '~' with the full user home path.

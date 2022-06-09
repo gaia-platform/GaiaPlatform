@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###################################################
-# Copyright (c) Gaia Platform LLC
+# Copyright (c) Gaia Platform Authors
 #
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE.txt file

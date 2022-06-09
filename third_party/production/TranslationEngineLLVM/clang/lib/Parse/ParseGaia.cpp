@@ -12,7 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 /////////////////////////////////////////////
-// Modifications Copyright (c) Gaia Platform LLC
+// Modifications Copyright (c) Gaia Platform Authors
 // All rights reserved.
 /////////////////////////////////////////////
 
