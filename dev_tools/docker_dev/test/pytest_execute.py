@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###################################################
-# Copyright (c) Gaia Platform LLC
+# Copyright (c) Gaia Platform Authors
 #
 # Use of this source code is governed by the MIT
 # license that can be found in the LICENSE.txt file
@@ -12,7 +12,7 @@
 Module to provide functionality to test scripts from within pytest.
 
 This code copied from: https://github.com/jackdewinter/pyscan.
-Any changes made to this code above the base code are copyright by Gaia Platform LLC.
+Any changes made to this code above the base code are copyright by Gaia Platform Authors.
 """
 
 import difflib

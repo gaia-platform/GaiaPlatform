@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
+// Copyright (c) Gaia Platform Authors
 //
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE.txt file
@@ -252,7 +252,7 @@ string usage()
 string version()
 {
     std::stringstream ss;
-    ss << "Gaia Catalog Tool " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
+    ss << "Gaia Catalog Tool " << gaia_full_version() << "\nCopyright (c) Gaia Platform Authors\n";
     return ss.str();
 }
 

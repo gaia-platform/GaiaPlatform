@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
+// Copyright (c) Gaia Platform Authors
 //
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE.txt file
@@ -38,7 +38,7 @@ TEST_F(direct_access__one_to_one__test, connect_with_id)
     auto_transaction_t txn;
 
     auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee = create<employee_t>("Gaia Platform Authors");
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
@@ -65,7 +65,7 @@ TEST_F(direct_access__one_to_one__test, connect_with_dac_obj)
     auto_transaction_t txn(auto_transaction_t::no_auto_restart);
 
     auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee = create<employee_t>("Gaia Platform Authors");
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
@@ -114,7 +114,7 @@ TEST_F(direct_access__one_to_one__test, multiple_disconnect_same_obj_succeed)
     madeline_person.employee().disconnect();
     ASSERT_FALSE(madeline_person.employee());
 
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee = create<employee_t>("Gaia Platform Authors");
     madeline_person.employee().connect(madeline_employee);
 
     ASSERT_TRUE(madeline_person.employee().disconnect());
@@ -134,7 +134,7 @@ TEST_F(direct_access__one_to_one__test, multiple_connect_same_objects_succeed)
     auto_transaction_t txn;
 
     auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee1 = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee1 = create<employee_t>("Gaia Platform Authors");
     auto madeline_employee2 = create<employee_t>("Bazza LLC");
 
     ASSERT_TRUE(madeline_person.employee().connect(madeline_employee1));
@@ -166,7 +166,7 @@ TEST_F(direct_access__one_to_one__test, multiple_connect_different_objects_fail)
     auto madeline_person = create<person_t>("Madeline", "Clark");
     auto john_person = create<person_t>("John", "Doe");
 
-    auto madeline_employee1 = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee1 = create<employee_t>("Gaia Platform Authors");
 
     ASSERT_TRUE(madeline_person.employee().connect(madeline_employee1));
 
@@ -180,7 +180,7 @@ TEST_F(direct_access__one_to_one__test, out_of_sync_reference)
     auto_transaction_t txn;
 
     auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee1 = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee1 = create<employee_t>("Gaia Platform Authors");
 
     auto employee = madeline_person.employee();
 
@@ -252,7 +252,7 @@ TEST_F(direct_access__one_to_one__test, connect_multiple_relationship)
     auto madeline_person = create<person_t>("Madeline", "Clark");
     auto john_person = create<person_t>("John", "Doe");
 
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee = create<employee_t>("Gaia Platform Authors");
     auto john_employee = create<employee_t>("Bazza LLC");
 
     auto madeline_student = create<student_t>("UNIBO");
@@ -278,7 +278,7 @@ TEST_F(direct_access__one_to_one__test, deletion)
     auto_transaction_t txn;
 
     auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee = create<employee_t>("Gaia Platform Authors");
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
