@@ -34,6 +34,9 @@ extern "C"
 #include <utils/lsyscache.h>
 #include <utils/rel.h>
 #include <utils/syscache.h>
+#if defined(PG_MAJORVERSION_NUM) && PG_MAJORVERSION_NUM >= 14
+#include "optimizer/appendinfo.h"
+#endif
 
     // Module initialization function.
     extern void _PG_init();
@@ -77,10 +80,18 @@ extern "C"
 
     void gaia_end_foreign_scan(ForeignScanState* node);
 
+#if defined(PG_MAJORVERSION_NUM) && PG_MAJORVERSION_NUM >= 14
+    void gaia_add_foreign_update_targets(
+        PlannerInfo* root,
+        Index rtindex,
+        RangeTblEntry* target_rte,
+        Relation target_relation);
+#else
     void gaia_add_foreign_update_targets(
         Query* parse_tree,
         RangeTblEntry* target_rte,
         Relation target_relation);
+#endif
 
     List* gaia_plan_foreign_modify(
         PlannerInfo* root,
