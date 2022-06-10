@@ -441,10 +441,18 @@ extern "C" void gaia_end_foreign_scan(ForeignScanState* /*node*/)
  * DELETE operations, though UPDATE may still be feasible if the FDW
  * relies on an unchanging primary key to identify rows.)
  */
+#if defined(PG_MAJORVERSION_NUM) && PG_MAJORVERSION_NUM >= 14
+extern "C" void gaia_add_foreign_update_targets(
+    PlannerInfo* root,
+    Index rtindex,
+    RangeTblEntry* /*target_rte*/,
+    Relation target_relation)
+#else
 extern "C" void gaia_add_foreign_update_targets(
     Query* parse_tree,
     RangeTblEntry* /*target_rte*/,
     Relation target_relation)
+#endif
 {
     elog(DEBUG1, c_message_entering_function, __func__);
 
@@ -468,13 +476,21 @@ extern "C" void gaia_add_foreign_update_targets(
 
             // Make a Var representing the desired value.
             Var* var = makeVar(
+#if defined(PG_MAJORVERSION_NUM) && PG_MAJORVERSION_NUM >= 14
+                rtindex,
+#else
                 parse_tree->resultRelation,
+#endif
                 attr->attnum,
                 attr->atttypid,
                 attr->atttypmod,
                 attr->attcollation,
                 0);
 
+#if defined(PG_MAJORVERSION_NUM) && PG_MAJORVERSION_NUM >= 14
+            // Register it as a row-identity column needed by this target rel
+            add_row_identity_var(root, var, rtindex, attr_name);
+#else
             // Wrap it in a resjunk TLE with the right name.
             TargetEntry* tle = makeTargetEntry(
                 reinterpret_cast<Expr*>(var),
@@ -484,6 +500,7 @@ extern "C" void gaia_add_foreign_update_targets(
 
             // And add it to the query's targetlist.
             parse_tree->targetList = lappend(parse_tree->targetList, tle);
+#endif
             break;
         }
     }

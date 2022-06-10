@@ -9,6 +9,7 @@
 #include <cstdlib>
 
 #include <iostream>
+#include <limits>
 #include <string>
 
 #include <cpptoml.h>
