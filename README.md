@@ -4,7 +4,7 @@ GaiaPlatform - Main repository
 
 ## Gaia Platform Overview
 
-For an introduction to Gaia Platform, see: https://gaia-platform.github.io/gaia-platform-docs.io/index.html
+For an introduction to Gaia Platform, see: https://gaia-platform.github.io/gaia-platform-docs.io/index.html.
 
 If the above link is not available, the source HTML can also be retrieved from https://github.com/gaia-platform/gaia-platform-docs.io/blob/main/index.html.
 
