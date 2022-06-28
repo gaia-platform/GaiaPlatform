@@ -2,17 +2,17 @@ This page collects common guidelines for error messages. These guidelines also a
 
 * Follow proper capitalization and punctuation.
   * Good:
-
+    ```
     Process failed.
 
     DDL file not found!
-
+    ```
   * Bad:
-
+    ```
     process failed
 
     ddl file not found.
-
+    ```
 * Use single-quotes (not double-quotes) when referencing names or values that serve as identifiers. Do not quote values that have intrinsic meaning.
 
   * Good:
