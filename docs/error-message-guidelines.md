@@ -1,11 +1,11 @@
 This page collects common guidelines for error messages. These guidelines also apply to assert or log messages.
 
 * Follow proper capitalization and punctuation.
-  * Good:
+  * Good:<br>
 
-    Process failed.
+    Process failed.<br>
 
-    DDL file not found!
+    DDL file not found!<br>
 
   * Bad:
 
