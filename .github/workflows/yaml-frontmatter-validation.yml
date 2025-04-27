@@ -1,0 +1,51 @@
+name: YAML Frontmatter Validation
+
+on:
+  push:
+    paths:
+      - '**/*.md'
+
+jobs:
+  validate_yaml:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: List Markdown files
+        run: |
+          echo "Files to be validated:"
+          ls -l **/*.md || echo "No Markdown files found."
+
+      - name: Validate YAML frontmatter
+        uses: cschleiden/actions-linter@v1
+        with:
+          file-glob: '**/*.md'
+          schema: |
+            type: object
+            required:
+              - title
+              - status
+              - version
+              - date
+              - domain
+              - author
+              - repo
+              - compliance
+            properties:
+              title:
+                type: string
+              status:
+                enum: ['Draft A1', 'Review', 'Approved', 'Released']
+              version:
+                type: string
+              date:
+                format: date
+              domain:
+                type: string
+              author:
+                type: string
+              repo:
+                type: string
+              compliance:
+                enum: ['Pending Review', 'Compliant', 'Non-Compliant']

@@ -154,3 +154,30 @@ Note that Clion expects a `CMakeLists.txt` at the root of the project. We don't 
    - Press the play button on the left of each test.
 4. Modify
    - Add `EXPECT_EQ(true, false)` to any test, press the play button, observe the test being compiled, executed and the obvious failure.
+
+## YAML Frontmatter Validation Workflow
+
+This repository includes a GitHub Actions workflow to validate the YAML frontmatter in Markdown files. The workflow ensures that every Markdown file contains a complete and valid YAML frontmatter block that adheres to the specified schema.
+
+### How to Use the Workflow
+
+The workflow is triggered automatically on push events for Markdown files (`**/*.md`). It validates the YAML frontmatter in the changed Markdown files against the defined schema.
+
+### Interpreting the Results
+
+If the YAML frontmatter in a Markdown file does not match the schema, the workflow will fail, and the details of the validation errors will be displayed in the workflow logs. You can use this information to identify and fix the issues in the YAML frontmatter.
+
+### Example of a Valid YAML Frontmatter Block
+
+```yaml
+---
+title: "Example Title"
+status: "Draft A1"
+version: "1.0"
+date: "2023-01-01"
+domain: "example-domain"
+author: "Author Name"
+repo: "example-repo"
+compliance: "Pending Review"
+---
+```

@@ -350,6 +350,17 @@ jobs:
           job-name: ${{ github.job }}
           github-token: ${{ secrets.API_TOKEN_GITHUB }}
 
+  YAML_Frontmatter_Validation:
+    needs:
+      - Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@main
+
+      - name: Run YAML Frontmatter Validation
+        run: ./.github/workflows/yaml-frontmatter-validation.yml
+
   Final:
     needs:
       - Core
@@ -361,6 +372,7 @@ jobs:
 #      - Performance_Tests
       - Integration_Samples
 #      - Documentation
+      - YAML_Frontmatter_Validation
     runs-on: ubuntu-20.04
     steps:
       - uses: geekyeggo/delete-artifact@v1
